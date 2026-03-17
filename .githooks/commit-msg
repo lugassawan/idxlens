@@ -1,0 +1,17 @@
+#!/bin/sh
+# Commit-msg hook: enforce Conventional Commits format.
+
+msg=$(head -1 "$1")
+
+# Allow merge commits
+if echo "$msg" | grep -qE '^Merge '; then
+    exit 0
+fi
+
+if ! echo "$msg" | grep -qE '^(feat|fix|docs|refactor|test|build|ci|chore|revert): .+$'; then
+    echo "ERROR: Commit message must follow Conventional Commits format."
+    echo "  e.g. feat: add PDF classifier command"
+    echo "  e.g. fix: resolve PDF parsing edge case"
+    echo "  Got: $msg"
+    exit 1
+fi

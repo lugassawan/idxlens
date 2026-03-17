@@ -1,0 +1,35 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Go
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/vendor/
+
+# Custom golangci-lint binary
+/custom-gcl
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Worktrees
+.worktrees/
+.claude/.worktrees
+
+# Local scratch
+/tmp/
