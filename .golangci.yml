@@ -1,0 +1,100 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - decorder
+    - dupl
+    - dupword
+    - errname
+    - errorlint
+    - fatcontext
+    - forcetypeassert
+    - funcorder
+    - goconst
+    - gocritic
+    - gocognit
+    - gocyclo
+    - gosec
+    - intrange
+    - misspell
+    - modernize
+    - nakedret
+    - nilerr
+    - nilnil
+    - perfsprint
+    - prealloc
+    - predeclared
+    - recvcheck
+    - thelper
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - lll
+    - wastedassign
+    - whitespace
+    - tidygo
+  settings:
+    custom:
+      tidygo:
+        type: "module"
+        description: "tidygo custom lint rules (funcname, maxparams, nolateconst, nolocalstruct, nolateexport)"
+    decorder:
+      dec-order:
+        - type
+        - const
+        - var
+        - func
+      disable-dec-num-check: true
+    funcorder:
+      constructor: true
+      struct-method: true
+      alphabetical: false
+    gocognit:
+      min-complexity: 15
+    gocyclo:
+      min-complexity: 15
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+      ignore-calls: false
+      ignore-string-values: "%[a-zA-Z]"
+    lll:
+      line-length: 120
+    dupl:
+      threshold: 150
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - os.RemoveAll
+        - (io.ReadCloser).Close
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+  exclusions:
+    presets:
+      - std-error-handling
+      - common-false-positives
+    rules:
+      - path: (_test\.go|testutil/)
+        linters: [gosec]
+      - path: _test\.go
+        linters: [goconst]
+      - path: _test\.go
+        linters: [gocognit]
+      - path: _test\.go
+        linters: [tidygo]
+        text: "nolateexport:"
+
+formatters:
+  enable:
+    - gofmt
