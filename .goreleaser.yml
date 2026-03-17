@@ -17,9 +17,9 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X '{{ .ModulePath }}/internal/cli.Version={{ .Version }}'
-      - -X '{{ .ModulePath }}/internal/cli.Commit={{ .ShortCommit }}'
-      - -X '{{ .ModulePath }}/internal/cli.Date={{ .Date }}'
+      - -X '{{ .ModulePath }}/internal/cli.version={{ .Version }}'
+      - -X '{{ .ModulePath }}/internal/cli.commit={{ .ShortCommit }}'
+      - -X '{{ .ModulePath }}/internal/cli.date={{ .Date }}'
 
 archives:
   - formats:

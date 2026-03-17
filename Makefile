@@ -5,9 +5,9 @@ COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE    := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 MODULE  := github.com/lugassawan/idxlens
 LDFLAGS := -s -w \
-	-X '$(MODULE)/internal/cli.Version=$(VERSION)' \
-	-X '$(MODULE)/internal/cli.Commit=$(COMMIT)' \
-	-X '$(MODULE)/internal/cli.Date=$(DATE)'
+	-X '$(MODULE)/internal/cli.version=$(VERSION)' \
+	-X '$(MODULE)/internal/cli.commit=$(COMMIT)' \
+	-X '$(MODULE)/internal/cli.date=$(DATE)'
 
 build:
 	go build -ldflags="$(LDFLAGS)" -o bin/idxlens ./cmd/idxlens
