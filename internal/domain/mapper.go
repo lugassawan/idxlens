@@ -278,7 +278,7 @@ func (m *mapper) mapTableRows(
 			continue
 		}
 
-		if isGarbledText(label) {
+		if isGarbledText(label) || isSpacedOutText(label) {
 			continue
 		}
 
