@@ -112,7 +112,7 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		return nil, fmt.Errorf("map %s: no tables provided", docType)
 	}
 
-	dict, err := loadDictionaryForDocType(docType)
+	dict, err := LoadAllDictionaries()
 	if err != nil {
 		return nil, fmt.Errorf("map %s: %w", docType, err)
 	}
@@ -147,18 +147,6 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 // financial statement sections (e.g., audited reports and annual reports).
 func isCompositeDocType(docType DocType) bool {
 	return docType == DocTypeAuditorReport || docType == DocTypeAnnualReport
-}
-
-// loadDictionaryForDocType loads the appropriate dictionary based on the
-// document type. Composite types (audited reports, annual reports) load all
-// financial dictionaries merged together so labels from any statement type
-// can be matched.
-func loadDictionaryForDocType(docType DocType) (*Dictionary, error) {
-	if isCompositeDocType(docType) {
-		return LoadAllDictionaries()
-	}
-
-	return LoadDictionary(docType)
 }
 
 // deduplicateItems removes duplicate keyed items, keeping the one with the
