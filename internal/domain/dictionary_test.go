@@ -227,6 +227,41 @@ func TestDictionaryMatchLabelIncomeStatement(t *testing.T) {
 			wantKey:        "oci_not_reclassified",
 			wantConfidence: 0.6,
 		},
+		{
+			name:           "suffix stripped net match",
+			text:           "Fee and Commission Income - net",
+			lang:           "en",
+			wantKey:        "fee_and_commission_income",
+			wantConfidence: 0.85,
+		},
+		{
+			name:           "suffix stripped bersih match",
+			text:           "Pendapatan Provisi dan Komisi - bersih",
+			lang:           "id",
+			wantKey:        "fee_and_commission_income",
+			wantConfidence: 0.85,
+		},
+		{
+			name:           "suffix stripped net case insensitive",
+			text:           "Other Income (Expense) - Net",
+			lang:           "en",
+			wantKey:        "other_income_expense_net",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "plural to singular match expenses to expense",
+			text:           "Selling Expense",
+			lang:           "en",
+			wantKey:        "selling_expenses",
+			wantConfidence: 0.85,
+		},
+		{
+			name:           "singular to plural match expense to expenses",
+			text:           "Rental Expense",
+			lang:           "en",
+			wantKey:        "rental_expenses",
+			wantConfidence: 0.85,
+		},
 	}
 
 	for _, tt := range tests {
@@ -243,6 +278,57 @@ func TestDictionaryMatchLabelIncomeStatement(t *testing.T) {
 
 			if confidence != tt.wantConfidence {
 				t.Errorf("confidence = %f, want %f", confidence, tt.wantConfidence)
+			}
+		})
+	}
+}
+
+func TestStripSuffix(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "strip net", input: "income - net", want: "income"},
+		{name: "strip bersih", input: "pendapatan - bersih", want: "pendapatan"},
+		{name: "strip net no space before dash", input: "income -net", want: "income"},
+		{name: "no suffix unchanged", input: "interest income", want: "interest income"},
+		{name: "net in middle unchanged", input: "net income", want: "net income"},
+		{name: "empty string", input: "", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripSuffix(tt.input)
+			if got != tt.want {
+				t.Errorf("stripSuffix(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatchPlural(t *testing.T) {
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want bool
+	}{
+		{name: "expense vs expenses", a: "expense", b: "expenses", want: true},
+		{name: "expenses vs expense", a: "expenses", b: "expense", want: true},
+		{name: "selling expense vs selling expenses", a: "selling expense", b: "selling expenses", want: true},
+		{name: "fee vs fees", a: "fee", b: "fees", want: true},
+		{name: "same word no plural", a: "income", b: "income", want: false},
+		{name: "different words", a: "income", b: "expense", want: false},
+		{name: "different word count", a: "selling", b: "selling expenses", want: false},
+		{name: "different prefix", a: "selling expense", b: "rental expenses", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := matchPlural(tt.a, tt.b)
+			if got != tt.want {
+				t.Errorf("matchPlural(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
 			}
 		})
 	}
