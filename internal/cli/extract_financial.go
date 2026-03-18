@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"github.com/lugassawan/idxlens/internal/pdf"
 	"github.com/lugassawan/idxlens/internal/table"
 )
-
-var errUnknownDocType = errors.New("classify document: unable to determine report type, use --type flag")
 
 var extractFinancialCmd = &cobra.Command{
 	Use:   "financial [pdf-path]",
@@ -118,7 +115,7 @@ func extractStatement(pdfPath string, docType domain.DocType) (*domain.Financial
 	mapper := domain.NewMapper()
 	stmt, err := mapper.Map(resolvedType, tables)
 	if err != nil {
-		return nil, fmt.Errorf("map financial data: %w", err)
+		return emptyStatement(resolvedType), nil
 	}
 
 	return stmt, nil
@@ -156,10 +153,6 @@ func resolveDocType(docType domain.DocType, pages []layout.LayoutPage) (domain.D
 		return "", fmt.Errorf("classify document: %w", err)
 	}
 
-	if classification.Type == domain.DocTypeUnknown {
-		return "", errUnknownDocType
-	}
-
 	return classification.Type, nil
 }
 
@@ -195,6 +188,13 @@ func extractPageText(page layout.LayoutPage) []string {
 	}
 
 	return texts
+}
+
+func emptyStatement(docType domain.DocType) *domain.FinancialStatement {
+	return &domain.FinancialStatement{
+		Type:  docType,
+		Items: []domain.LineItem{},
+	}
 }
 
 func writeStatement(cmd *cobra.Command, stmt *domain.FinancialStatement, flags financialFlags) error {
