@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/lugassawan/idxlens/internal/table"
+)
+
+const (
+	currencyIDR = "IDR"
+	currencyUSD = "USD"
 )
 
 // Mapper maps raw table data into a standardized FinancialStatement.
@@ -16,23 +22,38 @@ type Mapper interface {
 
 var (
 	periodPatternID = regexp.MustCompile(
-		`\d{1,2}\s+` +
-			`(?:Januari|Februari|Maret|April|Mei|Juni|Juli|` +
+		`(\d{1,2})\s+` +
+			`(Januari|Februari|Maret|April|Mei|Juni|Juli|` +
 			`Agustus|September|Oktober|November|Desember)` +
-			`\s+\d{4}`,
+			`\s+(\d{4})`,
 	)
 	periodPatternEN = regexp.MustCompile(
-		`(?:January|February|March|April|May|June|July|` +
+		`(January|February|March|April|May|June|July|` +
 			`August|September|October|November|December)` +
-			`\s+\d{1,2},?\s+\d{4}`,
+			`\s+(\d{1,2}),?\s+(\d{4})`,
 	)
 	companyPattern = regexp.MustCompile(`PT\s+.+\s+Tbk`)
 	currencyUnitID = regexp.MustCompile(
-		`(?i)dalam\s+(jutaan|miliar|ribuan)\s+(rupiah|dolar)`,
+		`(?i)dalam\s+(jutaan|miliar(?:an)?|ribuan)\s+(rupiah|dolar)`,
 	)
 	currencyUnitEN = regexp.MustCompile(
-		`(?i)in\s+(millions?|billions?|thousands?)\s+of\s+(rupiah|dollars?)`,
+		`(?i)(?:expressed\s+in\s+|in\s+)(millions?|billions?|thousands?)\s+(?:of\s+)?(rupiah|dollars?)`,
 	)
+	currencyUnitSlash = regexp.MustCompile(
+		`(?i)(jutaan|miliar(?:an)?|ribuan|millions?|billions?|thousands?)` +
+			`\s*/\s*` +
+			`(?:in\s+)?(millions?|billions?|thousands?)`,
+	)
+	monthsID = map[string]int{
+		"januari": 1, "februari": 2, "maret": 3, "april": 4,
+		"mei": 5, "juni": 6, "juli": 7, "agustus": 8,
+		"september": 9, "oktober": 10, "november": 11, "desember": 12,
+	}
+	monthsEN = map[string]int{
+		"january": 1, "february": 2, "march": 3, "april": 4,
+		"may": 5, "june": 6, "july": 7, "august": 8,
+		"september": 9, "october": 10, "november": 11, "december": 12,
+	}
 )
 
 // NewMapper creates a new Mapper that uses embedded dictionaries for label
@@ -57,7 +78,9 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		Type: docType,
 	}
 
-	for _, tbl := range tables {
+	financialTables := filterFinancialTables(tables)
+
+	for _, tbl := range financialTables {
 		m.extractMetadata(tbl, stmt)
 	}
 
@@ -65,7 +88,7 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		stmt.Language = "id"
 	}
 
-	for _, tbl := range tables {
+	for _, tbl := range financialTables {
 		items := m.mapTableRows(tbl, dict, stmt)
 		stmt.Items = append(stmt.Items, items...)
 	}
@@ -163,9 +186,10 @@ func (m *mapper) parseRowValues(
 }
 
 func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
-	for _, match := range periodPatternID.FindAllString(text, -1) {
-		if !slices.Contains(stmt.Periods, match) {
-			stmt.Periods = append(stmt.Periods, match)
+	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
+		iso := formatDateISO(groups[1], groups[2], groups[3], monthsID)
+		if iso != "" && !slices.Contains(stmt.Periods, iso) {
+			stmt.Periods = append(stmt.Periods, iso)
 
 			if stmt.Language == "" {
 				stmt.Language = "id"
@@ -173,15 +197,35 @@ func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
 		}
 	}
 
-	for _, match := range periodPatternEN.FindAllString(text, -1) {
-		if !slices.Contains(stmt.Periods, match) {
-			stmt.Periods = append(stmt.Periods, match)
+	for _, groups := range periodPatternEN.FindAllStringSubmatch(text, -1) {
+		iso := formatDateISO(groups[2], groups[1], groups[3], monthsEN)
+		if iso != "" && !slices.Contains(stmt.Periods, iso) {
+			stmt.Periods = append(stmt.Periods, iso)
 
 			if stmt.Language == "" {
 				stmt.Language = "en"
 			}
 		}
 	}
+}
+
+func formatDateISO(dayStr, monthStr, yearStr string, months map[string]int) string {
+	day, err := strconv.Atoi(dayStr)
+	if err != nil {
+		return ""
+	}
+
+	month, ok := months[strings.ToLower(monthStr)]
+	if !ok {
+		return ""
+	}
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%04d-%02d-%02d", year, month, day)
 }
 
 func (m *mapper) detectCurrencyUnit(text string, stmt *FinancialStatement) {
@@ -199,7 +243,71 @@ func (m *mapper) detectCurrencyUnit(text string, stmt *FinancialStatement) {
 	if matches := currencyUnitEN.FindStringSubmatch(text); len(matches) == 3 {
 		stmt.Unit = normalizeUnit(matches[1])
 		stmt.Currency = normalizeCurrency(matches[2])
+
+		return
 	}
+
+	if matches := currencyUnitSlash.FindStringSubmatch(text); len(matches) == 3 {
+		stmt.Unit = normalizeUnit(matches[1])
+		stmt.Currency = inferCurrencyFromContext(text)
+	}
+}
+
+func inferCurrencyFromContext(text string) string {
+	lower := strings.ToLower(text)
+
+	switch {
+	case strings.Contains(lower, "rupiah"):
+		return currencyIDR
+	case strings.Contains(lower, "dolar"), strings.Contains(lower, "dollar"):
+		return currencyUSD
+	default:
+		return currencyIDR
+	}
+}
+
+func filterFinancialTables(tables []table.Table) []table.Table {
+	if len(tables) <= 1 {
+		return tables
+	}
+
+	var result []table.Table
+
+	for _, tbl := range tables {
+		if tbl.PageNum == 1 {
+			continue
+		}
+
+		if isSubsidiaryTable(tbl) {
+			continue
+		}
+
+		result = append(result, tbl)
+	}
+
+	if len(result) == 0 {
+		return tables
+	}
+
+	return result
+}
+
+func isSubsidiaryTable(tbl table.Table) bool {
+	keywords := []string{
+		"anak perusahaan", "entitas anak", "subsidiary",
+		"subsidiaries", "daftar perusahaan",
+	}
+
+	for _, header := range tbl.Headers {
+		lower := strings.ToLower(header)
+		for _, kw := range keywords {
+			if strings.Contains(lower, kw) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (m *mapper) detectCompany(text string, stmt *FinancialStatement) {
@@ -285,10 +393,10 @@ func normalizeCurrency(raw string) string {
 	lower := strings.ToLower(raw)
 	switch {
 	case strings.HasPrefix(lower, "rupiah"):
-		return "IDR"
+		return currencyIDR
 	case strings.HasPrefix(lower, "dolar"),
 		strings.HasPrefix(lower, "dollar"):
-		return "USD"
+		return currencyUSD
 	default:
 		return strings.ToUpper(raw)
 	}
