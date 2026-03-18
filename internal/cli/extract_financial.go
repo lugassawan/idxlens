@@ -173,10 +173,28 @@ func detectTables(pages []layout.LayoutPage) ([]table.Table, error) {
 			return nil, fmt.Errorf("detect tables on page %d: %w", page.Number, err)
 		}
 
+		pageText := extractPageText(page)
+
+		for i := range pageTables {
+			pageTables[i].PageText = pageText
+		}
+
 		tables = append(tables, pageTables...)
 	}
 
 	return tables, nil
+}
+
+func extractPageText(page layout.LayoutPage) []string {
+	texts := make([]string, 0, len(page.Lines))
+
+	for _, line := range page.Lines {
+		if line.Text != "" {
+			texts = append(texts, line.Text)
+		}
+	}
+
+	return texts
 }
 
 func writeStatement(cmd *cobra.Command, stmt *domain.FinancialStatement, flags financialFlags) error {

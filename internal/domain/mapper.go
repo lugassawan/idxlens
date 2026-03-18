@@ -11,8 +11,12 @@ import (
 )
 
 const (
-	currencyIDR = "IDR"
-	currencyUSD = "USD"
+	currencyIDR      = "IDR"
+	currencyUSD      = "USD"
+	metadataScanRows = 5
+	unitMillions     = "millions"
+	unitBillions     = "billions"
+	unitThousands    = "thousands"
 )
 
 // Mapper maps raw table data into a standardized FinancialStatement.
@@ -31,6 +35,12 @@ var (
 		`(January|February|March|April|May|June|July|` +
 			`August|September|October|November|December)` +
 			`\s+(\d{1,2}),?\s+(\d{4})`,
+	)
+	periodPatternENDayFirst = regexp.MustCompile(
+		`(\d{1,2})\s+` +
+			`(January|February|March|April|May|June|July|` +
+			`August|September|October|November|December)` +
+			`\s+(\d{4})`,
 	)
 	companyPattern = regexp.MustCompile(`PT\s+.+\s+Tbk`)
 	currencyUnitID = regexp.MustCompile(
@@ -54,7 +64,24 @@ var (
 		"may": 5, "june": 6, "july": 7, "august": 8,
 		"september": 9, "october": 10, "november": 11, "december": 12,
 	}
+	xbrlCodePattern    = regexp.MustCompile(`\[(\d{7})\]`)
+	leadingNumberRegex = regexp.MustCompile(
+		`^(\(?\s*-?\s*[\d][,.\d]*\s*\)?)`,
+	)
 )
+
+// xbrlPageRange represents a contiguous page range for one XBRL section.
+type xbrlPageRange struct {
+	start int
+	end   int
+}
+
+// pageMarker associates a page number with a detected document type from an
+// XBRL taxonomy code.
+type pageMarker struct {
+	page    int
+	docType DocType
+}
 
 // NewMapper creates a new Mapper that uses embedded dictionaries for label
 // matching and Indonesian number format parsing.
@@ -78,15 +105,15 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		Type: docType,
 	}
 
-	financialTables := filterFinancialTables(tables)
-
-	for _, tbl := range financialTables {
+	for _, tbl := range tables {
 		m.extractMetadata(tbl, stmt)
 	}
 
 	if stmt.Language == "" {
 		stmt.Language = "id"
 	}
+
+	financialTables := filterFinancialTables(tables, docType)
 
 	for _, tbl := range financialTables {
 		items := m.mapTableRows(tbl, dict, stmt)
@@ -103,12 +130,19 @@ func (m *mapper) extractMetadata(tbl table.Table, stmt *FinancialStatement) {
 		m.detectCompany(header, stmt)
 	}
 
-	if len(tbl.Rows) > 0 {
-		for _, cell := range tbl.Rows[0].Cells {
+	scanRows := min(metadataScanRows, len(tbl.Rows))
+
+	for i := range scanRows {
+		for _, cell := range tbl.Rows[i].Cells {
 			m.detectPeriod(cell.Text, stmt)
 			m.detectCurrencyUnit(cell.Text, stmt)
 			m.detectCompany(cell.Text, stmt)
 		}
+	}
+
+	for _, text := range tbl.PageText {
+		m.detectCurrencyUnit(text, stmt)
+		m.detectCompany(text, stmt)
 	}
 }
 
@@ -127,6 +161,10 @@ func (m *mapper) mapTableRows(
 
 		label := strings.TrimSpace(row.Cells[0].Text)
 		if label == "" {
+			continue
+		}
+
+		if isMetadataRow(row) {
 			continue
 		}
 
@@ -173,7 +211,10 @@ func (m *mapper) parseRowValues(
 
 		val, err := ParseNumber(text)
 		if err != nil {
-			continue
+			val, err = extractLeadingNumber(text)
+			if err != nil {
+				continue
+			}
 		}
 
 		periodIdx := i - 1
@@ -185,27 +226,47 @@ func (m *mapper) parseRowValues(
 	}
 }
 
-func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
-	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
-		iso := formatDateISO(groups[1], groups[2], groups[3], monthsID)
-		if iso != "" && !slices.Contains(stmt.Periods, iso) {
-			stmt.Periods = append(stmt.Periods, iso)
-
-			if stmt.Language == "" {
-				stmt.Language = "id"
-			}
-		}
+func extractLeadingNumber(text string) (float64, error) {
+	match := leadingNumberRegex.FindString(text)
+	if match == "" {
+		return 0, ErrNotANumber
 	}
 
-	for _, groups := range periodPatternEN.FindAllStringSubmatch(text, -1) {
-		iso := formatDateISO(groups[2], groups[1], groups[3], monthsEN)
-		if iso != "" && !slices.Contains(stmt.Periods, iso) {
-			stmt.Periods = append(stmt.Periods, iso)
+	match = strings.TrimSpace(match)
+	if match == text {
+		return 0, ErrNotANumber
+	}
 
-			if stmt.Language == "" {
-				stmt.Language = "en"
-			}
-		}
+	return ParseNumber(match)
+}
+
+func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
+	// Indonesian: "31 Desember 2025" (DD Month YYYY)
+	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsID, "id")
+	}
+
+	// English month-first: "December 31, 2025"
+	for _, groups := range periodPatternEN.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[2], groups[1], groups[3], monthsEN, "en")
+	}
+
+	// English day-first: "31 December 2025"
+	for _, groups := range periodPatternENDayFirst.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
+	}
+}
+
+func addPeriod(stmt *FinancialStatement, day, month, year string, months map[string]int, lang string) {
+	iso := formatDateISO(day, month, year, months)
+	if iso == "" || slices.Contains(stmt.Periods, iso) {
+		return
+	}
+
+	stmt.Periods = append(stmt.Periods, iso)
+
+	if stmt.Language == "" {
+		stmt.Language = lang
 	}
 }
 
@@ -266,11 +327,42 @@ func inferCurrencyFromContext(text string) string {
 	}
 }
 
-func filterFinancialTables(tables []table.Table) []table.Table {
+func filterFinancialTables(tables []table.Table, docType DocType) []table.Table {
 	if len(tables) <= 1 {
 		return tables
 	}
 
+	pageRange := detectXBRLPageRange(tables, docType)
+	if pageRange != nil {
+		return filterByPageRange(tables, pageRange)
+	}
+
+	return filterByHeuristic(tables)
+}
+
+func filterByPageRange(tables []table.Table, pr *xbrlPageRange) []table.Table {
+	var result []table.Table
+
+	for _, tbl := range tables {
+		if tbl.PageNum < pr.start || tbl.PageNum > pr.end {
+			continue
+		}
+
+		if isSubsidiaryTable(tbl) {
+			continue
+		}
+
+		result = append(result, tbl)
+	}
+
+	if len(result) == 0 {
+		return filterByHeuristic(tables)
+	}
+
+	return result
+}
+
+func filterByHeuristic(tables []table.Table) []table.Table {
 	var result []table.Table
 
 	for _, tbl := range tables {
@@ -292,6 +384,88 @@ func filterFinancialTables(tables []table.Table) []table.Table {
 	return result
 }
 
+func detectXBRLPageRange(tables []table.Table, docType DocType) *xbrlPageRange {
+	markers := scanXBRLMarkers(tables)
+	if len(markers) == 0 {
+		return nil
+	}
+
+	targetPage := findTargetPage(markers, docType)
+	if targetPage == 0 {
+		return nil
+	}
+
+	endPage := findEndPage(markers, tables, docType, targetPage)
+
+	return &xbrlPageRange{start: targetPage, end: endPage}
+}
+
+func scanXBRLMarkers(tables []table.Table) []pageMarker {
+	var markers []pageMarker
+
+	for _, tbl := range tables {
+		for _, text := range collectTableText(tbl) {
+			for code, dt := range xbrlMarkers {
+				if strings.Contains(text, code) {
+					markers = append(markers, pageMarker{page: tbl.PageNum, docType: dt})
+				}
+			}
+		}
+	}
+
+	return markers
+}
+
+func findTargetPage(markers []pageMarker, docType DocType) int {
+	for _, m := range markers {
+		if m.docType == docType {
+			return m.page
+		}
+	}
+
+	return 0
+}
+
+func findEndPage(markers []pageMarker, tables []table.Table, docType DocType, targetPage int) int {
+	endPage := maxTablePage(tables)
+
+	for _, m := range markers {
+		if m.page > targetPage && m.page <= endPage && m.docType != docType {
+			endPage = m.page - 1
+		}
+	}
+
+	return endPage
+}
+
+func collectTableText(tbl table.Table) []string {
+	texts := make([]string, 0, len(tbl.Headers)+len(tbl.PageText))
+	texts = append(texts, tbl.Headers...)
+	texts = append(texts, tbl.PageText...)
+
+	scanRows := min(metadataScanRows, len(tbl.Rows))
+
+	for i := range scanRows {
+		for _, cell := range tbl.Rows[i].Cells {
+			texts = append(texts, cell.Text)
+		}
+	}
+
+	return texts
+}
+
+func maxTablePage(tables []table.Table) int {
+	maxPage := 0
+
+	for _, tbl := range tables {
+		if tbl.PageNum > maxPage {
+			maxPage = tbl.PageNum
+		}
+	}
+
+	return maxPage
+}
+
 func isSubsidiaryTable(tbl table.Table) bool {
 	keywords := []string{
 		"anak perusahaan", "entitas anak", "subsidiary",
@@ -308,6 +482,31 @@ func isSubsidiaryTable(tbl table.Table) bool {
 	}
 
 	return false
+}
+
+func isMetadataRow(row table.Row) bool {
+	for _, cell := range row.Cells {
+		text := strings.TrimSpace(cell.Text)
+		if text == "" {
+			continue
+		}
+
+		if containsPeriodDate(text) {
+			return true
+		}
+
+		if xbrlCodePattern.MatchString(text) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsPeriodDate(text string) bool {
+	return periodPatternID.MatchString(text) ||
+		periodPatternEN.MatchString(text) ||
+		periodPatternENDayFirst.MatchString(text)
 }
 
 func (m *mapper) detectCompany(text string, stmt *FinancialStatement) {
@@ -377,13 +576,13 @@ func normalizeUnit(raw string) string {
 	switch {
 	case strings.HasPrefix(lower, "juta"),
 		strings.HasPrefix(lower, "million"):
-		return "millions"
+		return unitMillions
 	case strings.HasPrefix(lower, "miliar"),
 		strings.HasPrefix(lower, "billion"):
-		return "billions"
+		return unitBillions
 	case strings.HasPrefix(lower, "ribu"),
 		strings.HasPrefix(lower, "thousand"):
-		return "thousands"
+		return unitThousands
 	default:
 		return lower
 	}
