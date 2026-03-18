@@ -1,0 +1,15 @@
+.git
+.github
+.githooks
+.claude
+bin/
+dist/
+coverage/
+custom-gcl
+testdata/
+*.md
+LICENSE
+.goreleaser.yml
+.custom-gcl.yml
+.golangci.yml
+.mise.toml
