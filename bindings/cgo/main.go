@@ -7,7 +7,6 @@ import "C"
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -21,8 +20,6 @@ import (
 )
 
 const maxClassifyPages = 3
-
-var errUnknownDocType = errors.New("classify document: unable to determine report type")
 
 //export ExtractJSON
 func ExtractJSON(pdfPath *C.char, docType *C.char) *C.char {
@@ -83,7 +80,7 @@ func extractJSON(pdfPath, docTypeStr string) (string, error) {
 
 	stmt, err := mapper.Map(resolvedType, tables)
 	if err != nil {
-		return "", fmt.Errorf("map financial data: %w", err)
+		return formatJSON(emptyStatement(resolvedType))
 	}
 
 	return formatJSON(stmt)
@@ -160,10 +157,6 @@ func resolveDocType(docType domain.DocType, pages []layout.LayoutPage) (domain.D
 		return "", fmt.Errorf("classify document: %w", err)
 	}
 
-	if classification.Type == domain.DocTypeUnknown {
-		return "", errUnknownDocType
-	}
-
 	return classification.Type, nil
 }
 
@@ -182,6 +175,13 @@ func detectTables(pages []layout.LayoutPage) ([]table.Table, error) {
 	}
 
 	return tables, nil
+}
+
+func emptyStatement(docType domain.DocType) *domain.FinancialStatement {
+	return &domain.FinancialStatement{
+		Type:  docType,
+		Items: []domain.LineItem{},
+	}
 }
 
 func formatJSON(stmt *domain.FinancialStatement) (string, error) {

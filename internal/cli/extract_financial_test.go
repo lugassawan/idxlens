@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lugassawan/idxlens/internal/domain"
 )
 
 func TestExtractFinancialMissingFile(t *testing.T) {
@@ -75,6 +77,47 @@ func TestExtractFinancialOutputToFile(t *testing.T) {
 	// which confirms the flag is accepted.
 	if !strings.Contains(err.Error(), "parse pdf") {
 		t.Errorf("error should contain %q, got %q", "parse pdf", err.Error())
+	}
+}
+
+func TestEmptyStatement(t *testing.T) {
+	tests := []struct {
+		name    string
+		docType domain.DocType
+	}{
+		{name: "unknown type", docType: domain.DocTypeUnknown},
+		{name: "balance sheet", docType: domain.DocTypeBalanceSheet},
+		{name: "empty string type", docType: domain.DocType("")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmt := emptyStatement(tt.docType)
+
+			if stmt == nil {
+				t.Fatal("emptyStatement returned nil")
+			}
+
+			if stmt.Type != tt.docType {
+				t.Errorf("Type = %q, want %q", stmt.Type, tt.docType)
+			}
+
+			if stmt.Items == nil {
+				t.Error("Items is nil, want non-nil empty slice")
+			}
+
+			if len(stmt.Items) != 0 {
+				t.Errorf("Items length = %d, want 0", len(stmt.Items))
+			}
+
+			if stmt.Company != "" {
+				t.Errorf("Company = %q, want empty", stmt.Company)
+			}
+
+			if stmt.Periods != nil {
+				t.Errorf("Periods = %v, want nil", stmt.Periods)
+			}
+		})
 	}
 }
 
