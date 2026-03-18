@@ -18,9 +18,16 @@ func TestLoadDictionary(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "unsupported type returns error",
+			name:    "income statement loads successfully",
 			docType: DocTypeIncomeStatement,
-			wantErr: true,
+		},
+		{
+			name:    "cash flow loads successfully",
+			docType: DocTypeCashFlow,
+		},
+		{
+			name:    "equity changes loads successfully",
+			docType: DocTypeEquityChanges,
 		},
 	}
 
@@ -162,4 +169,58 @@ func TestDictionaryMatchLabel(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDictionaryValidation(t *testing.T) {
+	docTypes := []DocType{
+		DocTypeBalanceSheet,
+		DocTypeIncomeStatement,
+		DocTypeCashFlow,
+		DocTypeEquityChanges,
+	}
+
+	totalItems := 0
+
+	for _, docType := range docTypes {
+		t.Run("validate_"+string(docType), func(t *testing.T) {
+			dict, err := LoadDictionary(docType)
+			if err != nil {
+				t.Fatalf("failed to load %s: %v", docType, err)
+			}
+
+			if len(dict.Items) == 0 {
+				t.Fatalf("dictionary %s has no items", docType)
+			}
+
+			totalItems += len(dict.Items)
+
+			seen := make(map[string]bool)
+			for _, item := range dict.Items {
+				if seen[item.Key] {
+					t.Errorf("duplicate key %q in %s", item.Key, docType)
+				}
+				seen[item.Key] = true
+
+				idLabels := item.Labels["id"]
+				if len(idLabels) == 0 {
+					t.Errorf("item %q missing Indonesian labels", item.Key)
+				}
+
+				enLabels := item.Labels["en"]
+				if len(enLabels) == 0 {
+					t.Errorf("item %q missing English labels", item.Key)
+				}
+
+				if item.Section == "" {
+					t.Errorf("item %q has empty section", item.Key)
+				}
+			}
+		})
+	}
+
+	t.Run("total item count", func(t *testing.T) {
+		if totalItems < 200 {
+			t.Errorf("total items across all dictionaries = %d, want >= 200", totalItems)
+		}
+	})
 }

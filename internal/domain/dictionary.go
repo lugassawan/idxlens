@@ -99,7 +99,10 @@ func matchLabels(normalized string, lowered string, labels []string) float64 {
 
 func docTypeFilename(docType DocType) (string, error) {
 	filenames := map[DocType]string{
-		DocTypeBalanceSheet: "balance_sheet.json",
+		DocTypeBalanceSheet:    "balance_sheet.json",
+		DocTypeIncomeStatement: "income_statement.json",
+		DocTypeCashFlow:        "cash_flow.json",
+		DocTypeEquityChanges:   "equity_changes.json",
 	}
 
 	filename, ok := filenames[docType]

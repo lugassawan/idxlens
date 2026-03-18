@@ -1,0 +1,456 @@
+{
+  "type": "cash-flow",
+  "version": 1,
+  "items": [
+    {
+      "key": "cash_flows_from_operating",
+      "labels": {
+        "id": ["Arus Kas dari Aktivitas Operasi", "ARUS KAS DARI AKTIVITAS OPERASI"],
+        "en": ["Cash Flows from Operating Activities", "CASH FLOWS FROM OPERATING ACTIVITIES"]
+      },
+      "section": "operating",
+      "level": 0
+    },
+    {
+      "key": "receipts_from_customers",
+      "labels": {
+        "id": ["Penerimaan Kas dari Pelanggan", "Penerimaan dari Pelanggan"],
+        "en": ["Cash Receipts from Customers", "Receipts from Customers"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payments_to_suppliers",
+      "labels": {
+        "id": ["Pembayaran kepada Pemasok", "Pembayaran Kas kepada Pemasok"],
+        "en": ["Payments to Suppliers", "Cash Paid to Suppliers"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payments_to_employees",
+      "labels": {
+        "id": ["Pembayaran kepada Karyawan", "Pembayaran Gaji dan Tunjangan"],
+        "en": ["Payments to Employees", "Payments for Employee Benefits"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "cash_generated_from_operations",
+      "labels": {
+        "id": ["Kas Dihasilkan dari Operasi", "Kas yang Dihasilkan dari Operasi"],
+        "en": ["Cash Generated from Operations"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "interest_received",
+      "labels": {
+        "id": ["Penerimaan Bunga"],
+        "en": ["Interest Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "interest_paid",
+      "labels": {
+        "id": ["Pembayaran Bunga"],
+        "en": ["Interest Paid"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "income_taxes_paid",
+      "labels": {
+        "id": ["Pembayaran Pajak Penghasilan", "Pajak Penghasilan yang Dibayar"],
+        "en": ["Income Taxes Paid", "Taxes Paid"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "income_taxes_refunded",
+      "labels": {
+        "id": ["Penerimaan Restitusi Pajak", "Pengembalian Pajak Penghasilan"],
+        "en": ["Income Taxes Refunded", "Tax Refunds Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "dividends_received_operating",
+      "labels": {
+        "id": ["Penerimaan Dividen"],
+        "en": ["Dividends Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "other_operating_receipts",
+      "labels": {
+        "id": ["Penerimaan Kas Operasi Lainnya", "Penerimaan Lainnya"],
+        "en": ["Other Operating Cash Receipts", "Other Receipts"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "insurance_premiums_received",
+      "labels": {
+        "id": ["Penerimaan Premi Asuransi"],
+        "en": ["Insurance Premiums Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "insurance_claims_paid",
+      "labels": {
+        "id": ["Pembayaran Klaim Asuransi"],
+        "en": ["Insurance Claims Paid"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "royalties_received",
+      "labels": {
+        "id": ["Penerimaan Royalti"],
+        "en": ["Royalties Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "fees_and_commissions_received",
+      "labels": {
+        "id": ["Penerimaan Provisi dan Komisi"],
+        "en": ["Fees and Commissions Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payments_for_operating_leases",
+      "labels": {
+        "id": ["Pembayaran Sewa Operasi"],
+        "en": ["Payments for Operating Leases"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "other_operating_payments",
+      "labels": {
+        "id": ["Pembayaran Kas Operasi Lainnya", "Pembayaran Lainnya"],
+        "en": ["Other Operating Cash Payments", "Other Payments"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "net_cash_from_operating",
+      "labels": {
+        "id": ["Kas Bersih Diperoleh dari Aktivitas Operasi", "Arus Kas Bersih dari Aktivitas Operasi"],
+        "en": ["Net Cash from Operating Activities", "Net Cash Provided by Operating Activities"]
+      },
+      "section": "operating",
+      "level": 0
+    },
+    {
+      "key": "cash_flows_from_investing",
+      "labels": {
+        "id": ["Arus Kas dari Aktivitas Investasi", "ARUS KAS DARI AKTIVITAS INVESTASI"],
+        "en": ["Cash Flows from Investing Activities", "CASH FLOWS FROM INVESTING ACTIVITIES"]
+      },
+      "section": "investing",
+      "level": 0
+    },
+    {
+      "key": "purchase_of_fixed_assets",
+      "labels": {
+        "id": ["Pembelian Aset Tetap", "Perolehan Aset Tetap"],
+        "en": ["Purchase of Fixed Assets", "Acquisition of Property, Plant and Equipment"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_sale_of_assets",
+      "labels": {
+        "id": ["Hasil Penjualan Aset Tetap", "Penerimaan dari Penjualan Aset Tetap"],
+        "en": ["Proceeds from Sale of Fixed Assets", "Proceeds from Disposal of Assets"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "purchase_of_intangible_assets",
+      "labels": {
+        "id": ["Pembelian Aset Takberwujud", "Perolehan Aset Takberwujud"],
+        "en": ["Purchase of Intangible Assets"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "purchase_of_investment_properties",
+      "labels": {
+        "id": ["Pembelian Properti Investasi", "Perolehan Properti Investasi"],
+        "en": ["Purchase of Investment Properties"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "acquisition_of_subsidiaries",
+      "labels": {
+        "id": ["Akuisisi Entitas Anak", "Pembelian Entitas Anak"],
+        "en": ["Acquisition of Subsidiaries", "Purchase of Subsidiaries"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_sale_of_investments",
+      "labels": {
+        "id": ["Hasil Penjualan Investasi", "Penerimaan dari Penjualan Investasi"],
+        "en": ["Proceeds from Sale of Investments"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "purchase_of_investments",
+      "labels": {
+        "id": ["Pembelian Investasi", "Penempatan Investasi"],
+        "en": ["Purchase of Investments", "Placement of Investments"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "loans_granted",
+      "labels": {
+        "id": ["Pemberian Pinjaman"],
+        "en": ["Loans Granted"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "loan_repayments_received",
+      "labels": {
+        "id": ["Penerimaan dari Pelunasan Pinjaman"],
+        "en": ["Loan Repayments Received", "Collection of Loans"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "placement_of_restricted_deposits",
+      "labels": {
+        "id": ["Penempatan Deposito yang Dibatasi Penggunaannya"],
+        "en": ["Placement of Restricted Deposits"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "withdrawal_of_restricted_deposits",
+      "labels": {
+        "id": ["Pencairan Deposito yang Dibatasi Penggunaannya"],
+        "en": ["Withdrawal of Restricted Deposits"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "other_investing_receipts",
+      "labels": {
+        "id": ["Penerimaan Kas Investasi Lainnya"],
+        "en": ["Other Investing Cash Receipts"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "other_investing_payments",
+      "labels": {
+        "id": ["Pembayaran Kas Investasi Lainnya"],
+        "en": ["Other Investing Cash Payments"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "net_cash_from_investing",
+      "labels": {
+        "id": ["Kas Bersih Digunakan untuk Aktivitas Investasi", "Arus Kas Bersih dari Aktivitas Investasi"],
+        "en": ["Net Cash from Investing Activities", "Net Cash Used in Investing Activities"]
+      },
+      "section": "investing",
+      "level": 0
+    },
+    {
+      "key": "cash_flows_from_financing",
+      "labels": {
+        "id": ["Arus Kas dari Aktivitas Pendanaan", "ARUS KAS DARI AKTIVITAS PENDANAAN"],
+        "en": ["Cash Flows from Financing Activities", "CASH FLOWS FROM FINANCING ACTIVITIES"]
+      },
+      "section": "financing",
+      "level": 0
+    },
+    {
+      "key": "proceeds_from_borrowings",
+      "labels": {
+        "id": ["Penerimaan dari Pinjaman", "Penerimaan Pinjaman Bank"],
+        "en": ["Proceeds from Borrowings", "Proceeds from Bank Loans"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "repayment_of_borrowings",
+      "labels": {
+        "id": ["Pembayaran Pinjaman", "Pembayaran Pinjaman Bank"],
+        "en": ["Repayment of Borrowings", "Repayment of Bank Loans"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_bonds",
+      "labels": {
+        "id": ["Penerimaan dari Penerbitan Obligasi"],
+        "en": ["Proceeds from Issuance of Bonds"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "repayment_of_bonds",
+      "labels": {
+        "id": ["Pembayaran Obligasi", "Pelunasan Obligasi"],
+        "en": ["Repayment of Bonds", "Redemption of Bonds"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_share_issuance",
+      "labels": {
+        "id": ["Penerimaan dari Penerbitan Saham"],
+        "en": ["Proceeds from Issuance of Shares", "Proceeds from Share Issuance"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "purchase_of_treasury_shares",
+      "labels": {
+        "id": ["Pembelian Saham Treasuri", "Perolehan Kembali Saham"],
+        "en": ["Purchase of Treasury Shares", "Share Buyback"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "dividends_paid",
+      "labels": {
+        "id": ["Pembayaran Dividen"],
+        "en": ["Dividends Paid"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "payment_of_lease_liabilities",
+      "labels": {
+        "id": ["Pembayaran Liabilitas Sewa"],
+        "en": ["Payment of Lease Liabilities"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_nci",
+      "labels": {
+        "id": ["Penerimaan dari Kepentingan Nonpengendali"],
+        "en": ["Proceeds from Non-Controlling Interests"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "other_financing_receipts",
+      "labels": {
+        "id": ["Penerimaan Kas Pendanaan Lainnya"],
+        "en": ["Other Financing Cash Receipts"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "other_financing_payments",
+      "labels": {
+        "id": ["Pembayaran Kas Pendanaan Lainnya"],
+        "en": ["Other Financing Cash Payments"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "net_cash_from_financing",
+      "labels": {
+        "id": ["Kas Bersih Diperoleh dari Aktivitas Pendanaan", "Arus Kas Bersih dari Aktivitas Pendanaan"],
+        "en": ["Net Cash from Financing Activities", "Net Cash Used in Financing Activities"]
+      },
+      "section": "financing",
+      "level": 0
+    },
+    {
+      "key": "net_increase_decrease_in_cash",
+      "labels": {
+        "id": ["Kenaikan (Penurunan) Bersih Kas dan Setara Kas"],
+        "en": ["Net Increase (Decrease) in Cash and Cash Equivalents"]
+      },
+      "section": "financing",
+      "level": 0
+    },
+    {
+      "key": "effect_of_exchange_rate_changes",
+      "labels": {
+        "id": ["Pengaruh Perubahan Kurs terhadap Kas dan Setara Kas"],
+        "en": ["Effect of Exchange Rate Changes on Cash", "Effect of Foreign Exchange Rate Changes"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "cash_beginning_of_period",
+      "labels": {
+        "id": ["Kas dan Setara Kas Awal Periode", "Kas dan Setara Kas Awal Tahun"],
+        "en": ["Cash and Cash Equivalents at Beginning of Period", "Cash at Beginning of Year"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "cash_end_of_period",
+      "labels": {
+        "id": ["Kas dan Setara Kas Akhir Periode", "Kas dan Setara Kas Akhir Tahun"],
+        "en": ["Cash and Cash Equivalents at End of Period", "Cash at End of Year"]
+      },
+      "section": "financing",
+      "level": 1
+    }
+  ]
+}
