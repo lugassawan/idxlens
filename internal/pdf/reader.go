@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,15 +15,28 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
-// spaceThresholdThou is the threshold in thousandths of text space units
-// above which a TJ kerning displacement is treated as an inter-word space.
-// A value of 300 means 30% of the font size (0.3 * 1000).
-const spaceThresholdThou = 300
+const (
+	// spaceThresholdThou is the threshold in thousandths of text space units
+	// above which a TJ kerning displacement is treated as an inter-word space.
+	// A value of 300 means 30% of the font size (0.3 * 1000).
+	spaceThresholdThou = 300
+
+	// maxXObjectContentSize is the maximum decoded content size (in bytes)
+	// for a Form XObject. XObjects larger than this are skipped to avoid
+	// excessive memory usage and processing time on large PDFs.
+	maxXObjectContentSize = 1024 * 1024 // 1 MB
+
+	// maxXObjectsPerPage is the maximum number of Form XObjects processed
+	// per page. Pages referencing many XObjects are capped to avoid hangs.
+	maxXObjectsPerPage = 50
+
+	// avgCharWidthRatio approximates the average character width as a fraction
+	// of the font size. A ratio of 0.5 works well for most proportional fonts.
+	avgCharWidthRatio = 0.5
+)
 
 var (
 	errNotOpened = errors.New("reader not opened")
-	// btETPattern matches BT...ET text blocks in a content stream.
-	btETPattern = regexp.MustCompile(`(?s)BT\s(.*?)\sET`)
 	// initOnce ensures pdfcpu's global config is initialized exactly once,
 	// avoiding a data race in model.NewDefaultConfiguration when called
 	// concurrently from multiple goroutines.
@@ -142,10 +154,14 @@ func (r *pdfcpuReader) extractElements(pageNr int) ([]TextElement, error) {
 	}
 
 	content := string(bb)
-	elements := parseContentStream(content)
+	tokens := tokenize(content)
+
+	elements := parseStreamTokens(tokens)
 
 	// Extract text from Form XObjects referenced by Do operators.
-	xObjElements, err := r.extractFormXObjects(pageNr, content)
+	xObjNames := findDoOperandsFromTokens(tokens)
+
+	xObjElements, err := r.extractFormXObjects(pageNr, xObjNames)
 	if err != nil {
 		return nil, fmt.Errorf("extract form xobjects: %w", err)
 	}
@@ -159,11 +175,48 @@ func (r *pdfcpuReader) extractElements(pageNr int) ([]TextElement, error) {
 	return elements, nil
 }
 
-// extractFormXObjects finds Do operators in the content stream and extracts
-// text from any referenced Form XObjects. Pages that use Form XObjects for
-// their text content would otherwise return empty.
-func (r *pdfcpuReader) extractFormXObjects(pageNr int, content string) ([]TextElement, error) {
-	xObjNames := findDoOperands(content)
+// parseStreamTokens extracts text elements from pre-tokenized content stream tokens.
+func parseStreamTokens(tokens []string) []TextElement {
+	var elements []TextElement
+	inBlock := false
+	blockStart := 0
+
+	for i, tok := range tokens {
+		if tok == "BT" {
+			inBlock = true
+			blockStart = i + 1
+		} else if tok == "ET" && inBlock {
+			inBlock = false
+			if blockStart < i {
+				elements = append(elements, parseTokenBlock(tokens[blockStart:i])...)
+			}
+		}
+	}
+
+	return elements
+}
+
+// findDoOperandsFromTokens extracts XObject names from Do operators
+// in pre-tokenized content stream tokens.
+func findDoOperandsFromTokens(tokens []string) []string {
+	var names []string
+
+	for i, tok := range tokens {
+		if tok == "Do" && i >= 1 {
+			name := strings.TrimPrefix(tokens[i-1], "/")
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+	}
+
+	return names
+}
+
+// extractFormXObjects extracts text from Form XObjects referenced by the
+// given names. Pages that use Form XObjects for their text content would
+// otherwise return empty.
+func (r *pdfcpuReader) extractFormXObjects(pageNr int, xObjNames []string) ([]TextElement, error) {
 	if len(xObjNames) == 0 {
 		return nil, nil
 	}
@@ -176,6 +229,10 @@ func (r *pdfcpuReader) extractFormXObjects(pageNr int, content string) ([]TextEl
 	xObjDict := resolveXObjectDict(r.ctx, pageDict, inhAttrs)
 	if xObjDict == nil {
 		return nil, nil
+	}
+
+	if len(xObjNames) > maxXObjectsPerPage {
+		xObjNames = xObjNames[:maxXObjectsPerPage]
 	}
 
 	var elements []TextElement
@@ -258,38 +315,22 @@ func (r *pdfcpuReader) extractSingleFormXObject(xObjDict types.Dict, name string
 		return nil, fmt.Errorf("decode xobject stream: %w", err)
 	}
 
+	if len(sd.Content) > maxXObjectContentSize {
+		return nil, nil
+	}
+
 	return parseContentStream(string(sd.Content)), nil
 }
 
 // findDoOperands extracts XObject names from Do operators in a content stream.
 func findDoOperands(content string) []string {
-	tokens := tokenize(content)
-
-	var names []string
-
-	for i, tok := range tokens {
-		if tok == "Do" && i >= 1 {
-			name := strings.TrimPrefix(tokens[i-1], "/")
-			if name != "" {
-				names = append(names, name)
-			}
-		}
-	}
-
-	return names
+	return findDoOperandsFromTokens(tokenize(content))
 }
 
 // parseContentStream extracts text elements from a PDF content stream
-// by interpreting text-related operators (BT/ET, Tf, Td, Tm, Tj, TJ).
+// by tokenizing the stream once and processing BT...ET text blocks.
 func parseContentStream(content string) []TextElement {
-	matches := btETPattern.FindAllStringSubmatch(content, -1)
-	elements := make([]TextElement, 0, len(matches))
-
-	for _, m := range matches {
-		elements = append(elements, parseTextBlock(m[1])...)
-	}
-
-	return elements
+	return parseStreamTokens(tokenize(content))
 }
 
 // textState tracks the current text rendering state within a BT...ET block.
@@ -311,10 +352,13 @@ func newTextState() textState {
 }
 
 func parseTextBlock(block string) []TextElement {
+	return parseTokenBlock(tokenize(block))
+}
+
+func parseTokenBlock(tokens []string) []TextElement {
 	var elements []TextElement
 
 	ts := newTextState()
-	tokens := tokenize(block)
 
 	for i := range tokens {
 		updateTextState(tokens, i, &ts)
@@ -411,6 +455,7 @@ func parseTj(tokens []string, i int, ts *textState) *TextElement {
 	}
 
 	fontSize := effectiveFontSize(ts)
+	width := estimateTextWidth(text, fontSize)
 
 	el := TextElement{
 		Text:     text,
@@ -419,12 +464,24 @@ func parseTj(tokens []string, i int, ts *textState) *TextElement {
 		Bounds: Rect{
 			X1: ts.x,
 			Y1: ts.y,
-			X2: ts.x,
+			X2: ts.x + width,
 			Y2: ts.y + fontSize,
 		},
 	}
 
+	// Advance the text position by the estimated width so that
+	// subsequent text operators within the same BT/ET block
+	// produce non-overlapping bounds.
+	ts.x += width
+
 	return &el
+}
+
+// estimateTextWidth returns an approximate width for a text string based on
+// the character count and font size. Without access to font metrics, this
+// heuristic gives L1 enough information to compute inter-element gaps.
+func estimateTextWidth(text string, fontSize float64) float64 {
+	return float64(len([]rune(text))) * fontSize * avgCharWidthRatio
 }
 
 func effectiveFontSize(ts *textState) float64 {
@@ -511,6 +568,8 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 		return nil
 	}
 
+	width := estimateTextWidth(text, fontSize)
+
 	el := TextElement{
 		Text:     text,
 		FontName: ts.fontName,
@@ -518,10 +577,12 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 		Bounds: Rect{
 			X1: ts.x,
 			Y1: ts.y,
-			X2: ts.x,
+			X2: ts.x + width,
 			Y2: ts.y + fontSize,
 		},
 	}
+
+	ts.x += width
 
 	return []TextElement{el}
 }
@@ -581,9 +642,16 @@ func nextToken(s string, i int) (int, string) {
 		return end, tok
 	}
 
-	if ch == '<' && i+1 < len(s) && s[i+1] != '<' {
-		tok, end := readHexString(s, i)
-		return end, tok
+	if ch == '<' {
+		return readAngleBracket(s, i)
+	}
+
+	if ch == '>' {
+		// Skip >> (dict close) or stray >.
+		if i+1 < len(s) && s[i+1] == '>' {
+			return i + 2, ""
+		}
+		return i + 1, ""
 	}
 
 	if ch == '[' {
@@ -595,6 +663,18 @@ func nextToken(s string, i int) (int, string) {
 	}
 
 	return readWord(s, i)
+}
+
+// readAngleBracket handles '<' at position i. It distinguishes between
+// hex strings (<...>) and dictionary delimiters (<<).
+func readAngleBracket(s string, i int) (int, string) {
+	if i+1 < len(s) && s[i+1] == '<' {
+		// Dictionary open "<<" — skip it (not relevant for text extraction).
+		return i + 2, ""
+	}
+
+	tok, end := readHexString(s, i)
+	return end, tok
 }
 
 func isWhitespace(ch byte) bool {
@@ -613,6 +693,12 @@ func readWord(s string, start int) (int, string) {
 	i := start
 	for i < len(s) && !isTokenDelimiter(s[i]) {
 		i++
+	}
+
+	// Safety: if no progress was made (delimiter at start), skip the byte
+	// to prevent an infinite loop in the tokenizer.
+	if i == start {
+		return start + 1, ""
 	}
 
 	return i, s[start:i]

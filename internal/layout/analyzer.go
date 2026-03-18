@@ -8,7 +8,12 @@ import (
 )
 
 const (
-	defaultLineThreshold = 2.0
+	// defaultLineThreshold is the fraction of dominant font size used to
+	// cluster text elements into the same line. Elements whose Y coordinates
+	// differ by less than threshold * dominantFontSize are grouped together.
+	// A value of 0.5 accommodates slight baseline variations without merging
+	// adjacent text lines in financial statements.
+	defaultLineThreshold = 0.5
 	regionXTolerance     = 5.0
 	spaceGapRatio        = 0.3
 	fallbackWidthRatio   = 0.5
