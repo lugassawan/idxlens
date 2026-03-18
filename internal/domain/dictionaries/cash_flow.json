@@ -1,6 +1,6 @@
 {
   "type": "cash-flow",
-  "version": 2,
+  "version": 3,
   "items": [
     {
       "key": "cash_flows_from_operating",
@@ -518,8 +518,8 @@
     {
       "key": "payments_post_employment_benefits",
       "labels": {
-        "id": ["Pembayaran Imbalan Pascakerja"],
-        "en": ["Payments of Post-Employment Benefits", "Payments of post-employment benefits"]
+        "id": ["Pembayaran Imbalan Pascakerja", "Pembayaran Imbalan Pasca-Kerja", "Pembayaran Imbalan Pasca-kerja"],
+        "en": ["Payments of Post-Employment Benefits", "Payments of post-employment benefits", "Payment of Post-Employment Benefits"]
       },
       "section": "operating",
       "level": 1
@@ -527,10 +527,19 @@
     {
       "key": "payment_of_tantiem",
       "labels": {
-        "id": ["Pembayaran Tantiem kepada Dewan Komisaris dan Direksi"],
-        "en": ["Payment of Tantiem to Board of Commissioners and Board of Directors", "Payment of tantiem to Board of Commissioners and Board of Directors"]
+        "id": ["Pembayaran Tantiem kepada Dewan Komisaris dan Direksi", "Pembayaran Tantiem"],
+        "en": ["Payment of Tantiem to Board of Commissioners and Board of Directors", "Payment of tantiem to Board of Commissioners and Board of Directors", "Payment of Tantiem"]
       },
       "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "proceeds_from_securities",
+      "labels": {
+        "id": ["Penerimaan dari Efek-efek", "Penerimaan dari Penjualan Efek-efek", "Hasil Penjualan Efek-efek"],
+        "en": ["Proceeds from Securities", "Proceeds from Sale of Securities"]
+      },
+      "section": "investing",
       "level": 1
     }
   ]

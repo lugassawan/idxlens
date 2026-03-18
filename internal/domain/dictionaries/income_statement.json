@@ -1,6 +1,6 @@
 {
   "type": "income-statement",
-  "version": 2,
+  "version": 3,
   "items": [
     {
       "key": "net_sales",
@@ -41,8 +41,8 @@
     {
       "key": "fee_and_commission_income",
       "labels": {
-        "id": ["Pendapatan Provisi dan Komisi"],
-        "en": ["Fee and Commission Income", "Fees and commission income - net", "Fees and Commission Income"]
+        "id": ["Pendapatan Provisi dan Komisi", "Pendapatan Provisi dan Komisi - Bersih"],
+        "en": ["Fee and Commission Income", "Fees and commission income - net", "Fees and Commission Income", "Fees and Commission Income - Net"]
       },
       "section": "revenue",
       "level": 2
@@ -873,6 +873,15 @@
         "en": ["NET OF INCOME TAX", "Net of Income Tax"]
       },
       "section": "comprehensive_income",
+      "level": 2
+    },
+    {
+      "key": "sharia_profit_sharing",
+      "labels": {
+        "id": ["Bagi Hasil Syariah", "Beban Bagi Hasil Syariah"],
+        "en": ["Sharia Profit Sharing", "Sharia Revenue Sharing"]
+      },
+      "section": "cost_of_revenue",
       "level": 2
     }
   ]
