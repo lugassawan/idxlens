@@ -15,13 +15,39 @@ func newGridBuilder() *gridBuilder {
 
 // Build assembles a Table from text lines and column boundaries.
 // It assigns text elements to columns, detects merged cells, and
-// extracts the header row.
+// extracts the header row. When lines contain tab separators (inserted
+// by L1 at column boundaries), tab-based splitting is used instead of
+// spatial element clustering for more reliable column detection.
 func (g *gridBuilder) Build(
 	lines []layout.TextLine,
 	columns []Column,
 	pageNum int,
 ) Table {
+	if hasTabSeparators(lines) {
+		return g.buildFromTabs(lines, pageNum)
+	}
+
 	rows := g.buildRows(lines, columns)
+	headers := g.extractHeaders(rows)
+	bounds := g.computeBounds(lines)
+
+	return Table{
+		Rows:    rows,
+		Columns: columns,
+		Bounds:  bounds,
+		PageNum: pageNum,
+		Headers: headers,
+	}
+}
+
+// buildFromTabs assembles a Table using tab characters as column delimiters,
+// bypassing spatial element clustering.
+func (g *gridBuilder) buildFromTabs(
+	lines []layout.TextLine,
+	pageNum int,
+) Table {
+	columns := splitTabColumns(lines)
+	rows := buildTabRows(lines, columns)
 	headers := g.extractHeaders(rows)
 	bounds := g.computeBounds(lines)
 
