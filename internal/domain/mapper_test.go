@@ -44,22 +44,9 @@ func makeRow(index int, texts ...string) table.Row {
 func TestMapperMapErrors(t *testing.T) {
 	m := NewMapper()
 
-	tests := []struct {
-		name    string
-		docType DocType
-		tables  []table.Table
-	}{
-		{name: "no tables", docType: DocTypeBalanceSheet, tables: nil},
-		{name: "unsupported doc type", docType: DocTypeUnknown, tables: []table.Table{{}}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := m.Map(tt.docType, tt.tables)
-			if err == nil {
-				t.Error("Map() error = nil, want error")
-			}
-		})
+	_, err := m.Map(DocTypeBalanceSheet, nil)
+	if err == nil {
+		t.Error("Map() error = nil, want error for no tables")
 	}
 }
 
@@ -1231,25 +1218,17 @@ func TestLoadDictionaryForDocType(t *testing.T) {
 	tests := []struct {
 		name    string
 		docType DocType
-		wantErr bool
 	}{
-		{"balance sheet loads single", DocTypeBalanceSheet, false},
-		{"auditor report loads all", DocTypeAuditorReport, false},
-		{"annual report loads all", DocTypeAnnualReport, false},
-		{"unknown type errors", DocTypeUnknown, true},
+		{"balance sheet loads all", DocTypeBalanceSheet},
+		{"income statement loads all", DocTypeIncomeStatement},
+		{"auditor report loads all", DocTypeAuditorReport},
+		{"annual report loads all", DocTypeAnnualReport},
+		{"unknown type loads all", DocTypeUnknown},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dict, err := loadDictionaryForDocType(tt.docType)
-			if tt.wantErr {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-
-				return
-			}
-
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

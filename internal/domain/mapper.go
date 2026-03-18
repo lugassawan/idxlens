@@ -149,16 +149,12 @@ func isCompositeDocType(docType DocType) bool {
 	return docType == DocTypeAuditorReport || docType == DocTypeAnnualReport
 }
 
-// loadDictionaryForDocType loads the appropriate dictionary based on the
-// document type. Composite types (audited reports, annual reports) load all
-// financial dictionaries merged together so labels from any statement type
-// can be matched.
-func loadDictionaryForDocType(docType DocType) (*Dictionary, error) {
-	if isCompositeDocType(docType) {
-		return LoadAllDictionaries()
-	}
-
-	return LoadDictionary(docType)
+// loadDictionaryForDocType loads all financial dictionaries merged together.
+// Real-world IDX PDFs frequently contain multiple statement types regardless
+// of classification, so we always load all dictionaries for best matching
+// coverage. The performance impact is negligible (4 small JSON files).
+func loadDictionaryForDocType(_ DocType) (*Dictionary, error) {
+	return LoadAllDictionaries()
 }
 
 // deduplicateItems removes duplicate keyed items, keeping the one with the
