@@ -235,10 +235,17 @@ func TestDictionaryMatchLabelIncomeStatement(t *testing.T) {
 			wantConfidence: 0.85,
 		},
 		{
-			name:           "suffix stripped bersih match",
+			name:           "case insensitive bersih label match",
 			text:           "Pendapatan Provisi dan Komisi - bersih",
 			lang:           "id",
 			wantKey:        "fee_and_commission_income",
+			wantConfidence: 0.9,
+		},
+		{
+			name:           "suffix stripped bersih match",
+			text:           "Beban Provisi dan Komisi - bersih",
+			lang:           "id",
+			wantKey:        "fee_and_commission_expense",
 			wantConfidence: 0.85,
 		},
 		{

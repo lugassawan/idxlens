@@ -1,6 +1,6 @@
 {
   "type": "balance-sheet",
-  "version": 3,
+  "version": 4,
   "items": [
     {
       "key": "total_assets",
@@ -678,6 +678,42 @@
       "level": 2
     },
     {
+      "key": "investment_securities",
+      "labels": {
+        "id": ["Efek-efek untuk Tujuan Investasi", "Efek-Efek untuk Tujuan Investasi", "Efek-efek Dimiliki Hingga Jatuh Tempo"],
+        "en": ["Investment Securities", "Held-to-Maturity Securities", "Held-to-maturity investment securities"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "finance_lease_receivables",
+      "labels": {
+        "id": ["Piutang Sewa Pembiayaan", "Tagihan Sewa Pembiayaan"],
+        "en": ["Finance Lease Receivables", "Lease Financing Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "assets_from_sharia_transactions",
+      "labels": {
+        "id": ["Aset dari Transaksi Syariah", "Aset Transaksi Syariah"],
+        "en": ["Assets from Sharia Transactions", "Sharia Transaction Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "receivables_from_customer_transactions",
+      "labels": {
+        "id": ["Piutang Transaksi Nasabah", "Piutang dari Transaksi Nasabah"],
+        "en": ["Receivables from Customer Transactions", "Customer Transaction Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
       "key": "acceptance_receivables",
       "labels": {
         "id": ["Tagihan Akseptasi"],
@@ -770,8 +806,8 @@
     {
       "key": "acceptance_payables",
       "labels": {
-        "id": ["Liabilitas Akseptasi"],
-        "en": ["Acceptance Payables"]
+        "id": ["Liabilitas Akseptasi", "Utang Akseptasi"],
+        "en": ["Acceptance Payables", "Acceptances Payable"]
       },
       "section": "liabilities",
       "level": 2
@@ -923,7 +959,7 @@
     {
       "key": "accruals_and_other_liabilities",
       "labels": {
-        "id": ["Akrual dan Liabilitas Lainnya", "Beban Akrual dan Liabilitas Lain-lain"],
+        "id": ["Akrual dan Liabilitas Lainnya", "Beban Akrual dan Liabilitas Lain-lain", "Beban yang Masih Harus Dibayar dan Liabilitas Lain-lain"],
         "en": ["Accruals and Other Liabilities", "Accruals and other liabilities"]
       },
       "section": "liabilities",
@@ -950,8 +986,8 @@
     {
       "key": "post_employment_benefits_obligation",
       "labels": {
-        "id": ["Liabilitas Imbalan Pascakerja", "Kewajiban Imbalan Pascakerja"],
-        "en": ["Post-Employment Benefits Obligation", "Post-employment benefits obligation"]
+        "id": ["Liabilitas Imbalan Pascakerja", "Kewajiban Imbalan Pascakerja", "Liabilitas Imbalan Pasca-Kerja", "Liabilitas Imbalan Pasca-kerja"],
+        "en": ["Post-Employment Benefits Obligation", "Post-employment benefits obligation", "Post-Employment Benefit Obligation"]
       },
       "section": "liabilities",
       "level": 2
@@ -1018,6 +1054,42 @@
       },
       "section": "liabilities",
       "level": 2
+    },
+    {
+      "key": "difference_from_business_combination",
+      "labels": {
+        "id": ["Selisih Transaksi Kombinasi Bisnis Entitas Sepengendali", "Selisih Nilai Transaksi Restrukturisasi Entitas Sepengendali"],
+        "en": ["Difference from Business Combination under Common Control", "Difference in Value from Restructuring Transactions of Entities under Common Control"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "tier1_capital",
+      "labels": {
+        "id": ["Modal Inti", "Modal Inti (Tier 1)"],
+        "en": ["Tier 1 Capital", "Core Capital"]
+      },
+      "section": "capital",
+      "level": 1
+    },
+    {
+      "key": "total_capital",
+      "labels": {
+        "id": ["Total Modal", "Jumlah Modal"],
+        "en": ["Total Capital"]
+      },
+      "section": "capital",
+      "level": 0
+    },
+    {
+      "key": "risk_weighted_assets",
+      "labels": {
+        "id": ["Aset Tertimbang Menurut Risiko", "ATMR", "Total ATMR"],
+        "en": ["Risk-Weighted Assets", "Risk Weighted Assets", "Total RWA", "RWA"]
+      },
+      "section": "capital",
+      "level": 0
     }
   ]
 }
