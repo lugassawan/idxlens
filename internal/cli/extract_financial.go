@@ -15,8 +15,6 @@ import (
 	"github.com/lugassawan/idxlens/internal/table"
 )
 
-const flagFormat = "format"
-
 var errUnknownDocType = errors.New("classify document: unable to determine report type, use --type flag")
 
 var extractFinancialCmd = &cobra.Command{
