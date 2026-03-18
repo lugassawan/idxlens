@@ -1,0 +1,58 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: PR Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          title=$(printf '%s' "$PR_TITLE")
+          pattern='^(feat|fix|docs|refactor|test|build|ci|chore|revert): .+$'
+          if [[ ! "$title" =~ $pattern ]]; then
+            echo "ERROR: PR title must match pattern: type: description"
+            echo "Valid types: feat, fix, docs, refactor, test, build, ci, chore, revert"
+            echo "Got: $title"
+            exit 1
+          fi
+          echo "PR title OK: $title"
+
+      - name: Validate PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          body=$(printf '%s' "$PR_BODY")
+          if [ -z "$body" ]; then
+            echo "ERROR: PR description must not be empty"
+            exit 1
+          fi
+          echo "PR description OK"
+
+      - name: Validate issue reference
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          body=$(printf '%s' "$PR_BODY")
+          pattern='(([Cc]lose[sd]?|[Ff]ix(e[sd])?|[Rr]esolve[sd]?) #[0-9]+|N/A)'
+          if [[ ! "$body" =~ $pattern ]]; then
+            echo "ERROR: PR description must reference an issue"
+            echo "Use: Closes #N, Fixes #N, Resolves #N, or N/A"
+            exit 1
+          fi
+          echo "Issue reference OK"
