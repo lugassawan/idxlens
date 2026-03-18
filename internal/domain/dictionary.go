@@ -144,6 +144,10 @@ func matchLabels(normalized string, lowered string, labels []string) float64 {
 			best = 0.9
 		}
 
+		if best < 0.85 && matchNormalized(lowered, labelLower) {
+			best = 0.85
+		}
+
 		if best < 0.7 && strings.Contains(lowered, labelLower) {
 			best = 0.7
 		}
@@ -154,6 +158,62 @@ func matchLabels(normalized string, lowered string, labels []string) float64 {
 	}
 
 	return best
+}
+
+// matchNormalized checks whether the input and label match after applying
+// financial text normalizations: stripping trailing suffixes like "- net"
+// and "- bersih", and handling singular/plural variation on the last word.
+func matchNormalized(inputLower string, labelLower string) bool {
+	inputStripped := stripSuffix(inputLower)
+	labelStripped := stripSuffix(labelLower)
+
+	if inputStripped == labelStripped {
+		return true
+	}
+
+	return matchPlural(inputStripped, labelStripped)
+}
+
+// stripSuffix removes trailing financial suffixes such as "- net" and
+// "- bersih" that are formatting variations, not semantic differences.
+func stripSuffix(s string) string {
+	suffixes := []string{" - net", " - bersih", " -net", " -bersih"}
+
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, suffix) {
+			return strings.TrimSpace(s[:len(s)-len(suffix)])
+		}
+	}
+
+	return s
+}
+
+// matchPlural checks whether two labels differ only by a trailing "s" on
+// the last word. This handles common financial term variations like
+// "Expense" vs "Expenses" and "Fee" vs "Fees".
+func matchPlural(a string, b string) bool {
+	if a+"s" == b || b+"s" == a {
+		return true
+	}
+
+	// Handle plural on last word only: "Selling Expense" vs "Selling Expenses".
+	aWords := strings.Fields(a)
+	bWords := strings.Fields(b)
+
+	if len(aWords) == 0 || len(bWords) == 0 || len(aWords) != len(bWords) {
+		return false
+	}
+
+	for i := range len(aWords) - 1 {
+		if aWords[i] != bWords[i] {
+			return false
+		}
+	}
+
+	lastA := aWords[len(aWords)-1]
+	lastB := bWords[len(bWords)-1]
+
+	return lastA+"s" == lastB || lastB+"s" == lastA
 }
 
 func docTypeFilename(docType DocType) (string, error) {
