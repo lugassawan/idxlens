@@ -66,6 +66,7 @@ var (
 		"september": 9, "october": 10, "november": 11, "december": 12,
 	}
 	kernedDigitPattern = regexp.MustCompile(`\d(?:\s+\d)+`)
+	noiseYearPattern   = regexp.MustCompile(`^\d{4}$`)
 	periodWithAndEN    = regexp.MustCompile(
 		`(?i)(\d{1,2})\s+` +
 			`(January|February|March|April|May|June|July|` +
@@ -141,32 +142,18 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 }
 
 // deduplicateItems removes duplicate keyed items, keeping the one with the
-// largest total absolute value. Items without a key are always kept.
+// largest total absolute value. Unkeyed items with all-zero values are
+// dropped as noise.
 func deduplicateItems(items []LineItem) []LineItem {
-	best := make(map[string]bestEntry)
+	best := bestEntryByKey(items)
 	result := make([]LineItem, 0, len(items))
-
-	for i, item := range items {
-		if item.Key == "" {
-			continue
-		}
-
-		total := absValueTotal(item.Values)
-
-		if prev, exists := best[item.Key]; exists {
-			if total > prev.absTotal {
-				best[item.Key] = bestEntry{index: i, absTotal: total}
-			}
-		} else {
-			best[item.Key] = bestEntry{index: i, absTotal: total}
-		}
-	}
-
 	kept := make(map[string]bool, len(best))
 
 	for _, item := range items {
 		if item.Key == "" {
-			result = append(result, item)
+			if absValueTotal(item.Values) > 0 {
+				result = append(result, item)
+			}
 
 			continue
 		}
@@ -180,6 +167,25 @@ func deduplicateItems(items []LineItem) []LineItem {
 	}
 
 	return result
+}
+
+func bestEntryByKey(items []LineItem) map[string]bestEntry {
+	best := make(map[string]bestEntry)
+
+	for i, item := range items {
+		if item.Key == "" {
+			continue
+		}
+
+		total := absValueTotal(item.Values)
+
+		prev, exists := best[item.Key]
+		if !exists || total > prev.absTotal {
+			best[item.Key] = bestEntry{index: i, absTotal: total}
+		}
+	}
+
+	return best
 }
 
 func absValueTotal(values map[string]float64) float64 {
@@ -239,6 +245,10 @@ func (m *mapper) mapTableRows(
 		}
 
 		if isMetadataRow(row) {
+			continue
+		}
+
+		if isNoiseLabel(label) {
 			continue
 		}
 
@@ -625,6 +635,28 @@ func isMetadataRow(row table.Row) bool {
 		if xbrlCodePattern.MatchString(text) {
 			return true
 		}
+	}
+
+	return false
+}
+
+// isNoiseLabel returns true if the label is noise rather than a financial
+// line item: year numbers (possibly kerned), purely numeric strings, or
+// labels shorter than 3 characters.
+func isNoiseLabel(label string) bool {
+	collapsed := collapseKernedDigits(label)
+
+	if len([]rune(collapsed)) < 3 {
+		return true
+	}
+
+	if noiseYearPattern.MatchString(collapsed) {
+		return true
+	}
+
+	trimmed := strings.TrimSpace(collapsed)
+	if _, err := strconv.Atoi(trimmed); err == nil {
+		return true
 	}
 
 	return false
