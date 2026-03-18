@@ -3,7 +3,6 @@ package domain
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 
 	"github.com/lugassawan/idxlens/internal/layout"
@@ -71,10 +70,6 @@ func StreamPages(
 		}
 
 		wg.Wait()
-
-		sort.Slice(results, func(i, j int) bool {
-			return results[i].PageNum < results[j].PageNum
-		})
 
 		for _, r := range results {
 			if r.PageNum == 0 {
