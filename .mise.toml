@@ -2,3 +2,4 @@
 go = "1.26"
 golangci-lint = "2"
 golines = "0.13"
+python = "3.12"
