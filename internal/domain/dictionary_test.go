@@ -301,3 +301,38 @@ func TestDictionaryValidation(t *testing.T) {
 		}
 	})
 }
+
+func TestLoadAllDictionaries(t *testing.T) {
+	dict, err := LoadAllDictionaries()
+	if err != nil {
+		t.Fatalf("LoadAllDictionaries() error: %v", err)
+	}
+
+	if dict.Type != "all" {
+		t.Errorf("type = %q, want %q", dict.Type, "all")
+	}
+
+	// Should contain items from all four financial dictionaries.
+	if len(dict.Items) < 200 {
+		t.Errorf("items = %d, want >= 200", len(dict.Items))
+	}
+
+	// Verify items from different statement types are present by checking
+	// for known keys from each dictionary.
+	wantKeys := map[string]bool{
+		"cash_and_equivalents": false, // balance sheet
+		"net_income":           false, // income statement
+	}
+
+	for _, item := range dict.Items {
+		if _, ok := wantKeys[item.Key]; ok {
+			wantKeys[item.Key] = true
+		}
+	}
+
+	for key, found := range wantKeys {
+		if !found {
+			t.Errorf("expected key %q not found in merged dictionary", key)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/lugassawan/idxlens/internal/pdf"
@@ -1139,6 +1140,245 @@ func TestIsNoiseLabel(t *testing.T) {
 		t.Run(tt.label, func(t *testing.T) {
 			if got := isNoiseLabel(tt.label); got != tt.want {
 				t.Errorf("isNoiseLabel(%q) = %v, want %v", tt.label, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterColKeys(t *testing.T) {
+	tests := []struct {
+		name     string
+		periods  []string
+		values   map[string]float64
+		wantKeys []string
+	}{
+		{
+			name:    "removes col_N keys when periods exist",
+			periods: []string{"2025-12-31", "2024-12-31"},
+			values: map[string]float64{
+				"2025-12-31": 100,
+				"2024-12-31": 200,
+				"col_3":      300,
+				"col_4":      400,
+			},
+			wantKeys: []string{"2025-12-31", "2024-12-31"},
+		},
+		{
+			name:    "keeps col_N keys when no periods",
+			periods: nil,
+			values: map[string]float64{
+				"col_1": 100,
+				"col_2": 200,
+			},
+			wantKeys: []string{"col_1", "col_2"},
+		},
+		{
+			name:    "no values unchanged",
+			periods: []string{"2025-12-31"},
+			values:  map[string]float64{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmt := &FinancialStatement{
+				Periods: tt.periods,
+				Items: []LineItem{
+					{Key: "test", Values: tt.values},
+				},
+			}
+
+			filterColKeys(stmt)
+
+			for key := range stmt.Items[0].Values {
+				if !slices.Contains(tt.wantKeys, key) {
+					t.Errorf("unexpected key %q in values after filtering", key)
+				}
+			}
+
+			if len(stmt.Items[0].Values) != len(tt.wantKeys) {
+				t.Errorf("values count = %d, want %d",
+					len(stmt.Items[0].Values), len(tt.wantKeys))
+			}
+		})
+	}
+}
+
+func TestIsCompositeDocType(t *testing.T) {
+	tests := []struct {
+		docType DocType
+		want    bool
+	}{
+		{DocTypeBalanceSheet, false},
+		{DocTypeIncomeStatement, false},
+		{DocTypeCashFlow, false},
+		{DocTypeEquityChanges, false},
+		{DocTypeAuditorReport, true},
+		{DocTypeAnnualReport, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.docType), func(t *testing.T) {
+			if got := isCompositeDocType(tt.docType); got != tt.want {
+				t.Errorf("isCompositeDocType(%q) = %v, want %v",
+					tt.docType, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadDictionaryForDocType(t *testing.T) {
+	tests := []struct {
+		name    string
+		docType DocType
+		wantErr bool
+	}{
+		{"balance sheet loads single", DocTypeBalanceSheet, false},
+		{"auditor report loads all", DocTypeAuditorReport, false},
+		{"annual report loads all", DocTypeAnnualReport, false},
+		{"unknown type errors", DocTypeUnknown, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dict, err := loadDictionaryForDocType(tt.docType)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if dict == nil {
+				t.Fatal("dict is nil")
+			}
+
+			if len(dict.Items) == 0 {
+				t.Error("dict has no items")
+			}
+		})
+	}
+}
+
+func TestMapperCompositeDocType(t *testing.T) {
+	m := NewMapper()
+
+	tbl := makeTable(
+		[]string{"", "31 December 2025", "31 December 2024"},
+		[]table.Row{
+			makeRow(0, "Cash and Cash Equivalents", "1.000.000", "800.000"),
+			makeRow(1, "Net Income", "500.000", "400.000"),
+		},
+	)
+
+	stmt, err := m.Map(DocTypeAuditorReport, []table.Table{tbl})
+	if err != nil {
+		t.Fatalf("Map() unexpected error: %v", err)
+	}
+
+	if len(stmt.Items) == 0 {
+		t.Fatal("no items returned")
+	}
+
+	// Should match items from different dictionary types.
+	matchedKeys := make(map[string]bool)
+	for _, item := range stmt.Items {
+		if item.Key != "" {
+			matchedKeys[item.Key] = true
+		}
+	}
+
+	if len(matchedKeys) == 0 {
+		t.Error("no items matched from any dictionary")
+	}
+}
+
+func TestHasNumericColumns(t *testing.T) {
+	tests := []struct {
+		name string
+		tbl  table.Table
+		want bool
+	}{
+		{
+			name: "table with numeric data",
+			tbl: table.Table{
+				Rows: []table.Row{makeRow(0, "Cash", "1.000.000")},
+			},
+			want: true,
+		},
+		{
+			name: "table with no numeric data",
+			tbl: table.Table{
+				Rows: []table.Row{makeRow(0, "Description", "Some text")},
+			},
+			want: false,
+		},
+		{
+			name: "empty table",
+			tbl: table.Table{
+				Rows: []table.Row{},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasNumericColumns(tt.tbl); got != tt.want {
+				t.Errorf("hasNumericColumns() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterCompositeFinancialTables(t *testing.T) {
+	tests := []struct {
+		name      string
+		tables    []table.Table
+		wantCount int
+	}{
+		{
+			name: "xbrl markers select financial pages",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+				{
+					PageNum:  4,
+					PageText: []string{"[4220000] Statement of financial position"},
+					Rows:     []table.Row{makeRow(0, "Cash", "100")},
+				},
+				{PageNum: 5, Rows: []table.Row{makeRow(0, "Receivables", "200")}},
+				{
+					PageNum:  13,
+					PageText: []string{"[4322000] Statement of profit or loss"},
+					Rows:     []table.Row{makeRow(0, "Revenue", "300")},
+				},
+				{PageNum: 14, Rows: []table.Row{makeRow(0, "Expenses", "400")}},
+			},
+			wantCount: 4,
+		},
+		{
+			name: "falls back to numeric content without xbrl",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+				{PageNum: 2, Rows: []table.Row{makeRow(0, "Cash", "1.000")}},
+				{PageNum: 3, Rows: []table.Row{makeRow(0, "Narrative text", "no numbers")}},
+				{PageNum: 4, Rows: []table.Row{makeRow(0, "Revenue", "500")}},
+			},
+			wantCount: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterCompositeFinancialTables(tt.tables)
+
+			if len(result) != tt.wantCount {
+				t.Errorf("count = %d, want %d", len(result), tt.wantCount)
 			}
 		})
 	}
