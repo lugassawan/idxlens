@@ -32,12 +32,12 @@ var (
 			`\s+(\d{4})`,
 	)
 	periodPatternEN = regexp.MustCompile(
-		`(January|February|March|April|May|June|July|` +
+		`(?i)(January|February|March|April|May|June|July|` +
 			`August|September|October|November|December)` +
 			`\s+(\d{1,2}),?\s+(\d{4})`,
 	)
 	periodPatternENDayFirst = regexp.MustCompile(
-		`(\d{1,2})\s+` +
+		`(?i)(\d{1,2})\s+` +
 			`(January|February|March|April|May|June|July|` +
 			`August|September|October|November|December)` +
 			`\s+(\d{4})`,
@@ -64,6 +64,13 @@ var (
 		"may": 5, "june": 6, "july": 7, "august": 8,
 		"september": 9, "october": 10, "november": 11, "december": 12,
 	}
+	kernedDigitPattern = regexp.MustCompile(`\d(?:\s+\d)+`)
+	periodWithAndEN    = regexp.MustCompile(
+		`(?i)(\d{1,2})\s+` +
+			`(January|February|March|April|May|June|July|` +
+			`August|September|October|November|December)` +
+			`\s+(\d{4})\s+(?:AND|DAN)\s+(\d{4})`,
+	)
 	xbrlCodePattern    = regexp.MustCompile(`\[(\d{7})\]`)
 	leadingNumberRegex = regexp.MustCompile(
 		`^(\(?\s*-?\s*[\d][,.\d]*\s*\)?)`,
@@ -81,6 +88,13 @@ type xbrlPageRange struct {
 type pageMarker struct {
 	page    int
 	docType DocType
+}
+
+// bestEntry tracks the item index with the highest absolute value total for
+// deduplication.
+type bestEntry struct {
+	index    int
+	absTotal float64
 }
 
 // NewMapper creates a new Mapper that uses embedded dictionaries for label
@@ -120,7 +134,65 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		stmt.Items = append(stmt.Items, items...)
 	}
 
+	stmt.Items = deduplicateItems(stmt.Items)
+
 	return stmt, nil
+}
+
+// deduplicateItems removes duplicate keyed items, keeping the one with the
+// largest total absolute value. Items without a key are always kept.
+func deduplicateItems(items []LineItem) []LineItem {
+	best := make(map[string]bestEntry)
+	result := make([]LineItem, 0, len(items))
+
+	for i, item := range items {
+		if item.Key == "" {
+			continue
+		}
+
+		total := absValueTotal(item.Values)
+
+		if prev, exists := best[item.Key]; exists {
+			if total > prev.absTotal {
+				best[item.Key] = bestEntry{index: i, absTotal: total}
+			}
+		} else {
+			best[item.Key] = bestEntry{index: i, absTotal: total}
+		}
+	}
+
+	kept := make(map[string]bool, len(best))
+
+	for _, item := range items {
+		if item.Key == "" {
+			result = append(result, item)
+
+			continue
+		}
+
+		if kept[item.Key] {
+			continue
+		}
+
+		kept[item.Key] = true
+		result = append(result, items[best[item.Key].index])
+	}
+
+	return result
+}
+
+func absValueTotal(values map[string]float64) float64 {
+	var total float64
+
+	for _, v := range values {
+		if v < 0 {
+			total -= v
+		} else {
+			total += v
+		}
+	}
+
+	return total
 }
 
 func (m *mapper) extractMetadata(tbl table.Table, stmt *FinancialStatement) {
@@ -141,6 +213,7 @@ func (m *mapper) extractMetadata(tbl table.Table, stmt *FinancialStatement) {
 	}
 
 	for _, text := range tbl.PageText {
+		m.detectPeriod(text, stmt)
 		m.detectCurrencyUnit(text, stmt)
 		m.detectCompany(text, stmt)
 	}
@@ -241,6 +314,16 @@ func extractLeadingNumber(text string) (float64, error) {
 }
 
 func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
+	m.detectPeriodFromText(text, stmt)
+
+	// Retry with kern-safe normalization if no periods found yet.
+	normalized := collapseKernedDigits(text)
+	if normalized != text {
+		m.detectPeriodFromText(normalized, stmt)
+	}
+}
+
+func (m *mapper) detectPeriodFromText(text string, stmt *FinancialStatement) {
 	// Indonesian: "31 Desember 2025" (DD Month YYYY)
 	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
 		addPeriod(stmt, groups[1], groups[2], groups[3], monthsID, "id")
@@ -255,6 +338,21 @@ func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
 	for _, groups := range periodPatternENDayFirst.FindAllStringSubmatch(text, -1) {
 		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
 	}
+
+	// "31 December 2025 AND 2024" — implied same day/month for second year.
+	for _, groups := range periodWithAndEN.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
+		addPeriod(stmt, groups[1], groups[2], groups[4], monthsEN, "en")
+	}
+}
+
+// collapseKernedDigits removes spaces within digit sequences caused by PDF
+// kerning. For example, "202 5" becomes "2025" and "31 DECEMBER  202 5"
+// becomes "31 DECEMBER 2025".
+func collapseKernedDigits(text string) string {
+	return kernedDigitPattern.ReplaceAllStringFunc(text, func(match string) string {
+		return strings.ReplaceAll(match, " ", "")
+	})
 }
 
 func addPeriod(stmt *FinancialStatement, day, month, year string, months map[string]int, lang string) {
@@ -504,9 +602,18 @@ func isMetadataRow(row table.Row) bool {
 }
 
 func containsPeriodDate(text string) bool {
-	return periodPatternID.MatchString(text) ||
+	if periodPatternID.MatchString(text) ||
 		periodPatternEN.MatchString(text) ||
-		periodPatternENDayFirst.MatchString(text)
+		periodPatternENDayFirst.MatchString(text) {
+		return true
+	}
+
+	normalized := collapseKernedDigits(text)
+
+	return normalized != text &&
+		(periodPatternID.MatchString(normalized) ||
+			periodPatternEN.MatchString(normalized) ||
+			periodPatternENDayFirst.MatchString(normalized))
 }
 
 func (m *mapper) detectCompany(text string, stmt *FinancialStatement) {

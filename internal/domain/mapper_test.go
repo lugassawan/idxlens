@@ -784,6 +784,195 @@ func TestExtractLeadingNumber(t *testing.T) {
 	}
 }
 
+func TestCollapseKernedDigits(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "kerned year",
+			input: "202 5",
+			want:  "2025",
+		},
+		{
+			name:  "multiple kerned years",
+			input: "31 DECEMBER  202 5 AND  202 4",
+			want:  "31 DECEMBER  2025 AND  2024",
+		},
+		{
+			name:  "no kerning",
+			input: "31 December 2025",
+			want:  "31 December 2025",
+		},
+		{
+			name:  "kerned day and year",
+			input: "3 1 December 202 5",
+			want:  "31 December 2025",
+		},
+		{
+			name:  "empty string",
+			input: "",
+			want:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := collapseKernedDigits(tt.input)
+			if got != tt.want {
+				t.Errorf("collapseKernedDigits(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMapperKernedPeriodDetection(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name        string
+		headers     []string
+		pageText    []string
+		wantPeriods []string
+		wantLang    string
+	}{
+		{
+			name:        "kerned years in headers",
+			headers:     []string{"", "31 December  202 5", "31 December  202 4"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:    "kerned years in page text only",
+			headers: []string{"", "Notes"},
+			pageText: []string{
+				"31 DECEMBER  202 5 AND  202 4",
+				"(Expressed in millions of Rupiah)",
+			},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:    "period from page text with and",
+			headers: []string{},
+			pageText: []string{
+				"31 December 2025 and 2024",
+			},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:        "indonesian kerned year",
+			headers:     []string{"", "31 Desember  202 5"},
+			wantPeriods: []string{"2025-12-31"},
+			wantLang:    "id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, "Kas dan Setara Kas", "100.000")},
+			)
+			tbl.PageText = tt.pageText
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Periods) != len(tt.wantPeriods) {
+				t.Fatalf("periods count = %d, want %d", len(stmt.Periods), len(tt.wantPeriods))
+			}
+
+			for i, want := range tt.wantPeriods {
+				if stmt.Periods[i] != want {
+					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+				}
+			}
+
+			if stmt.Language != tt.wantLang {
+				t.Errorf("language = %q, want %q", stmt.Language, tt.wantLang)
+			}
+		})
+	}
+}
+
+func TestDeduplicateItems(t *testing.T) {
+	tests := []struct {
+		name      string
+		items     []LineItem
+		wantCount int
+		wantKeys  []string
+		wantVals  []float64
+	}{
+		{
+			name: "keeps non-zero over zero duplicate",
+			items: []LineItem{
+				{Key: "revenue", Label: "Revenue", Values: map[string]float64{"2025-12-31": 0, "2024-12-31": 0}},
+				{Key: "revenue", Label: "Pendapatan", Values: map[string]float64{"2025-12-31": 1000, "2024-12-31": 800}},
+			},
+			wantCount: 1,
+			wantKeys:  []string{"revenue"},
+			wantVals:  []float64{1000},
+		},
+		{
+			name: "keeps item with larger absolute values",
+			items: []LineItem{
+				{Key: "expenses", Label: "Expenses", Values: map[string]float64{"2025-12-31": -500}},
+				{Key: "expenses", Label: "Beban", Values: map[string]float64{"2025-12-31": -1000}},
+			},
+			wantCount: 1,
+			wantKeys:  []string{"expenses"},
+			wantVals:  []float64{-1000},
+		},
+		{
+			name: "preserves unkeyed items",
+			items: []LineItem{
+				{Key: "", Label: "Unknown Row", Values: map[string]float64{"2025-12-31": 100}},
+				{Key: "cash", Label: "Cash", Values: map[string]float64{"2025-12-31": 500}},
+				{Key: "", Label: "Another Unknown", Values: map[string]float64{"2025-12-31": 200}},
+			},
+			wantCount: 3,
+			wantKeys:  []string{"", "cash", ""},
+		},
+		{
+			name: "no duplicates unchanged",
+			items: []LineItem{
+				{Key: "cash", Label: "Cash", Values: map[string]float64{"2025-12-31": 100}},
+				{Key: "debt", Label: "Debt", Values: map[string]float64{"2025-12-31": 200}},
+			},
+			wantCount: 2,
+			wantKeys:  []string{"cash", "debt"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := deduplicateItems(tt.items)
+
+			if len(got) != tt.wantCount {
+				t.Fatalf("count = %d, want %d", len(got), tt.wantCount)
+			}
+
+			for i, wantKey := range tt.wantKeys {
+				if got[i].Key != wantKey {
+					t.Errorf("items[%d].Key = %q, want %q", i, got[i].Key, wantKey)
+				}
+			}
+
+			for i, wantVal := range tt.wantVals {
+				period := "2025-12-31"
+				if v, ok := got[i].Values[period]; !ok || v != wantVal {
+					t.Errorf("items[%d].Values[%q] = %v, want %v", i, period, v, wantVal)
+				}
+			}
+		})
+	}
+}
+
 func TestMapperPageTextMetadata(t *testing.T) {
 	m := NewMapper()
 
