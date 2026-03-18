@@ -53,7 +53,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		Workers:   flags.workers,
 		OutputDir: flags.outputDir,
 		DocType:   flags.docType,
-		Extractor: &pipelineExtractor{format: flags.format, outputDir: flags.outputDir},
+		Extractor: &pipelineExtractor{},
 	}
 
 	summary := processor.Process(paths)
@@ -117,10 +117,7 @@ func expandGlob(pattern string) ([]string, error) {
 
 // pipelineExtractor implements domain.FileExtractor using the existing
 // extraction pipeline from extract_financial.go.
-type pipelineExtractor struct {
-	format    output.Format
-	outputDir string
-}
+type pipelineExtractor struct{}
 
 func (pe *pipelineExtractor) Extract(pdfPath string, docType domain.DocType) (*domain.FinancialStatement, error) {
 	return extractStatement(pdfPath, docType)
