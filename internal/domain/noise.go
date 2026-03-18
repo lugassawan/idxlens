@@ -9,8 +9,12 @@ import (
 )
 
 const (
-	garbledSymbolThreshold = 0.30
-	pageRefMaxValue        = 999
+	garbledSymbolThreshold   = 0.30
+	pageRefMaxValue          = 999
+	spacedOutMinWords        = 4
+	spacedOutMaxAvgWordLen   = 2.0
+	spacedOutMinSingleRatio  = 0.6
+	spacedOutMinSingleTokens = 3
 )
 
 // garbledSymbols are characters commonly found in garbled PDF text caused by
@@ -85,6 +89,38 @@ func isGarbledText(label string) bool {
 	}
 
 	return float64(symbolCount)/float64(nonSpaceCount) > garbledSymbolThreshold
+}
+
+// isSpacedOutText returns true if the label consists mostly of single
+// characters separated by spaces. This pattern occurs when PDF font
+// encoding extracts each character individually, producing labels like
+// "V S R W dan derivatif/" or "K _ G > i > S" instead of real words.
+func isSpacedOutText(label string) bool {
+	words := strings.Fields(label)
+	if len(words) < spacedOutMinWords {
+		return false
+	}
+
+	singleCharCount := 0
+
+	totalLen := 0
+
+	for _, w := range words {
+		totalLen += len(w)
+
+		if len(w) == 1 {
+			singleCharCount++
+		}
+	}
+
+	avgLen := float64(totalLen) / float64(len(words))
+	singleRatio := float64(singleCharCount) / float64(len(words))
+
+	hasManyShortWords := avgLen < spacedOutMaxAvgWordLen
+	hasDominantSingleChars := singleRatio >= spacedOutMinSingleRatio &&
+		singleCharCount >= spacedOutMinSingleTokens
+
+	return hasManyShortWords || hasDominantSingleChars
 }
 
 // isPageRefValue returns true if all values in the item are small integers
