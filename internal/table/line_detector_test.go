@@ -32,9 +32,9 @@ func TestLineDetectorDetect(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Lines: []layout.TextLine{
-					makeLine("Header", 10, 50, 700),
-					makeLine("Row 1", 10, 50, 686),
-					makeLine("Row 2", 10, 50, 672),
+					makeLine("Header", 50, 700),
+					makeLine("Row 1", 50, 686),
+					makeLine("Row 2", 50, 672),
 				},
 			},
 			wantTables: 0,
@@ -140,38 +140,7 @@ func TestLineDetectorDetect(t *testing.T) {
 				t.Fatalf("Detect() error = %v", err)
 			}
 
-			if len(tables) != tt.wantTables {
-				t.Fatalf("got %d tables, want %d", len(tables), tt.wantTables)
-			}
-
-			if tt.wantTables == 0 {
-				return
-			}
-
-			tbl := tables[0]
-
-			if tt.wantColumns > 0 && len(tbl.Columns) != tt.wantColumns {
-				t.Errorf("got %d columns, want %d", len(tbl.Columns), tt.wantColumns)
-			}
-
-			if tt.wantRows > 0 && len(tbl.Rows) != tt.wantRows {
-				t.Errorf("got %d rows, want %d", len(tbl.Rows), tt.wantRows)
-			}
-
-			if tt.wantHeaders != nil {
-				if len(tbl.Headers) != len(tt.wantHeaders) {
-					t.Fatalf("got %d headers, want %d", len(tbl.Headers), len(tt.wantHeaders))
-				}
-				for i, want := range tt.wantHeaders {
-					if tbl.Headers[i] != want {
-						t.Errorf("header[%d] = %q, want %q", i, tbl.Headers[i], want)
-					}
-				}
-			}
-
-			if tbl.PageNum != tt.page.Number {
-				t.Errorf("PageNum = %d, want %d", tbl.PageNum, tt.page.Number)
-			}
+			assertTableResult(t, tables, tt.page.Number, tt.wantTables, tt.wantColumns, tt.wantRows, tt.wantHeaders)
 		})
 	}
 }
@@ -258,8 +227,11 @@ func TestLineDetectorImplementsDetector(t *testing.T) {
 	var _ Detector = newLineDetector()
 }
 
-// makeLine creates a TextLine with a single element.
-func makeLine(text string, x1, x2, y float64) layout.TextLine {
+// makeLine creates a TextLine with a single element starting at the given
+// x-coordinate range and y position.
+func makeLine(text string, x2, y float64) layout.TextLine {
+	const x1 = 10.0
+
 	elem := pdf.TextElement{
 		Text:     text,
 		FontName: "Arial",
