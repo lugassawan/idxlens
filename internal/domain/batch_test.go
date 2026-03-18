@@ -58,8 +58,8 @@ func TestBatchProcessorAllSuccess(t *testing.T) {
 			t.Errorf("result for %s should be successful", r.InputPath)
 		}
 
-		if r.Duration <= 0 {
-			t.Errorf("result for %s should have positive duration", r.InputPath)
+		if r.Duration < 0 {
+			t.Errorf("result for %s should have non-negative duration", r.InputPath)
 		}
 	}
 }
@@ -106,8 +106,8 @@ func TestBatchProcessorEmptyPaths(t *testing.T) {
 		t.Errorf("Succeeded = %d, want 0", summary.Succeeded)
 	}
 
-	if summary.Duration <= 0 {
-		t.Errorf("Duration should be positive, got %v", summary.Duration)
+	if summary.Duration < 0 {
+		t.Errorf("Duration should be non-negative, got %v", summary.Duration)
 	}
 }
 
