@@ -30,6 +30,7 @@ coverage/
 # Worktrees
 .worktrees/
 .claude/.worktrees
+.claude/worktrees/
 
 # Local scratch
 /tmp/
