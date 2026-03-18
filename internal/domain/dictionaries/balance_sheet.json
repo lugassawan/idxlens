@@ -586,6 +586,276 @@
       },
       "section": "equity",
       "level": 2
+    },
+    {
+      "key": "current_accounts_with_bi",
+      "labels": {
+        "id": ["Giro pada Bank Indonesia"],
+        "en": ["Current Accounts with Bank Indonesia"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "current_accounts_with_banks",
+      "labels": {
+        "id": ["Giro pada Bank Lain", "Giro pada Bank-Bank Lain"],
+        "en": ["Current Accounts with Other Banks"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "placements_with_bi",
+      "labels": {
+        "id": ["Penempatan pada Bank Indonesia", "Penempatan pada Bank Indonesia dan Bank Lain"],
+        "en": ["Placements with Bank Indonesia", "Placements with Bank Indonesia and Other Banks"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "placements_with_banks",
+      "labels": {
+        "id": ["Penempatan pada Bank Lain"],
+        "en": ["Placements with Other Banks"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "securities_purchased_under_resale",
+      "labels": {
+        "id": ["Efek-efek yang Dibeli dengan Janji Dijual Kembali", "Reverse Repo"],
+        "en": ["Securities Purchased under Resale Agreements", "Reverse Repo"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "securities",
+      "labels": {
+        "id": ["Efek-efek", "Surat Berharga"],
+        "en": ["Securities", "Marketable Securities"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "government_bonds",
+      "labels": {
+        "id": ["Obligasi Pemerintah", "Surat Berharga Negara"],
+        "en": ["Government Bonds", "Government Securities"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "loans",
+      "labels": {
+        "id": ["Kredit yang Diberikan", "Kredit", "Pinjaman yang Diberikan"],
+        "en": ["Loans", "Loans and Advances", "Loans and Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "sharia_financing",
+      "labels": {
+        "id": ["Pembiayaan Syariah", "Piutang Murabahah"],
+        "en": ["Sharia Financing", "Murabahah Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "allowance_for_impairment_losses",
+      "labels": {
+        "id": ["Cadangan Kerugian Penurunan Nilai", "CKPN", "Penyisihan Kerugian Penurunan Nilai"],
+        "en": ["Allowance for Impairment Losses", "Provision for Impairment Losses"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "acceptance_receivables",
+      "labels": {
+        "id": ["Tagihan Akseptasi"],
+        "en": ["Acceptance Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "interest_receivable",
+      "labels": {
+        "id": ["Pendapatan Bunga yang Masih Akan Diterima", "Bunga yang Masih Akan Diterima"],
+        "en": ["Interest Receivable", "Accrued Interest Receivable"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "foreclosed_assets",
+      "labels": {
+        "id": ["Aset yang Diambil Alih", "Agunan yang Diambil Alih"],
+        "en": ["Foreclosed Assets", "Repossessed Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "spot_receivables",
+      "labels": {
+        "id": ["Tagihan Spot dan Forward", "Tagihan atas Surat Berharga yang Dibeli"],
+        "en": ["Spot and Forward Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "deposits_from_customers",
+      "labels": {
+        "id": ["Simpanan Nasabah", "Simpanan", "Dana Pihak Ketiga", "DPK"],
+        "en": ["Deposits from Customers", "Customer Deposits", "Third Party Funds"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "demand_deposits",
+      "labels": {
+        "id": ["Giro", "Giro Nasabah"],
+        "en": ["Demand Deposits", "Current Accounts"]
+      },
+      "section": "liabilities",
+      "level": 3
+    },
+    {
+      "key": "savings_deposits",
+      "labels": {
+        "id": ["Tabungan"],
+        "en": ["Savings Deposits"]
+      },
+      "section": "liabilities",
+      "level": 3
+    },
+    {
+      "key": "time_deposits",
+      "labels": {
+        "id": ["Deposito Berjangka", "Deposito"],
+        "en": ["Time Deposits"]
+      },
+      "section": "liabilities",
+      "level": 3
+    },
+    {
+      "key": "deposits_from_banks",
+      "labels": {
+        "id": ["Simpanan dari Bank Lain"],
+        "en": ["Deposits from Other Banks"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "securities_sold_under_repurchase",
+      "labels": {
+        "id": ["Efek-efek yang Dijual dengan Janji Dibeli Kembali", "Repo"],
+        "en": ["Securities Sold under Repurchase Agreements", "Repo"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "acceptance_payables",
+      "labels": {
+        "id": ["Liabilitas Akseptasi"],
+        "en": ["Acceptance Payables"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "spot_liabilities",
+      "labels": {
+        "id": ["Liabilitas Spot dan Forward"],
+        "en": ["Spot and Forward Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "interest_payable",
+      "labels": {
+        "id": ["Bunga yang Masih Harus Dibayar"],
+        "en": ["Interest Payable", "Accrued Interest Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "fund_borrowings",
+      "labels": {
+        "id": ["Pinjaman yang Diterima"],
+        "en": ["Fund Borrowings", "Borrowings"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "subordinated_loans",
+      "labels": {
+        "id": ["Pinjaman Subordinasi"],
+        "en": ["Subordinated Loans", "Subordinated Debt"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "securities_issued",
+      "labels": {
+        "id": ["Efek-efek yang Diterbitkan", "Surat Berharga yang Diterbitkan"],
+        "en": ["Securities Issued", "Debt Securities Issued"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "statutory_reserves",
+      "labels": {
+        "id": ["Cadangan Wajib", "Cadangan Umum dan Wajib"],
+        "en": ["Statutory Reserves", "Legal Reserves"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "unrealized_gains_losses_securities",
+      "labels": {
+        "id": ["Keuntungan (Kerugian) yang Belum Direalisasi atas Efek-efek"],
+        "en": ["Unrealized Gains (Losses) on Securities", "Unrealized Gains on Available-for-Sale Securities"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "minimum_reserve_requirement",
+      "labels": {
+        "id": ["Giro Wajib Minimum", "GWM"],
+        "en": ["Minimum Reserve Requirement", "Statutory Reserves with Bank Indonesia"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "premium_income_receivable",
+      "labels": {
+        "id": ["Piutang Premi"],
+        "en": ["Premium Income Receivable", "Premium Receivables"]
+      },
+      "section": "assets",
+      "level": 2
     }
   ]
 }
