@@ -1245,3 +1245,124 @@ func TestParseQuoteWithTextLeading(t *testing.T) {
 		t.Errorf("y after quote with leading = %v, want 686", ts.y)
 	}
 }
+
+func TestTokenizeDictDelimiters(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantLen int
+	}{
+		{
+			name:    "dict open and close are skipped",
+			input:   "<< /Type /Page >>",
+			wantLen: 2,
+		},
+		{
+			name:    "dict delimiters with content stream",
+			input:   "<< /Length 42 >> stream BT /F1 12 Tf ET",
+			wantLen: 8,
+		},
+		{
+			name:    "hex string still works after dict fix",
+			input:   "<48656C6C6F> Tj",
+			wantLen: 2,
+		},
+		{
+			name:    "stray angle brackets are skipped",
+			input:   "> hello",
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tokenize(tt.input)
+			if len(got) != tt.wantLen {
+				t.Errorf("tokenize(%q) returned %d tokens %v, want %d", tt.input, len(got), got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestEstimateTextWidth(t *testing.T) {
+	tests := []struct {
+		name     string
+		text     string
+		fontSize float64
+		wantMin  float64
+	}{
+		{
+			name:     "single char",
+			text:     "A",
+			fontSize: 12,
+			wantMin:  1,
+		},
+		{
+			name:     "multi char",
+			text:     "Hello",
+			fontSize: 12,
+			wantMin:  10,
+		},
+		{
+			name:     "empty string",
+			text:     "",
+			fontSize: 12,
+			wantMin:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := estimateTextWidth(tt.text, tt.fontSize)
+			if got < tt.wantMin {
+				t.Errorf("estimateTextWidth(%q, %v) = %v, want >= %v", tt.text, tt.fontSize, got, tt.wantMin)
+			}
+		})
+	}
+}
+
+func TestParseTjAdvancesTextPosition(t *testing.T) {
+	content := "BT /F1 12 Tf 72 700 Td (Hello) Tj (World) Tj ET"
+	elements := parseContentStream(content)
+
+	if len(elements) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(elements))
+	}
+
+	// Second element should start after the first element's estimated width.
+	if elements[1].Bounds.X1 <= elements[0].Bounds.X1 {
+		t.Errorf("second element X1 (%v) should be > first element X1 (%v)",
+			elements[1].Bounds.X1, elements[0].Bounds.X1)
+	}
+
+	// Elements should have non-zero width.
+	for i, el := range elements {
+		if el.Bounds.X2 <= el.Bounds.X1 {
+			t.Errorf("element %d has zero or negative width: X1=%v, X2=%v",
+				i, el.Bounds.X1, el.Bounds.X2)
+		}
+	}
+}
+
+func TestParseStreamTokens(t *testing.T) {
+	tokens := tokenize("BT /F1 12 Tf 72 700 Td (Hello) Tj ET BT /F1 12 Tf 72 680 Td (World) Tj ET")
+	elements := parseStreamTokens(tokens)
+
+	if len(elements) != 2 {
+		t.Fatalf("expected 2 elements from two BT/ET blocks, got %d", len(elements))
+	}
+
+	if elements[0].Text != "Hello" {
+		t.Errorf("first element text = %q, want %q", elements[0].Text, "Hello")
+	}
+
+	if elements[1].Text != "World" {
+		t.Errorf("second element text = %q, want %q", elements[1].Text, "World")
+	}
+
+	// Elements from different BT/ET blocks should have different Y coordinates.
+	if elements[0].Bounds.Y1 == elements[1].Bounds.Y1 {
+		t.Errorf("elements from different BT/ET blocks should have different Y: both at %v",
+			elements[0].Bounds.Y1)
+	}
+}
