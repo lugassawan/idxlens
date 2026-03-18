@@ -35,6 +35,14 @@ func TestParseNumber(t *testing.T) {
 		{name: "not a number", input: "N/A", want: 0, wantErr: ErrNotANumber},
 		{name: "text string", input: "Total", want: 0, wantErr: ErrNotANumber},
 
+		// English format (commas as thousands)
+		{name: "english thousands", input: "1,234", want: 1234},
+		{name: "english millions", input: "1,234,567", want: 1234567},
+		{name: "english billions", input: "1,234,567,890", want: 1234567890},
+		{name: "english with decimal", input: "1,234.56", want: 1234.56},
+		{name: "english negative parens", input: "(1,234)", want: -1234},
+		{name: "english negative millions", input: "( 16,780,115 )", want: -16780115},
+
 		// Edge cases
 		{name: "leading/trailing spaces", input: "  1.234  ", want: 1234},
 		{name: "zero", input: "0", want: 0},

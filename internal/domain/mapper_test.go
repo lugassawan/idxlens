@@ -443,6 +443,18 @@ func TestMapperPeriodDateParsing(t *testing.T) {
 			wantPeriods: []string{"2025-06-30"},
 			wantLang:    "id",
 		},
+		{
+			name:        "english dates day first",
+			headers:     []string{"", "31 December 2025", "31 December 2024"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:        "english day first merged cell",
+			headers:     []string{"31 December 2025 31 December 2024"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
 	}
 
 	for _, tt := range tests {
@@ -582,7 +594,7 @@ func TestFilterFinancialTables(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := filterFinancialTables(tt.tables)
+			result := filterFinancialTables(tt.tables, DocTypeBalanceSheet)
 
 			if len(result) != tt.wantCount {
 				t.Fatalf("count = %d, want %d", len(result), tt.wantCount)
@@ -617,5 +629,187 @@ func TestIsSubsidiaryTable(t *testing.T) {
 				t.Errorf("isSubsidiaryTable() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFilterFinancialTablesXBRL(t *testing.T) {
+	tests := []struct {
+		name      string
+		tables    []table.Table
+		docType   DocType
+		wantCount int
+		wantPages []int
+	}{
+		{
+			name: "xbrl filters to balance sheet pages",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+				{
+					PageNum:  4,
+					PageText: []string{"[4220000] Statement of financial position"},
+					Rows:     []table.Row{makeRow(0, "Kas", "100")},
+				},
+				{PageNum: 5, Rows: []table.Row{makeRow(0, "Piutang", "200")}},
+				{
+					PageNum:  13,
+					PageText: []string{"[4322000] Statement of profit or loss"},
+					Rows:     []table.Row{makeRow(0, "Revenue", "300")},
+				},
+			},
+			docType:   DocTypeBalanceSheet,
+			wantCount: 2,
+			wantPages: []int{4, 5},
+		},
+		{
+			name: "falls back to heuristic when no xbrl markers",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+				{PageNum: 2, Rows: []table.Row{makeRow(0, "Kas")}},
+			},
+			docType:   DocTypeBalanceSheet,
+			wantCount: 1,
+			wantPages: []int{2},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterFinancialTables(tt.tables, tt.docType)
+
+			if len(result) != tt.wantCount {
+				t.Fatalf("count = %d, want %d", len(result), tt.wantCount)
+			}
+
+			for i, wantPage := range tt.wantPages {
+				if result[i].PageNum != wantPage {
+					t.Errorf("result[%d].PageNum = %d, want %d", i, result[i].PageNum, wantPage)
+				}
+			}
+		})
+	}
+}
+
+func TestIsMetadataRow(t *testing.T) {
+	tests := []struct {
+		name string
+		row  table.Row
+		want bool
+	}{
+		{
+			name: "date row english day first",
+			row:  makeRow(0, "31 December 2025", "31 December 2024"),
+			want: true,
+		},
+		{
+			name: "date row indonesian",
+			row:  makeRow(0, "31 Desember 2025"),
+			want: true,
+		},
+		{
+			name: "xbrl marker row",
+			row:  makeRow(0, "[4220000] Statement of financial position"),
+			want: true,
+		},
+		{
+			name: "data row",
+			row:  makeRow(0, "Kas dan Setara Kas", "1.234.567"),
+			want: false,
+		},
+		{
+			name: "empty row",
+			row:  makeRow(0, ""),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isMetadataRow(tt.row); got != tt.want {
+				t.Errorf("isMetadataRow() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractLeadingNumber(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    float64
+		wantErr bool
+	}{
+		{
+			name:  "number followed by text",
+			input: "36,408,142 Current accounts with Bank",
+			want:  36408142,
+		},
+		{
+			name:  "negative number followed by text",
+			input: "( 638 ) Allowance for impairment",
+			want:  -638,
+		},
+		{
+			name:    "only text",
+			input:   "Current accounts with Bank",
+			wantErr: true,
+		},
+		{
+			name:    "only number returns error",
+			input:   "36408142",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractLeadingNumber(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("extractLeadingNumber(%q) = %v, want error", tt.input, got)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Errorf("extractLeadingNumber(%q) error = %v", tt.input, err)
+
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("extractLeadingNumber(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMapperPageTextMetadata(t *testing.T) {
+	m := NewMapper()
+
+	tbl := makeTable(
+		[]string{"", "31 December 2025"},
+		[]table.Row{makeRow(0, "Kas", "100,000")},
+	)
+	tbl.PageText = []string{
+		"PT Bank Central Asia Tbk AND SUBSIDIARIES",
+		"(Expressed in millions of Rupiah, unless otherwise stated)",
+	}
+
+	stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+	if err != nil {
+		t.Fatalf("Map() unexpected error: %v", err)
+	}
+
+	if stmt.Company != "PT Bank Central Asia Tbk" {
+		t.Errorf("company = %q, want %q", stmt.Company, "PT Bank Central Asia Tbk")
+	}
+
+	if stmt.Currency != "IDR" {
+		t.Errorf("currency = %q, want %q", stmt.Currency, "IDR")
+	}
+
+	if stmt.Unit != "millions" {
+		t.Errorf("unit = %q, want %q", stmt.Unit, "millions")
 	}
 }
