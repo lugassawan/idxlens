@@ -39,6 +39,7 @@ checksum:
 changelog:
   sort: asc
   abbrev: -1
+  format: "{{ .Message }}"
   groups:
     - title: "Features"
       regexp: '^feat:'
