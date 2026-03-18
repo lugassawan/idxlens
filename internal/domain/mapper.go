@@ -112,7 +112,7 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		return nil, fmt.Errorf("map %s: no tables provided", docType)
 	}
 
-	dict, err := LoadDictionary(docType)
+	dict, err := loadDictionaryForDocType(docType)
 	if err != nil {
 		return nil, fmt.Errorf("map %s: %w", docType, err)
 	}
@@ -137,8 +137,27 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 	}
 
 	stmt.Items = deduplicateItems(stmt.Items)
+	filterColKeys(stmt)
 
 	return stmt, nil
+}
+
+// isCompositeDocType returns true for document types that contain multiple
+// financial statement sections (e.g., audited reports and annual reports).
+func isCompositeDocType(docType DocType) bool {
+	return docType == DocTypeAuditorReport || docType == DocTypeAnnualReport
+}
+
+// loadDictionaryForDocType loads the appropriate dictionary based on the
+// document type. Composite types (audited reports, annual reports) load all
+// financial dictionaries merged together so labels from any statement type
+// can be matched.
+func loadDictionaryForDocType(docType DocType) (*Dictionary, error) {
+	if isCompositeDocType(docType) {
+		return LoadAllDictionaries()
+	}
+
+	return LoadDictionary(docType)
 }
 
 // deduplicateItems removes duplicate keyed items, keeping the one with the
@@ -167,6 +186,24 @@ func deduplicateItems(items []LineItem) []LineItem {
 	}
 
 	return result
+}
+
+// filterColKeys removes col_N keys from item values when period labels
+// have been detected. These keys are placeholders for columns that
+// could not be mapped to a known period and become noise once real
+// periods are available.
+func filterColKeys(stmt *FinancialStatement) {
+	if len(stmt.Periods) == 0 {
+		return
+	}
+
+	for i := range stmt.Items {
+		for key := range stmt.Items[i].Values {
+			if strings.HasPrefix(key, "col_") {
+				delete(stmt.Items[i].Values, key)
+			}
+		}
+	}
 }
 
 func bestEntryByKey(items []LineItem) map[string]bestEntry {
@@ -469,12 +506,129 @@ func filterFinancialTables(tables []table.Table, docType DocType) []table.Table 
 		return tables
 	}
 
+	if isCompositeDocType(docType) {
+		return filterCompositeFinancialTables(tables)
+	}
+
 	pageRange := detectXBRLPageRange(tables, docType)
 	if pageRange != nil {
 		return filterByPageRange(tables, pageRange)
 	}
 
 	return filterByHeuristic(tables)
+}
+
+// filterCompositeFinancialTables filters tables for composite document types
+// (audited reports, annual reports). It collects all pages marked by any
+// XBRL financial marker and includes them. If no XBRL markers are found,
+// it falls back to filtering tables that contain numeric data columns.
+func filterCompositeFinancialTables(tables []table.Table) []table.Table {
+	markers := scanXBRLMarkers(tables)
+	if len(markers) > 0 {
+		return filterByXBRLMarkedPages(tables, markers)
+	}
+
+	return filterByNumericContent(tables)
+}
+
+// filterByXBRLMarkedPages keeps tables whose page numbers fall within any
+// XBRL-marked financial section range.
+func filterByXBRLMarkedPages(tables []table.Table, markers []pageMarker) []table.Table {
+	pages := xbrlFinancialPages(markers, maxTablePage(tables))
+
+	var result []table.Table
+
+	for _, tbl := range tables {
+		if !pages[tbl.PageNum] {
+			continue
+		}
+
+		if isSubsidiaryTable(tbl) {
+			continue
+		}
+
+		result = append(result, tbl)
+	}
+
+	if len(result) == 0 {
+		return filterByNumericContent(tables)
+	}
+
+	return result
+}
+
+// xbrlFinancialPages builds a set of page numbers that belong to any
+// XBRL-marked financial section.
+func xbrlFinancialPages(markers []pageMarker, lastPage int) map[int]bool {
+	pages := make(map[int]bool)
+
+	for i, m := range markers {
+		endPage := lastPage
+		for j := i + 1; j < len(markers); j++ {
+			if markers[j].page > m.page {
+				endPage = markers[j].page - 1
+
+				break
+			}
+		}
+
+		for p := m.page; p <= endPage; p++ {
+			pages[p] = true
+		}
+	}
+
+	return pages
+}
+
+// filterByNumericContent keeps tables that have rows with numeric values,
+// filtering out narrative/prose pages in annual reports.
+func filterByNumericContent(tables []table.Table) []table.Table {
+	var result []table.Table
+
+	for _, tbl := range tables {
+		if tbl.PageNum == 1 {
+			continue
+		}
+
+		if isSubsidiaryTable(tbl) {
+			continue
+		}
+
+		if !hasNumericColumns(tbl) {
+			continue
+		}
+
+		result = append(result, tbl)
+	}
+
+	if len(result) == 0 {
+		return filterByHeuristic(tables)
+	}
+
+	return result
+}
+
+// hasNumericColumns checks whether a table has at least one row with
+// parseable numeric values beyond the label column, indicating it is a
+// financial data table rather than a narrative page.
+func hasNumericColumns(tbl table.Table) bool {
+	checkRows := min(metadataScanRows, len(tbl.Rows))
+
+	for i := range checkRows {
+		row := tbl.Rows[i]
+		for j := 1; j < len(row.Cells); j++ {
+			text := strings.TrimSpace(row.Cells[j].Text)
+			if text == "" {
+				continue
+			}
+
+			if _, err := ParseNumber(text); err == nil {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func filterByPageRange(tables []table.Table, pr *xbrlPageRange) []table.Table {
