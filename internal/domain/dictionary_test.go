@@ -128,16 +128,24 @@ func TestDictionaryMatchLabel(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:    "unknown language returns nil",
-			text:    "Total Assets",
-			lang:    "fr",
-			wantNil: true,
+			name:           "unknown language falls back to other languages",
+			text:           "Total Assets",
+			lang:           "fr",
+			wantKey:        "total_assets",
+			wantConfidence: 1.0,
 		},
 		{
 			name:           "alternate label variant",
 			text:           "Jumlah Aset",
 			lang:           "id",
 			wantKey:        "total_assets",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "indonesian label matched when language is english",
+			text:           "Kas dan Setara Kas",
+			lang:           "en",
+			wantKey:        "cash_and_equivalents",
 			wantConfidence: 1.0,
 		},
 	}

@@ -46,6 +46,9 @@ func LoadDictionary(docType DocType) (*Dictionary, error) {
 }
 
 // MatchLabel finds the best matching dictionary item for a given text label.
+// It checks the preferred language first, then falls back to all other
+// languages. IDX reports are bilingual — date headers may be English while
+// line-item labels are Indonesian.
 // Returns nil and 0 if no match is found.
 func (d *Dictionary) MatchLabel(text string, lang string) (*DictionaryItem, float64) {
 	normalized := strings.TrimSpace(text)
@@ -60,12 +63,8 @@ func (d *Dictionary) MatchLabel(text string, lang string) (*DictionaryItem, floa
 
 	for i := range d.Items {
 		item := &d.Items[i]
-		labels, ok := item.Labels[lang]
-		if !ok {
-			continue
-		}
+		confidence := matchItemAllLanguages(normalized, lowered, item, lang)
 
-		confidence := matchLabels(normalized, lowered, labels)
 		if confidence > bestConfidence {
 			bestItem = item
 			bestConfidence = confidence
@@ -73,6 +72,32 @@ func (d *Dictionary) MatchLabel(text string, lang string) (*DictionaryItem, floa
 	}
 
 	return bestItem, bestConfidence
+}
+
+func matchItemAllLanguages(
+	normalized string, lowered string, item *DictionaryItem, preferredLang string,
+) float64 {
+	// Try preferred language first.
+	if labels, ok := item.Labels[preferredLang]; ok {
+		if c := matchLabels(normalized, lowered, labels); c > 0 {
+			return c
+		}
+	}
+
+	// Fall back to all other languages.
+	var best float64
+
+	for lang, labels := range item.Labels {
+		if lang == preferredLang {
+			continue
+		}
+
+		if c := matchLabels(normalized, lowered, labels); c > best {
+			best = c
+		}
+	}
+
+	return best
 }
 
 func matchLabels(normalized string, lowered string, labels []string) float64 {
