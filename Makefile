@@ -1,4 +1,4 @@
-.PHONY: build custom-gcl lint fmt test fuzz coverage accuracy clean init docker
+.PHONY: build custom-gcl lint fmt test bench fuzz coverage accuracy clean init docker
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -24,6 +24,9 @@ fmt:
 
 test:
 	go test ./...
+
+bench:
+	go test -bench=. -benchmem ./...
 
 fuzz:
 	go test -fuzz=FuzzParseNumber -fuzztime=30s ./internal/domain/...
