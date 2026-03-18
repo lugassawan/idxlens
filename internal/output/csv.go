@@ -18,14 +18,15 @@ func newCSVFormatter(_ *formatterConfig) *csvFormatter {
 
 func (f *csvFormatter) Format(w io.Writer, stmt *domain.FinancialStatement) error {
 	cw := csv.NewWriter(w)
+	sorted := sortPeriods(stmt.Periods)
 
-	header := buildHeader(stmt.Periods)
+	header := buildHeader(sorted)
 	if err := cw.Write(header); err != nil {
 		return fmt.Errorf("write csv header: %w", err)
 	}
 
 	for i := range stmt.Items {
-		row := buildRow(&stmt.Items[i], stmt.Periods)
+		row := buildRow(&stmt.Items[i], sorted)
 		if err := cw.Write(row); err != nil {
 			return fmt.Errorf("write csv row %d: %w", i, err)
 		}
@@ -40,16 +41,15 @@ func (f *csvFormatter) Format(w io.Writer, stmt *domain.FinancialStatement) erro
 	return nil
 }
 
-func buildHeader(periods []string) []string {
-	sorted := sortPeriods(periods)
-	header := make([]string, 0, 6+len(sorted))
+func buildHeader(sortedPeriods []string) []string {
+	header := make([]string, 0, 6+len(sortedPeriods))
 	header = append(header, "Key", "Label", "Section", "Level", "IsSubtotal", "Confidence")
-	header = append(header, sorted...)
+	header = append(header, sortedPeriods...)
 
 	return header
 }
 
-func buildRow(item *domain.LineItem, periods []string) []string {
+func buildRow(item *domain.LineItem, sortedPeriods []string) []string {
 	row := []string{
 		item.Key,
 		item.Label,
@@ -59,8 +59,7 @@ func buildRow(item *domain.LineItem, periods []string) []string {
 		strconv.FormatFloat(item.Confidence, 'f', -1, 64),
 	}
 
-	sorted := sortPeriods(periods)
-	for _, p := range sorted {
+	for _, p := range sortedPeriods {
 		v, ok := item.Values[p]
 		if ok {
 			row = append(row, strconv.FormatFloat(v, 'f', -1, 64))
