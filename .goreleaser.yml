@@ -39,22 +39,6 @@ checksum:
 changelog:
   sort: asc
   abbrev: -1
-  # Strip commit type prefix from entries since groups already categorize them.
-  # goreleaser (free) lacks regex replace and capitalize functions, so we use
-  # simple replace calls for each known prefix. Capitalisation of the first
-  # letter is not supported natively — a goreleaser limitation.
-  format: >-
-    {{ .Message
-    | replace "feat: " ""
-    | replace "fix: " ""
-    | replace "refactor: " ""
-    | replace "build: " ""
-    | replace "ci: " ""
-    | replace "docs: " ""
-    | replace "test: " ""
-    | replace "chore: " ""
-    | replace "revert: " ""
-    }}
   groups:
     - title: "Features"
       regexp: '^feat:'
