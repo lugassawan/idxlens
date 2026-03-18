@@ -17,6 +17,13 @@ const (
 	regionXTolerance     = 5.0
 	spaceGapRatio        = 0.3
 	fallbackWidthRatio   = 0.5
+
+	// columnGapMultiplier is the factor of average character width above
+	// which a horizontal gap between elements is treated as a column
+	// boundary. Gaps exceeding this threshold produce a tab character in
+	// the joined Text field so that downstream layers (L2) can detect
+	// column boundaries without relying solely on element coordinates.
+	columnGapMultiplier = 3.0
 )
 
 type fontKey struct {
@@ -163,13 +170,18 @@ func buildLineText(elements []pdf.TextElement, avgCharWidth float64) string {
 		return ""
 	}
 
+	columnThreshold := avgCharWidth * columnGapMultiplier
+
 	var result []byte
 	result = append(result, elements[0].Text...)
 
 	for i := 1; i < len(elements); i++ {
 		gap := elements[i].Bounds.X1 - elements[i-1].Bounds.X2
 
-		if gap > avgCharWidth*spaceGapRatio {
+		switch {
+		case gap >= columnThreshold:
+			result = append(result, '\t')
+		case gap > avgCharWidth*spaceGapRatio:
 			result = append(result, ' ')
 		}
 
