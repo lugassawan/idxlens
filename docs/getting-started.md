@@ -4,6 +4,20 @@ IDXLens is a CLI tool for extracting structured financial data from Indonesia St
 
 ## Installation
 
+### Quick install (recommended)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
+```
+
+This downloads the latest release binary for your OS and architecture, installs it to `~/.local/bin`, and sets up your PATH.
+
+To install a specific version:
+
+```sh
+VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
+```
+
 ### Using `go install`
 
 ```sh

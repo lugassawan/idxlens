@@ -28,6 +28,9 @@ IDXLens is a CLI tool that parses IDX financial report PDFs and outputs structur
 ## Quick Install
 
 ```sh
+# One-line install (macOS/Linux)
+curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
+
 # Using go install
 go install github.com/lugassawan/idxlens/cmd/idxlens@latest
 
