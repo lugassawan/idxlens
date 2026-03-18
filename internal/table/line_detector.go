@@ -13,6 +13,8 @@ const (
 	defaultMinRows      = 2
 	defaultColumnGapMin = 10.0
 	alignmentTolerance  = 3.0
+	alignLeft           = "left"
+	alignRight          = "right"
 )
 
 type lineDetector struct {
@@ -170,10 +172,10 @@ func (d *lineDetector) detectAlignment(lines []layout.TextLine, cluster xCluster
 	}
 
 	if rightAligned > leftAligned {
-		return "right"
+		return alignRight
 	}
 
-	return "left"
+	return alignLeft
 }
 
 // elementInCluster checks whether a text element falls within a column cluster.
