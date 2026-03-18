@@ -83,11 +83,13 @@ func matchLabels(normalized string, lowered string, labels []string) float64 {
 			return 1.0
 		}
 
-		if strings.EqualFold(lowered, strings.ToLower(label)) && best < 0.9 {
+		labelLower := strings.ToLower(label)
+
+		if best < 0.9 && lowered == labelLower {
 			best = 0.9
 		}
 
-		if best < 0.7 && strings.Contains(lowered, strings.ToLower(label)) {
+		if best < 0.7 && strings.Contains(lowered, labelLower) {
 			best = 0.7
 		}
 	}
