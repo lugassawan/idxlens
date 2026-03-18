@@ -1,4 +1,4 @@
-.PHONY: build custom-gcl lint fmt test coverage clean init
+.PHONY: build custom-gcl lint fmt test fuzz coverage clean init
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -24,6 +24,10 @@ fmt:
 
 test:
 	go test ./...
+
+fuzz:
+	go test -fuzz=FuzzParseNumber -fuzztime=30s ./internal/domain/...
+	go test -fuzz=FuzzReaderOpen -fuzztime=30s ./internal/pdf/...
 
 coverage:
 	mkdir -p coverage
