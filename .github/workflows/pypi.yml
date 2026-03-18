@@ -16,19 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - uses: jdx/mise-action@v2
         with:
-          go-version: "1.26"
+          install: true
 
       - name: Build CGo shared library
         run: |
           CGO_ENABLED=1 go build -buildmode=c-shared \
             -o bindings/python/idxlens/libidxlens.so \
             ./bindings/cgo/
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
 
       - name: Build wheel
         run: |
