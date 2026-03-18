@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idxlens"
+version = "0.1.0"
+description = "Python bindings for IDXLens — extract structured financial data from IDX PDF reports"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+
+[project.urls]
+Repository = "https://github.com/lugassawan/idxlens"
+
+[tool.setuptools.packages.find]
+include = ["idxlens*"]
+
+[tool.setuptools.package-data]
+idxlens = ["libidxlens.so", "libidxlens.dylib", "libidxlens.dll", "libidxlens.h"]
