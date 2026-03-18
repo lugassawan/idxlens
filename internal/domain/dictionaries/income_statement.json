@@ -1,0 +1,501 @@
+{
+  "type": "income-statement",
+  "version": 1,
+  "items": [
+    {
+      "key": "net_sales",
+      "labels": {
+        "id": ["Penjualan Bersih", "Pendapatan Bersih", "PENJUALAN BERSIH"],
+        "en": ["Net Sales", "Net Revenue", "NET SALES"]
+      },
+      "section": "revenue",
+      "level": 1
+    },
+    {
+      "key": "revenue",
+      "labels": {
+        "id": ["Pendapatan", "Pendapatan Usaha"],
+        "en": ["Revenue", "Operating Revenue"]
+      },
+      "section": "revenue",
+      "level": 1
+    },
+    {
+      "key": "interest_income_bank",
+      "labels": {
+        "id": ["Pendapatan Bunga", "Pendapatan Bunga dan Syariah"],
+        "en": ["Interest Income", "Interest and Sharia Income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "premium_income",
+      "labels": {
+        "id": ["Pendapatan Premi"],
+        "en": ["Premium Income", "Gross Premiums"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "fee_and_commission_income",
+      "labels": {
+        "id": ["Pendapatan Provisi dan Komisi"],
+        "en": ["Fee and Commission Income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "other_operating_income",
+      "labels": {
+        "id": ["Pendapatan Usaha Lainnya", "Pendapatan Operasional Lainnya"],
+        "en": ["Other Operating Income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "cost_of_goods_sold",
+      "labels": {
+        "id": ["Beban Pokok Penjualan", "Harga Pokok Penjualan", "BEBAN POKOK PENJUALAN"],
+        "en": ["Cost of Goods Sold", "Cost of Revenue", "COST OF GOODS SOLD"]
+      },
+      "section": "cost_of_revenue",
+      "level": 1
+    },
+    {
+      "key": "cost_of_revenue",
+      "labels": {
+        "id": ["Beban Pokok Pendapatan"],
+        "en": ["Cost of Revenue"]
+      },
+      "section": "cost_of_revenue",
+      "level": 1
+    },
+    {
+      "key": "interest_expense_bank",
+      "labels": {
+        "id": ["Beban Bunga", "Beban Bunga dan Syariah"],
+        "en": ["Interest Expense", "Interest and Sharia Expense"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "claim_expense",
+      "labels": {
+        "id": ["Beban Klaim"],
+        "en": ["Claim Expense", "Claims Incurred"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "gross_profit",
+      "labels": {
+        "id": ["Laba Bruto", "Laba Kotor", "LABA BRUTO"],
+        "en": ["Gross Profit", "GROSS PROFIT"]
+      },
+      "section": "cost_of_revenue",
+      "level": 0
+    },
+    {
+      "key": "selling_expenses",
+      "labels": {
+        "id": ["Beban Penjualan"],
+        "en": ["Selling Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "general_and_administrative_expenses",
+      "labels": {
+        "id": ["Beban Umum dan Administrasi"],
+        "en": ["General and Administrative Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "operating_expenses",
+      "labels": {
+        "id": ["Beban Usaha", "Jumlah Beban Usaha", "Total Beban Usaha"],
+        "en": ["Operating Expenses", "Total Operating Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 1
+    },
+    {
+      "key": "salaries_and_employee_benefits",
+      "labels": {
+        "id": ["Beban Gaji dan Tunjangan", "Beban Karyawan"],
+        "en": ["Salaries and Employee Benefits", "Employee Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "depreciation_and_amortization",
+      "labels": {
+        "id": ["Penyusutan dan Amortisasi", "Beban Penyusutan dan Amortisasi"],
+        "en": ["Depreciation and Amortization"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "research_and_development",
+      "labels": {
+        "id": ["Beban Riset dan Pengembangan"],
+        "en": ["Research and Development Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "provision_for_impairment",
+      "labels": {
+        "id": ["Cadangan Kerugian Penurunan Nilai", "Beban Penyisihan Kerugian"],
+        "en": ["Provision for Impairment Losses", "Allowance for Impairment"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "other_operating_expenses",
+      "labels": {
+        "id": ["Beban Usaha Lainnya", "Beban Operasional Lainnya"],
+        "en": ["Other Operating Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "operating_income",
+      "labels": {
+        "id": ["Laba Usaha", "Laba Operasi", "LABA USAHA"],
+        "en": ["Operating Income", "Operating Profit", "OPERATING INCOME"]
+      },
+      "section": "operating_expenses",
+      "level": 0
+    },
+    {
+      "key": "finance_income",
+      "labels": {
+        "id": ["Pendapatan Keuangan", "Pendapatan Bunga"],
+        "en": ["Finance Income", "Interest Income"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "finance_costs",
+      "labels": {
+        "id": ["Beban Keuangan", "Biaya Keuangan"],
+        "en": ["Finance Costs", "Finance Expenses"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "share_of_profit_associates",
+      "labels": {
+        "id": ["Bagian Laba Entitas Asosiasi", "Bagian atas Laba Bersih Entitas Asosiasi"],
+        "en": ["Share of Profit of Associates", "Equity in Net Income of Associates"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "gain_on_disposal_of_assets",
+      "labels": {
+        "id": ["Keuntungan Pelepasan Aset Tetap", "Laba Penjualan Aset Tetap"],
+        "en": ["Gain on Disposal of Assets", "Gain on Sale of Fixed Assets"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "loss_on_disposal_of_assets",
+      "labels": {
+        "id": ["Kerugian Pelepasan Aset Tetap", "Rugi Penjualan Aset Tetap"],
+        "en": ["Loss on Disposal of Assets", "Loss on Sale of Fixed Assets"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "foreign_exchange_gain_loss",
+      "labels": {
+        "id": ["Keuntungan (Kerugian) Selisih Kurs", "Laba (Rugi) Selisih Kurs"],
+        "en": ["Foreign Exchange Gain (Loss)", "Foreign Exchange Differences"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "gain_loss_on_fair_value",
+      "labels": {
+        "id": ["Keuntungan (Kerugian) Perubahan Nilai Wajar"],
+        "en": ["Gain (Loss) on Changes in Fair Value", "Fair Value Gain (Loss)"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "impairment_losses",
+      "labels": {
+        "id": ["Kerugian Penurunan Nilai"],
+        "en": ["Impairment Losses"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "other_income",
+      "labels": {
+        "id": ["Pendapatan Lain-lain"],
+        "en": ["Other Income"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "other_expenses",
+      "labels": {
+        "id": ["Beban Lain-lain"],
+        "en": ["Other Expenses"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "other_income_expense_net",
+      "labels": {
+        "id": ["Pendapatan (Beban) Lain-lain - Bersih", "Jumlah Pendapatan (Beban) Lain-lain"],
+        "en": ["Other Income (Expense) - Net", "Total Other Income (Expense)"]
+      },
+      "section": "other_income_expense",
+      "level": 1
+    },
+    {
+      "key": "income_before_tax",
+      "labels": {
+        "id": ["Laba Sebelum Pajak Penghasilan", "Laba Sebelum Pajak", "LABA SEBELUM PAJAK PENGHASILAN"],
+        "en": ["Income Before Income Tax", "Profit Before Tax", "INCOME BEFORE TAX"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "income_tax_expense",
+      "labels": {
+        "id": ["Beban Pajak Penghasilan", "Pajak Penghasilan"],
+        "en": ["Income Tax Expense", "Tax Expense"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "current_tax",
+      "labels": {
+        "id": ["Pajak Kini"],
+        "en": ["Current Tax"]
+      },
+      "section": "tax",
+      "level": 2
+    },
+    {
+      "key": "deferred_tax",
+      "labels": {
+        "id": ["Pajak Tangguhan"],
+        "en": ["Deferred Tax"]
+      },
+      "section": "tax",
+      "level": 2
+    },
+    {
+      "key": "net_income",
+      "labels": {
+        "id": ["Laba Bersih", "Laba Periode Berjalan", "Laba Tahun Berjalan", "LABA BERSIH"],
+        "en": ["Net Income", "Profit for the Period", "Profit for the Year", "NET INCOME"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "net_income_attributable_to_owners",
+      "labels": {
+        "id": ["Laba yang Dapat Diatribusikan kepada Pemilik Entitas Induk"],
+        "en": ["Net Income Attributable to Owners of the Parent", "Profit Attributable to Owners"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "net_income_attributable_to_nci",
+      "labels": {
+        "id": ["Laba yang Dapat Diatribusikan kepada Kepentingan Nonpengendali"],
+        "en": ["Net Income Attributable to Non-Controlling Interests"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "basic_earnings_per_share",
+      "labels": {
+        "id": ["Laba per Saham Dasar", "Laba Bersih per Saham Dasar"],
+        "en": ["Basic Earnings per Share"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "diluted_earnings_per_share",
+      "labels": {
+        "id": ["Laba per Saham Dilusian"],
+        "en": ["Diluted Earnings per Share"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "other_comprehensive_income",
+      "labels": {
+        "id": ["Penghasilan Komprehensif Lain", "Pendapatan Komprehensif Lain"],
+        "en": ["Other Comprehensive Income", "Other Comprehensive Income (Loss)"]
+      },
+      "section": "comprehensive_income",
+      "level": 1
+    },
+    {
+      "key": "oci_not_reclassified",
+      "labels": {
+        "id": ["Pos yang Tidak Akan Direklasifikasi ke Laba Rugi"],
+        "en": ["Items That Will Not Be Reclassified to Profit or Loss"]
+      },
+      "section": "comprehensive_income",
+      "level": 2
+    },
+    {
+      "key": "oci_remeasurement_employee_benefits",
+      "labels": {
+        "id": ["Pengukuran Kembali Liabilitas Imbalan Kerja"],
+        "en": ["Remeasurement of Employee Benefits Liability"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_revaluation_surplus",
+      "labels": {
+        "id": ["Surplus Revaluasi Aset Tetap"],
+        "en": ["Revaluation Surplus on Fixed Assets"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_fair_value_equity_instruments",
+      "labels": {
+        "id": ["Perubahan Nilai Wajar Instrumen Ekuitas melalui Penghasilan Komprehensif Lain"],
+        "en": ["Fair Value Changes on Equity Instruments at FVOCI"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_reclassified",
+      "labels": {
+        "id": ["Pos yang Akan Direklasifikasi ke Laba Rugi"],
+        "en": ["Items That Will Be Reclassified Subsequently to Profit or Loss"]
+      },
+      "section": "comprehensive_income",
+      "level": 2
+    },
+    {
+      "key": "oci_foreign_currency_translation",
+      "labels": {
+        "id": ["Selisih Kurs atas Penjabaran Laporan Keuangan"],
+        "en": ["Foreign Currency Translation Differences"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_cash_flow_hedges",
+      "labels": {
+        "id": ["Lindung Nilai Arus Kas"],
+        "en": ["Cash Flow Hedges", "Changes in Fair Value of Cash Flow Hedges"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_fair_value_debt_instruments",
+      "labels": {
+        "id": ["Perubahan Nilai Wajar Instrumen Utang melalui Penghasilan Komprehensif Lain"],
+        "en": ["Fair Value Changes on Debt Instruments at FVOCI"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "oci_share_of_associates",
+      "labels": {
+        "id": ["Bagian Penghasilan Komprehensif Lain Entitas Asosiasi"],
+        "en": ["Share of Other Comprehensive Income of Associates"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "income_tax_on_oci",
+      "labels": {
+        "id": ["Pajak Penghasilan Terkait Penghasilan Komprehensif Lain"],
+        "en": ["Income Tax Relating to Other Comprehensive Income"]
+      },
+      "section": "comprehensive_income",
+      "level": 2
+    },
+    {
+      "key": "total_other_comprehensive_income",
+      "labels": {
+        "id": ["Jumlah Penghasilan Komprehensif Lain", "Total Penghasilan Komprehensif Lain"],
+        "en": ["Total Other Comprehensive Income", "Total Other Comprehensive Income (Loss)"]
+      },
+      "section": "comprehensive_income",
+      "level": 1
+    },
+    {
+      "key": "total_comprehensive_income",
+      "labels": {
+        "id": ["Jumlah Laba Komprehensif", "Total Laba Komprehensif", "JUMLAH LABA KOMPREHENSIF"],
+        "en": ["Total Comprehensive Income", "TOTAL COMPREHENSIVE INCOME"]
+      },
+      "section": "comprehensive_income",
+      "level": 0
+    },
+    {
+      "key": "comprehensive_income_attributable_to_owners",
+      "labels": {
+        "id": ["Laba Komprehensif yang Dapat Diatribusikan kepada Pemilik Entitas Induk"],
+        "en": ["Total Comprehensive Income Attributable to Owners of the Parent"]
+      },
+      "section": "comprehensive_income",
+      "level": 1
+    },
+    {
+      "key": "comprehensive_income_attributable_to_nci",
+      "labels": {
+        "id": ["Laba Komprehensif yang Dapat Diatribusikan kepada Kepentingan Nonpengendali"],
+        "en": ["Total Comprehensive Income Attributable to Non-Controlling Interests"]
+      },
+      "section": "comprehensive_income",
+      "level": 1
+    }
+  ]
+}

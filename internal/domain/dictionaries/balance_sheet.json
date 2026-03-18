@@ -1,12 +1,12 @@
 {
   "type": "balance-sheet",
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "key": "total_assets",
       "labels": {
-        "id": ["Jumlah Aset", "Total Aset"],
-        "en": ["Total Assets"]
+        "id": ["Jumlah Aset", "Total Aset", "JUMLAH ASET"],
+        "en": ["Total Assets", "TOTAL ASSETS"]
       },
       "section": "assets",
       "level": 0
@@ -48,6 +48,42 @@
       "level": 2
     },
     {
+      "key": "related_party_receivables",
+      "labels": {
+        "id": ["Piutang Pihak Berelasi"],
+        "en": ["Due from Related Parties", "Related Party Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "financial_assets_fvtpl",
+      "labels": {
+        "id": ["Aset Keuangan pada Nilai Wajar melalui Laba Rugi"],
+        "en": ["Financial Assets at Fair Value through Profit or Loss", "Financial Assets at FVTPL"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "financial_assets_fvoci",
+      "labels": {
+        "id": ["Aset Keuangan pada Nilai Wajar melalui Penghasilan Komprehensif Lain"],
+        "en": ["Financial Assets at Fair Value through Other Comprehensive Income", "Financial Assets at FVOCI"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "derivative_assets",
+      "labels": {
+        "id": ["Aset Derivatif"],
+        "en": ["Derivative Assets", "Derivative Financial Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
       "key": "inventories",
       "labels": {
         "id": ["Persediaan"],
@@ -75,6 +111,33 @@
       "level": 2
     },
     {
+      "key": "prepaid_taxes",
+      "labels": {
+        "id": ["Pajak Dibayar di Muka"],
+        "en": ["Prepaid Taxes"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "other_current_assets",
+      "labels": {
+        "id": ["Aset Lancar Lainnya"],
+        "en": ["Other Current Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "assets_held_for_sale",
+      "labels": {
+        "id": ["Aset yang Dimiliki untuk Dijual", "Aset Tidak Lancar yang Dimiliki untuk Dijual"],
+        "en": ["Assets Held for Sale", "Non-Current Assets Held for Sale"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
       "key": "non_current_assets",
       "labels": {
         "id": ["Aset Tidak Lancar", "Jumlah Aset Tidak Lancar", "Total Aset Tidak Lancar"],
@@ -93,10 +156,28 @@
       "level": 2
     },
     {
+      "key": "right_of_use_assets",
+      "labels": {
+        "id": ["Aset Hak Guna", "Aset Hak-Guna"],
+        "en": ["Right-of-Use Assets", "Right of Use Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
       "key": "intangible_assets",
       "labels": {
         "id": ["Aset Takberwujud", "Aset Tidak Berwujud"],
         "en": ["Intangible Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "goodwill",
+      "labels": {
+        "id": ["Goodwill", "Goodwil"],
+        "en": ["Goodwill"]
       },
       "section": "assets",
       "level": 2
@@ -113,8 +194,8 @@
     {
       "key": "long_term_investments",
       "labels": {
-        "id": ["Investasi Jangka Panjang"],
-        "en": ["Long-Term Investments", "Long Term Investments"]
+        "id": ["Investasi Jangka Panjang", "Investasi pada Entitas Asosiasi"],
+        "en": ["Long-Term Investments", "Long Term Investments", "Investments in Associates"]
       },
       "section": "assets",
       "level": 2
@@ -129,10 +210,55 @@
       "level": 2
     },
     {
+      "key": "other_non_current_assets",
+      "labels": {
+        "id": ["Aset Tidak Lancar Lainnya"],
+        "en": ["Other Non-Current Assets", "Other Non Current Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "restricted_cash",
+      "labels": {
+        "id": ["Kas yang Dibatasi Penggunaannya", "Kas dan Setara Kas yang Dibatasi Penggunaannya"],
+        "en": ["Restricted Cash"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "biological_assets",
+      "labels": {
+        "id": ["Aset Biologis"],
+        "en": ["Biological Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "mine_properties",
+      "labels": {
+        "id": ["Properti Pertambangan"],
+        "en": ["Mine Properties", "Mining Properties"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "exploration_assets",
+      "labels": {
+        "id": ["Aset Eksplorasi dan Evaluasi"],
+        "en": ["Exploration and Evaluation Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
       "key": "total_liabilities",
       "labels": {
-        "id": ["Jumlah Liabilitas", "Total Liabilitas"],
-        "en": ["Total Liabilities"]
+        "id": ["Jumlah Liabilitas", "Total Liabilitas", "JUMLAH LIABILITAS"],
+        "en": ["Total Liabilities", "TOTAL LIABILITIES"]
       },
       "section": "liabilities",
       "level": 0
@@ -151,6 +277,24 @@
       "labels": {
         "id": ["Utang Usaha", "Utang Usaha - Pihak Ketiga"],
         "en": ["Trade Payables", "Trade Accounts Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "other_payables",
+      "labels": {
+        "id": ["Utang Lain-lain", "Utang Lainnya"],
+        "en": ["Other Payables"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "related_party_payables",
+      "labels": {
+        "id": ["Utang Pihak Berelasi"],
+        "en": ["Due to Related Parties", "Related Party Payables"]
       },
       "section": "liabilities",
       "level": 2
@@ -183,10 +327,55 @@
       "level": 2
     },
     {
+      "key": "current_tax_payable",
+      "labels": {
+        "id": ["Utang Pajak Penghasilan Badan"],
+        "en": ["Current Tax Payable", "Income Tax Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
       "key": "current_portion_long_term_debt",
       "labels": {
         "id": ["Bagian Lancar Utang Jangka Panjang"],
         "en": ["Current Portion of Long-Term Debt", "Current Maturities of Long-Term Debt"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "unearned_revenue",
+      "labels": {
+        "id": ["Pendapatan Diterima di Muka"],
+        "en": ["Unearned Revenue", "Deferred Revenue"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "derivative_liabilities",
+      "labels": {
+        "id": ["Liabilitas Derivatif"],
+        "en": ["Derivative Liabilities", "Derivative Financial Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "dividends_payable",
+      "labels": {
+        "id": ["Utang Dividen"],
+        "en": ["Dividends Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "other_current_liabilities",
+      "labels": {
+        "id": ["Liabilitas Jangka Pendek Lainnya"],
+        "en": ["Other Current Liabilities"]
       },
       "section": "liabilities",
       "level": 2
@@ -210,6 +399,24 @@
       "level": 2
     },
     {
+      "key": "bonds_payable",
+      "labels": {
+        "id": ["Utang Obligasi"],
+        "en": ["Bonds Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "lease_liabilities",
+      "labels": {
+        "id": ["Liabilitas Sewa"],
+        "en": ["Lease Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
       "key": "deferred_tax_liabilities",
       "labels": {
         "id": ["Liabilitas Pajak Tangguhan"],
@@ -228,13 +435,67 @@
       "level": 2
     },
     {
-      "key": "total_equity",
+      "key": "pension_obligations",
       "labels": {
-        "id": ["Jumlah Ekuitas", "Total Ekuitas"],
-        "en": ["Total Equity"]
+        "id": ["Liabilitas Pensiun", "Kewajiban Pensiun"],
+        "en": ["Pension Obligations", "Pension Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "provisions",
+      "labels": {
+        "id": ["Provisi", "Provisi Jangka Panjang"],
+        "en": ["Provisions", "Long-Term Provisions"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "decommissioning_liabilities",
+      "labels": {
+        "id": ["Provisi untuk Pembongkaran", "Liabilitas Pembongkaran Aset"],
+        "en": ["Decommissioning Liabilities", "Asset Retirement Obligations"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "other_non_current_liabilities",
+      "labels": {
+        "id": ["Liabilitas Jangka Panjang Lainnya"],
+        "en": ["Other Non-Current Liabilities", "Other Non Current Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "total_liabilities_and_equity",
+      "labels": {
+        "id": ["Jumlah Liabilitas dan Ekuitas", "Total Liabilitas dan Ekuitas"],
+        "en": ["Total Liabilities and Equity", "Total Liabilities and Shareholders' Equity"]
       },
       "section": "equity",
       "level": 0
+    },
+    {
+      "key": "total_equity",
+      "labels": {
+        "id": ["Jumlah Ekuitas", "Total Ekuitas", "JUMLAH EKUITAS"],
+        "en": ["Total Equity", "TOTAL EQUITY"]
+      },
+      "section": "equity",
+      "level": 0
+    },
+    {
+      "key": "equity_attributable_to_owners",
+      "labels": {
+        "id": ["Ekuitas yang Dapat Diatribusikan kepada Pemilik Entitas Induk"],
+        "en": ["Equity Attributable to Owners of the Parent", "Equity Attributable to Parent"]
+      },
+      "section": "equity",
+      "level": 1
     },
     {
       "key": "share_capital",
@@ -255,10 +516,64 @@
       "level": 2
     },
     {
+      "key": "treasury_shares",
+      "labels": {
+        "id": ["Saham Treasuri", "Saham yang Diperoleh Kembali"],
+        "en": ["Treasury Shares", "Treasury Stock"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
       "key": "retained_earnings",
       "labels": {
         "id": ["Saldo Laba", "Laba Ditahan"],
         "en": ["Retained Earnings"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "retained_earnings_appropriated",
+      "labels": {
+        "id": ["Saldo Laba - Telah Ditentukan Penggunaannya", "Cadangan Umum"],
+        "en": ["Retained Earnings - Appropriated", "General Reserve"]
+      },
+      "section": "equity",
+      "level": 3
+    },
+    {
+      "key": "retained_earnings_unappropriated",
+      "labels": {
+        "id": ["Saldo Laba - Belum Ditentukan Penggunaannya"],
+        "en": ["Retained Earnings - Unappropriated"]
+      },
+      "section": "equity",
+      "level": 3
+    },
+    {
+      "key": "other_reserves",
+      "labels": {
+        "id": ["Cadangan Lainnya", "Komponen Ekuitas Lainnya"],
+        "en": ["Other Reserves", "Other Equity Components"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "revaluation_surplus",
+      "labels": {
+        "id": ["Surplus Revaluasi"],
+        "en": ["Revaluation Surplus"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "foreign_currency_translation",
+      "labels": {
+        "id": ["Selisih Kurs Penjabaran", "Selisih Kurs atas Penjabaran Laporan Keuangan"],
+        "en": ["Foreign Currency Translation Differences", "Foreign Currency Translation Reserve"]
       },
       "section": "equity",
       "level": 2
