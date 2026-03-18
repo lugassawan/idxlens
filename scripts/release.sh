@@ -19,9 +19,9 @@ die() {
 }
 
 # Detect next version by analyzing commits since the last tag.
-# Classifies commits by conventional commit prefix (feat:/fix:/etc.)
-# and determines the appropriate semver bump.
+# Classifies commits by prefix and determines the appropriate semver bump.
 detect_next_version() {
+    # Find latest semver tag
     latest_tag=$(git tag -l 'v*' | sort -V | tail -1)
     if [ -z "$latest_tag" ]; then
         latest_tag="v0.0.0"
@@ -31,6 +31,7 @@ detect_next_version() {
         commit_range="${latest_tag}..HEAD"
     fi
 
+    # Get commits since last tag
     commits=$(git log "$commit_range" --oneline 2>/dev/null || true)
     if [ -z "$commits" ]; then
         echo "No commits since $latest_tag. Nothing to release."
@@ -39,11 +40,29 @@ detect_next_version() {
 
     commit_count=$(echo "$commits" | wc -l | tr -d ' ')
 
+    # Classify commits by prefix and determine bump type
     bump="patch"
+    breaking_commits=""
     feat_commits=""
     fix_commits=""
     other_commits=""
 
+    # Use a temp file to handle BREAKING CHANGE body detection without subshell issues
+    body_breaking_file=$(mktemp)
+    trap 'rm -f "$body_breaking_file"' EXIT
+
+    # Check commit bodies for BREAKING CHANGE
+    git log "$commit_range" --format="%H" 2>/dev/null | while IFS= read -r hash; do
+        body=$(git log -1 --format="%b" "$hash")
+        case "$body" in
+            *"BREAKING CHANGE"*)
+                subject=$(git log -1 --format="%s" "$hash")
+                echo "$subject" >> "$body_breaking_file"
+                ;;
+        esac
+    done
+
+    # Process each commit
     OLD_IFS="$IFS"
     IFS='
 '
@@ -69,11 +88,29 @@ detect_next_version() {
     done
     IFS="$OLD_IFS"
 
+    # Incorporate BREAKING CHANGE from commit bodies
+    if [ -s "$body_breaking_file" ]; then
+        bump="major"
+        OLD_IFS="$IFS"
+        IFS='
+'
+        for body_subject in $(cat "$body_breaking_file"); do
+            # Avoid duplicating commits already listed
+            case "$breaking_commits" in
+                *"$body_subject"*) ;;
+                *) breaking_commits="${breaking_commits}    - ${body_subject} (BREAKING CHANGE in body)
+" ;;
+            esac
+        done
+        IFS="$OLD_IFS"
+    fi
+
     # Parse current version
     major=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f1)
     minor=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f2)
     patch=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f3)
 
+    # Compute next version
     case "$bump" in
         major)
             major=$((major + 1))
@@ -91,10 +128,17 @@ detect_next_version() {
 
     next_version="v${major}.${minor}.${patch}"
 
+    # Print summary
     echo ""
     echo "Current version: $latest_tag"
     echo "Commits since $latest_tag: $commit_count"
     echo ""
+
+    if [ -n "$breaking_commits" ]; then
+        echo "  Breaking changes (major):"
+        printf "%s" "$breaking_commits"
+        echo ""
+    fi
 
     if [ -n "$feat_commits" ]; then
         echo "  Features (minor):"
@@ -117,6 +161,7 @@ detect_next_version() {
     echo "Next version: $next_version"
     echo ""
 
+    # Prompt for confirmation
     printf "Continue with release? [y/N] "
     read -r confirm
     case "$confirm" in
@@ -124,6 +169,7 @@ detect_next_version() {
         *) echo "Aborted."; exit 0 ;;
     esac
 
+    # Set version for the rest of the script
     version="$next_version"
 }
 

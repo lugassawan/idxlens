@@ -1,5 +1,7 @@
 version: 2
 
+project_name: idxlens
+
 builds:
   - main: ./cmd/idxlens
     binary: idxlens
@@ -36,8 +38,25 @@ checksum:
 
 changelog:
   sort: asc
+  abbrev: -1
+  groups:
+    - title: "Features"
+      regexp: '^feat:'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^fix:'
+      order: 1
+    - title: "Refactoring"
+      regexp: '^refactor:'
+      order: 2
+    - title: "Build & CI"
+      regexp: '^(build|ci):'
+      order: 3
+    - title: "Other"
+      order: 999
   filters:
     exclude:
-      - "^docs:"
-      - "^chore:"
-      - "^ci:"
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^Initial commit$'
