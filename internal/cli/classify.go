@@ -22,12 +22,12 @@ var classifyCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(classifyCmd)
-	classifyCmd.Flags().StringP("format", "f", "text", "output format (text, json)")
+	classifyCmd.Flags().StringP(flagFormat, "f", "text", "output format (text, json)")
 }
 
 func runClassify(cmd *cobra.Command, args []string) error {
 	filePath := args[0]
-	format, err := cmd.Flags().GetString("format")
+	format, err := cmd.Flags().GetString(flagFormat)
 	if err != nil {
 		return fmt.Errorf("read format flag: %w", err)
 	}

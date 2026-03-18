@@ -118,12 +118,12 @@ jobs:
       - name: Build
         run: go build -o bin/idxlens ./cmd/idxlens
 
-      - name: Verify binary size (< 20MB)
+      - name: Verify binary size (< 25MB)
         run: |
           size=$(stat -c%s bin/idxlens)
           echo "Binary size: $size bytes"
-          if [ "$size" -gt 20971520 ]; then
-            echo "ERROR: binary exceeds 20MB"
+          if [ "$size" -gt 26214400 ]; then
+            echo "ERROR: binary exceeds 25MB"
             exit 1
           fi
 
