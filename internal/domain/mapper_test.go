@@ -1002,3 +1002,107 @@ func TestMapperPageTextMetadata(t *testing.T) {
 		t.Errorf("unit = %q, want %q", stmt.Unit, "millions")
 	}
 }
+
+func TestIsFiscalPeriodEnd(t *testing.T) {
+	tests := []struct {
+		name string
+		day  int
+		mon  int
+		want bool
+	}{
+		{"dec 31 annual", 31, 12, true},
+		{"mar 31 Q1", 31, 3, true},
+		{"jun 30 Q2", 30, 6, true},
+		{"sep 30 Q3", 30, 9, true},
+		{"jan 26 audit date", 26, 1, false},
+		{"jan 1 period start", 1, 1, false},
+		{"oct 31 incorporation", 31, 10, false},
+		{"mar 1 not quarter end", 1, 3, false},
+		{"jun 15 mid month", 15, 6, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isFiscalPeriodEnd(tt.day, tt.mon); got != tt.want {
+				t.Errorf("isFiscalPeriodEnd(%d, %d) = %v, want %v",
+					tt.day, tt.mon, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPeriodDetectionFiltersNonFiscalDates(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name        string
+		headers     []string
+		pageText    []string
+		rowTexts    []string
+		wantPeriods []string
+	}{
+		{
+			name:    "filters audit date and period start from body text",
+			headers: []string{"", "31 December 2025", "31 December 2024"},
+			pageText: []string{
+				"January 26, 2026",
+				"January 01, 2025",
+			},
+			rowTexts:    []string{"Cash", "100"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+		},
+		{
+			name:    "filters regulation and incorporation dates",
+			headers: []string{"", "31 Desember 2025", "31 Desember 2024"},
+			pageText: []string{
+				"October 31, 2000",
+				"March 15, 1998",
+			},
+			rowTexts:    []string{"Kas", "100"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+		},
+		{
+			name:        "keeps quarter-end dates",
+			headers:     []string{"", "30 Juni 2025", "30 Juni 2024"},
+			rowTexts:    []string{"Kas", "100"},
+			wantPeriods: []string{"2025-06-30", "2024-06-30"},
+		},
+		{
+			name:    "limits to max 3 periods",
+			headers: []string{"", "31 December 2025", "31 December 2024"},
+			pageText: []string{
+				"31 December 2023",
+				"31 December 2022",
+			},
+			rowTexts:    []string{"Cash", "100"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31", "2023-12-31"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, tt.rowTexts...)},
+			)
+			tbl.PageText = tt.pageText
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Periods) != len(tt.wantPeriods) {
+				t.Fatalf("periods count = %d (%v), want %d (%v)",
+					len(stmt.Periods), stmt.Periods,
+					len(tt.wantPeriods), tt.wantPeriods)
+			}
+
+			for i, want := range tt.wantPeriods {
+				if stmt.Periods[i] != want {
+					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+				}
+			}
+		})
+	}
+}
