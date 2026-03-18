@@ -125,6 +125,117 @@ func addTextContent(t *testing.T, xRefTable *model.XRefTable, pageDict types.Dic
 	pageDict.Insert("Contents", *streamRef)
 }
 
+// buildTestPDFWithXObject creates a PDF where page content uses a Form XObject
+// referenced by a Do operator. The Form XObject contains the actual text.
+func buildTestPDFWithXObject(t *testing.T) *bytes.Reader {
+	t.Helper()
+
+	xRefTable, err := pdfcpu.CreateXRefTableWithRootDict()
+	if err != nil {
+		t.Fatalf("create xref table: %v", err)
+	}
+
+	mediaBox := types.NewRectangle(0, 0, 595, 842)
+
+	rootDict, err := xRefTable.Catalog()
+	if err != nil {
+		t.Fatalf("get catalog: %v", err)
+	}
+
+	pagesDict := types.NewDict()
+	pagesDict.InsertName("Type", "Pages")
+	pagesDict.InsertInt("Count", 1)
+
+	pagesRef, err := xRefTable.IndRefForNewObject(pagesDict)
+	if err != nil {
+		t.Fatalf("create pages ref: %v", err)
+	}
+
+	rootDict.Insert("Pages", *pagesRef)
+
+	// Create Form XObject with text content.
+	xObjContent := "BT\n/F1 12 Tf\n72 700 Td\n(XObject Text) Tj\nET\n"
+	xObjSD, err := xRefTable.NewStreamDictForBuf([]byte(xObjContent))
+	if err != nil {
+		t.Fatalf("create xobject stream dict: %v", err)
+	}
+
+	xObjSD.InsertName("Type", "XObject")
+	xObjSD.InsertName("Subtype", "Form")
+	xObjSD.Insert("BBox", mediaBox.Array())
+
+	if err := xObjSD.Encode(); err != nil {
+		t.Fatalf("encode xobject stream: %v", err)
+	}
+
+	xObjRef, err := xRefTable.IndRefForNewObject(*xObjSD)
+	if err != nil {
+		t.Fatalf("create xobject ref: %v", err)
+	}
+
+	// Create font resource.
+	fontDict := types.NewDict()
+	fontDict.InsertName("Type", "Font")
+	fontDict.InsertName("Subtype", "Type1")
+	fontDict.InsertName("BaseFont", "Helvetica")
+
+	fontRef, err := xRefTable.IndRefForNewObject(fontDict)
+	if err != nil {
+		t.Fatalf("create font ref: %v", err)
+	}
+
+	fontMap := types.NewDict()
+	fontMap.Insert("F1", *fontRef)
+
+	xObjMap := types.NewDict()
+	xObjMap.Insert("Fm0", *xObjRef)
+
+	resDict := types.NewDict()
+	resDict.Insert("Font", fontMap)
+	resDict.Insert("XObject", xObjMap)
+
+	// Page content only references the XObject via Do.
+	pageContent := "q /Fm0 Do Q\n"
+	contentSD, err := xRefTable.NewStreamDictForBuf([]byte(pageContent))
+	if err != nil {
+		t.Fatalf("create content stream dict: %v", err)
+	}
+
+	if err := contentSD.Encode(); err != nil {
+		t.Fatalf("encode content stream: %v", err)
+	}
+
+	contentRef, err := xRefTable.IndRefForNewObject(*contentSD)
+	if err != nil {
+		t.Fatalf("create content ref: %v", err)
+	}
+
+	pageDict := types.NewDict()
+	pageDict.InsertName("Type", "Page")
+	pageDict.Insert("Parent", *pagesRef)
+	pageDict.Insert("MediaBox", mediaBox.Array())
+	pageDict.Insert("Resources", resDict)
+	pageDict.Insert("Contents", *contentRef)
+
+	pageRef, err := xRefTable.IndRefForNewObject(pageDict)
+	if err != nil {
+		t.Fatalf("create page ref: %v", err)
+	}
+
+	pagesDict.Insert("Kids", types.Array{*pageRef})
+	xRefTable.PageCount = 1
+
+	conf := model.NewDefaultConfiguration()
+	ctx := pdfcpu.CreateContext(xRefTable, conf)
+
+	var buf bytes.Buffer
+	if err := pdfcpuapi.WriteContext(ctx, &buf); err != nil {
+		t.Fatalf("write pdf: %v", err)
+	}
+
+	return bytes.NewReader(buf.Bytes())
+}
+
 func TestNewReader(t *testing.T) {
 	r := NewReader()
 	if r == nil {
@@ -900,6 +1011,40 @@ func TestSkipComment(t *testing.T) {
 	}
 }
 
+func TestFormXObjectExtraction(t *testing.T) {
+	rs := buildTestPDFWithXObject(t)
+	r := NewReader()
+
+	if err := r.Open(rs); err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer r.Close()
+
+	page, err := r.Page(1)
+	if err != nil {
+		t.Fatalf("Page(1): %v", err)
+	}
+
+	if len(page.Elements) == 0 {
+		t.Fatal("expected text elements from Form XObject, got 0")
+	}
+
+	found := false
+	for _, el := range page.Elements {
+		if strings.Contains(el.Text, "XObject Text") {
+			found = true
+		}
+	}
+
+	if !found {
+		texts := make([]string, 0, len(page.Elements))
+		for _, el := range page.Elements {
+			texts = append(texts, el.Text)
+		}
+		t.Errorf("expected element containing %q, got: %v", "XObject Text", texts)
+	}
+}
+
 func TestIsKerningSpace(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1075,6 +1220,20 @@ func TestParseTc(t *testing.T) {
 
 	if ts.charSpacing != 0.5 {
 		t.Errorf("charSpacing = %v, want 0.5", ts.charSpacing)
+	}
+}
+
+func TestParseContentStreamDoubleQuote(t *testing.T) {
+	// The " operator format: aw ac (string) "
+	content := `BT /F1 12 Tf 72 700 Td 2 0.5 (Hello) " ET`
+	elements := parseContentStream(content)
+
+	if len(elements) != 1 {
+		t.Fatalf("expected 1 element, got %d", len(elements))
+	}
+
+	if elements[0].Text != "Hello" {
+		t.Errorf("text = %q, want %q", elements[0].Text, "Hello")
 	}
 }
 
