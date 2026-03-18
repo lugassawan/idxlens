@@ -27,7 +27,7 @@ func makeTable(headers []string, rows []table.Row) table.Table {
 		Rows:    rows,
 		Columns: cols,
 		Bounds:  pdf.Rect{X1: 0, Y1: 0, X2: float64(len(headers) * 200), Y2: 400},
-		PageNum: 1,
+		PageNum: 2,
 	}
 }
 
@@ -81,6 +81,13 @@ func TestMapperMapBalanceSheet(t *testing.T) {
 
 	if len(stmt.Periods) != 2 {
 		t.Errorf("periods = %d, want 2", len(stmt.Periods))
+	}
+
+	wantPeriods := []string{"2023-12-31", "2022-12-31"}
+	for i, want := range wantPeriods {
+		if i < len(stmt.Periods) && stmt.Periods[i] != want {
+			t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+		}
 	}
 
 	if stmt.Language != "id" {
@@ -345,6 +352,269 @@ func TestNormalizeCurrency(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			if got := normalizeCurrency(tt.input); got != tt.want {
 				t.Errorf("normalizeCurrency(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatDateISO(t *testing.T) {
+	tests := []struct {
+		name     string
+		day      string
+		month    string
+		year     string
+		months   map[string]int
+		wantDate string
+	}{
+		{
+			name:     "indonesian december",
+			day:      "31",
+			month:    "Desember",
+			year:     "2025",
+			months:   map[string]int{"desember": 12},
+			wantDate: "2025-12-31",
+		},
+		{
+			name:     "english march",
+			day:      "1",
+			month:    "March",
+			year:     "2024",
+			months:   map[string]int{"march": 3},
+			wantDate: "2024-03-01",
+		},
+		{
+			name:     "unknown month returns empty",
+			day:      "1",
+			month:    "Foo",
+			year:     "2024",
+			months:   map[string]int{"march": 3},
+			wantDate: "",
+		},
+		{
+			name:     "invalid day returns empty",
+			day:      "abc",
+			month:    "March",
+			year:     "2024",
+			months:   map[string]int{"march": 3},
+			wantDate: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatDateISO(tt.day, tt.month, tt.year, tt.months)
+			if got != tt.wantDate {
+				t.Errorf("formatDateISO() = %q, want %q", got, tt.wantDate)
+			}
+		})
+	}
+}
+
+func TestMapperPeriodDateParsing(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name        string
+		headers     []string
+		wantPeriods []string
+		wantLang    string
+	}{
+		{
+			name:        "indonesian dates",
+			headers:     []string{"", "31 Desember 2025", "31 Desember 2024"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "id",
+		},
+		{
+			name:        "english dates month first",
+			headers:     []string{"", "December 31, 2025", "December 31, 2024"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:        "english dates no comma",
+			headers:     []string{"", "December 31 2025"},
+			wantPeriods: []string{"2025-12-31"},
+			wantLang:    "en",
+		},
+		{
+			name:        "indonesian june",
+			headers:     []string{"", "30 Juni 2025"},
+			wantPeriods: []string{"2025-06-30"},
+			wantLang:    "id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, "Kas dan Setara Kas", "100.000")},
+			)
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Periods) != len(tt.wantPeriods) {
+				t.Fatalf("periods count = %d, want %d", len(stmt.Periods), len(tt.wantPeriods))
+			}
+
+			for i, want := range tt.wantPeriods {
+				if stmt.Periods[i] != want {
+					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+				}
+			}
+
+			if stmt.Language != tt.wantLang {
+				t.Errorf("language = %q, want %q", stmt.Language, tt.wantLang)
+			}
+		})
+	}
+}
+
+func TestMapperCurrencyUnitExpanded(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name         string
+		header       string
+		wantCurrency string
+		wantUnit     string
+	}{
+		{
+			name:         "expressed in millions of rupiah",
+			header:       "Expressed in millions of Rupiah",
+			wantCurrency: "IDR",
+			wantUnit:     "millions",
+		},
+		{
+			name:         "dalam miliaran rupiah",
+			header:       "Dalam Miliaran Rupiah",
+			wantCurrency: "IDR",
+			wantUnit:     "billions",
+		},
+		{
+			name:         "in billions of dollars",
+			header:       "In Billions of Dollars",
+			wantCurrency: "USD",
+			wantUnit:     "billions",
+		},
+		{
+			name:         "slash format jutaan/in million",
+			header:       "Jutaan / In Million Rupiah",
+			wantCurrency: "IDR",
+			wantUnit:     "millions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				[]string{tt.header, "31 Desember 2023"},
+				[]table.Row{makeRow(0, "Kas dan Setara Kas", "100.000")},
+			)
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if stmt.Currency != tt.wantCurrency {
+				t.Errorf("currency = %q, want %q", stmt.Currency, tt.wantCurrency)
+			}
+
+			if stmt.Unit != tt.wantUnit {
+				t.Errorf("unit = %q, want %q", stmt.Unit, tt.wantUnit)
+			}
+		})
+	}
+}
+
+func TestFilterFinancialTables(t *testing.T) {
+	tests := []struct {
+		name      string
+		tables    []table.Table
+		wantCount int
+		wantPages []int
+	}{
+		{
+			name: "skips page 1 when multiple tables",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+				{PageNum: 2, Rows: []table.Row{makeRow(0, "Kas")}},
+				{PageNum: 3, Rows: []table.Row{makeRow(0, "Utang")}},
+			},
+			wantCount: 2,
+			wantPages: []int{2, 3},
+		},
+		{
+			name: "keeps single table even on page 1",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Kas")}},
+			},
+			wantCount: 1,
+			wantPages: []int{1},
+		},
+		{
+			name: "skips subsidiary tables",
+			tables: []table.Table{
+				{
+					PageNum: 2,
+					Headers: []string{"Daftar Entitas Anak / Subsidiaries"},
+					Rows:    []table.Row{makeRow(0, "PT Sub Corp")},
+				},
+				{PageNum: 3, Rows: []table.Row{makeRow(0, "Kas")}},
+			},
+			wantCount: 1,
+			wantPages: []int{3},
+		},
+		{
+			name: "returns all if filtering removes everything",
+			tables: []table.Table{
+				{PageNum: 1, Rows: []table.Row{makeRow(0, "Cover")}},
+			},
+			wantCount: 1,
+			wantPages: []int{1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterFinancialTables(tt.tables)
+
+			if len(result) != tt.wantCount {
+				t.Fatalf("count = %d, want %d", len(result), tt.wantCount)
+			}
+
+			for i, wantPage := range tt.wantPages {
+				if result[i].PageNum != wantPage {
+					t.Errorf("result[%d].PageNum = %d, want %d", i, result[i].PageNum, wantPage)
+				}
+			}
+		})
+	}
+}
+
+func TestIsSubsidiaryTable(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers []string
+		want    bool
+	}{
+		{"subsidiary header", []string{"List of Subsidiaries"}, true},
+		{"entitas anak header", []string{"Daftar Entitas Anak"}, true},
+		{"anak perusahaan", []string{"Anak Perusahaan"}, true},
+		{"financial header", []string{"31 Desember 2023"}, false},
+		{"empty headers", []string{}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := table.Table{Headers: tt.headers}
+			if got := isSubsidiaryTable(tbl); got != tt.want {
+				t.Errorf("isSubsidiaryTable() = %v, want %v", got, tt.want)
 			}
 		})
 	}

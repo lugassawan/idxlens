@@ -161,7 +161,7 @@ func buildBenchTable(rowCount int) table.Table {
 			{Index: 2, X1: 460, X2: 560, Alignment: "right"},
 		},
 		Rows:    rows,
-		PageNum: 1,
+		PageNum: 2,
 		Bounds: pdf.Rect{
 			X1: 72, Y1: float64(700 - rowCount*14),
 			X2: 560, Y2: 710,
