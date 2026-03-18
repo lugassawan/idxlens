@@ -116,6 +116,40 @@ func buildClassificationRules() []classificationRule {
 				{phrase: "opini", lang: "id"},
 			},
 		},
+		{
+			docType: DocTypeSustainabilityReport,
+			keywords: []keyword{
+				{phrase: "laporan keberlanjutan", lang: "id"},
+				{phrase: "keberlanjutan", lang: "id"},
+				{phrase: "pembangunan berkelanjutan", lang: "id"},
+				{phrase: "sustainability report", lang: "en"},
+				{phrase: "sustainable development", lang: "en"},
+				{phrase: "esg", lang: "en"},
+				{phrase: "gri content index", lang: "en"},
+			},
+		},
+		{
+			docType: DocTypeCorporatePresentation,
+			keywords: []keyword{
+				{phrase: "presentasi perusahaan", lang: "id"},
+				{phrase: "paparan publik", lang: "id"},
+				{phrase: "corporate presentation", lang: "en"},
+				{phrase: "company presentation", lang: "en"},
+				{phrase: "analyst meeting", lang: "en"},
+				{phrase: "investor presentation", lang: "en"},
+			},
+		},
+		{
+			docType: DocTypeAnnualReport,
+			keywords: []keyword{
+				{phrase: "laporan tahunan", lang: "id"},
+				{phrase: "tata kelola perusahaan", lang: "id"},
+				{phrase: "ikhtisar keuangan", lang: "id"},
+				{phrase: "annual report", lang: "en"},
+				{phrase: "corporate governance", lang: "en"},
+				{phrase: "financial highlights", lang: "en"},
+			},
+		},
 	}
 }
 
