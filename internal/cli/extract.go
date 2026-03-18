@@ -1,23 +1,12 @@
 package cli
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var extractCmd = &cobra.Command{
-	Use:   "extract [pdf-path]",
+	Use:   "extract",
 	Short: "Extract structured data from an IDX PDF report",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Fprintln(cmd.OutOrStdout(), "extract: not yet implemented")
-		return nil
-	},
 }
 
 func init() {
 	rootCmd.AddCommand(extractCmd)
-	extractCmd.Flags().StringP("type", "t", "", "report type (e.g. balance-sheet, income-statement)")
-	extractCmd.Flags().StringP("output", "o", "", "output file path")
 }
