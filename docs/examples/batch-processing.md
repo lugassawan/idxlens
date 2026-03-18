@@ -1,6 +1,25 @@
 # Batch Processing
 
-IDXLens processes one PDF per invocation. For batch workflows, use shell scripting to process multiple files.
+IDXLens has a built-in `batch` command for processing multiple PDFs with bounded concurrency.
+
+## Using the batch command
+
+```sh
+# Process all PDFs in a directory
+idxlens batch "reports/*.pdf" --output-dir results/
+
+# Use 8 workers for faster processing
+idxlens batch "reports/*.pdf" --workers 8 --output-dir results/
+
+# Specify report type and output format
+idxlens batch "reports/*.pdf" --type balance-sheet --format csv --output-dir results/
+```
+
+The `batch` command outputs a JSON summary showing the count of successful and failed files.
+
+## Shell scripting alternatives
+
+For more control over the processing workflow, you can use shell scripting.
 
 ## Process all PDFs in a directory
 

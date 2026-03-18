@@ -18,13 +18,16 @@ CLI tool for extracting structured financial data from Indonesia Stock Exchange 
 idxlens/
 ├── cmd/idxlens/        # Entry point (main.go calls cli.Execute())
 ├── internal/
-│   ├── cli/            # L5: Cobra CLI commands
+│   ├── cli/            # L5: Cobra CLI commands (classify, extract, batch)
 │   ├── output/         # L4: Output Formatter (JSON, CSV)
-│   ├── domain/         # L3: IDX Domain Engine
+│   ├── domain/         # L3: IDX Domain Engine (classifier, mapper, batch)
 │   ├── table/          # L2: Table Detector
 │   ├── layout/         # L1: Text & Layout Engine
-│   └── pdf/            # L0: PDF Parser (pdfcpu)
-├── dictionaries/       # Line item dictionaries (per report type)
+│   ├── pdf/            # L0: PDF Parser (pdfcpu)
+│   └── testutil/       # Shared test utilities
+├── bindings/           # Python bindings via CGo
+├── lambda/             # AWS Lambda handler
+├── docs/               # Documentation site
 ├── testdata/           # Sample PDFs for testing
 ├── .github/workflows/  # CI/CD pipelines
 └── .githooks/          # Git hooks (pre-commit, commit-msg)
@@ -60,7 +63,7 @@ make clean      # Remove build artifacts
 - **Lint warnings**: Always fix the root cause before considering suppression. Refactor code, extract helpers, or restructure to satisfy the linter. Only use `//nolint` as a last resort, and always include a justification comment.
 - **Code review**: Run code review before creating PRs unless one was already performed in the current session.
 - **PRs**: Title uses `type: description` (same types as commits); body follows `.github/pull_request_template.md`
-- **Internal only**: All packages live under `internal/` — no public API surface yet
+- **Internal only**: All packages live under `internal/` — no public API surface (bindings use CGo bridge)
 - **Error wrapping**: Use `fmt.Errorf("context: %w", err)` for error chains
 - **Tests**: Table-driven tests with `t.Run()` subtests, standard `testing` package only (no testify)
 - **No network calls**: All processing is local, PDF-in data-out
