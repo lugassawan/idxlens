@@ -144,6 +144,116 @@ func TestDetectorDetect(t *testing.T) {
 	}
 }
 
+func TestDetectorTabSeparatedFinancialData(t *testing.T) {
+	page := layout.LayoutPage{
+		Number: 3,
+		Size:   pdf.PageSize{Width: 612, Height: 792},
+		Lines: []layout.TextLine{
+			makeTabLine("Kas\t25,305,031\t29,315,878\tCash", 700),
+			makeTabLine("Dana yang dibatasi\t0\t0\tRestricted funds", 686),
+			makeTabLine("Giro pada Bank Indonesia\t47,768,278\t36,408,142\tCurrent accounts with Bank Indonesia", 672),
+		},
+	}
+
+	d := NewDetector()
+	tables, err := d.Detect(page)
+	if err != nil {
+		t.Fatalf("Detect() error = %v", err)
+	}
+
+	if len(tables) != 1 {
+		t.Fatalf("got %d tables, want 1", len(tables))
+	}
+
+	tbl := tables[0]
+
+	if len(tbl.Columns) != 4 {
+		t.Fatalf("got %d columns, want 4", len(tbl.Columns))
+	}
+
+	if len(tbl.Rows) != 3 {
+		t.Fatalf("got %d rows, want 3", len(tbl.Rows))
+	}
+
+	// Verify first row cells are properly split
+	row := tbl.Rows[0]
+	wantCells := []struct {
+		col  int
+		text string
+	}{
+		{0, "Kas"},
+		{1, "25,305,031"},
+		{2, "29,315,878"},
+		{3, "Cash"},
+	}
+
+	if len(row.Cells) != len(wantCells) {
+		t.Fatalf("row 0: got %d cells, want %d", len(row.Cells), len(wantCells))
+	}
+
+	for i, want := range wantCells {
+		if row.Cells[i].Col != want.col {
+			t.Errorf("row 0 cell %d Col = %d, want %d", i, row.Cells[i].Col, want.col)
+		}
+		if row.Cells[i].Text != want.text {
+			t.Errorf("row 0 cell %d Text = %q, want %q", i, row.Cells[i].Text, want.text)
+		}
+	}
+
+	// Verify values are NOT embedded in labels
+	for _, r := range tbl.Rows {
+		labelCell := r.Cells[0]
+		if labelCell.Text == "Kas 25,305,031" || labelCell.Text == "Giro pada Bank Indonesia 47,768,278" {
+			t.Errorf("number embedded in label: %q", labelCell.Text)
+		}
+	}
+
+	// Verify column alignment
+	if tbl.Columns[0].Alignment != "left" {
+		t.Errorf("column 0 alignment = %q, want %q", tbl.Columns[0].Alignment, "left")
+	}
+	if tbl.Columns[1].Alignment != "right" {
+		t.Errorf("column 1 alignment = %q, want %q", tbl.Columns[1].Alignment, "right")
+	}
+	if tbl.Columns[3].Alignment != "left" {
+		t.Errorf("column 3 alignment = %q, want %q", tbl.Columns[3].Alignment, "left")
+	}
+}
+
+func TestDetectorMixedTabAndSpatialLines(t *testing.T) {
+	// When some lines have tabs and some don't, tab mode should activate
+	// if at least half have tabs
+	page := layout.LayoutPage{
+		Number: 1,
+		Size:   pdf.PageSize{Width: 612, Height: 792},
+		Lines: []layout.TextLine{
+			// Header without tabs (spatial)
+			makeMultiElementLine(700,
+				textAt("Description", 10, 100),
+				textAt("2025", 200, 260),
+			),
+			// Data with tabs
+			makeTabLine("Kas\t25,305,031", 686),
+			makeTabLine("Dana\t0", 672),
+		},
+	}
+
+	d := NewDetector()
+	tables, err := d.Detect(page)
+	if err != nil {
+		t.Fatalf("Detect() error = %v", err)
+	}
+
+	if len(tables) != 1 {
+		t.Fatalf("got %d tables, want 1", len(tables))
+	}
+
+	// Should detect 2 columns from tabs
+	if len(tables[0].Columns) != 2 {
+		t.Errorf("got %d columns, want 2", len(tables[0].Columns))
+	}
+}
+
 func TestDetectorImplementsInterface(t *testing.T) {
 	d := NewDetector()
 	if _, err := d.Detect(layout.LayoutPage{}); err != nil {

@@ -28,7 +28,7 @@ func (d *detector) Detect(page layout.LayoutPage) ([]Table, error) {
 
 	var tables []Table
 	for _, group := range groups {
-		columns := d.lineDetector.detectColumns(group)
+		columns := d.detectGroupColumns(group)
 		if len(columns) < d.lineDetector.minColumns {
 			continue
 		}
@@ -42,4 +42,15 @@ func (d *detector) Detect(page layout.LayoutPage) ([]Table, error) {
 	}
 
 	return tables, nil
+}
+
+// detectGroupColumns returns column boundaries for a line group. When lines
+// contain tab separators, tab-based splitting is used; otherwise spatial
+// clustering is applied.
+func (d *detector) detectGroupColumns(group []layout.TextLine) []Column {
+	if hasTabSeparators(group) {
+		return splitTabColumns(group)
+	}
+
+	return d.lineDetector.detectColumns(group)
 }
