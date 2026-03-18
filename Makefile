@@ -1,4 +1,4 @@
-.PHONY: build custom-gcl lint fmt test fuzz coverage clean init
+.PHONY: build custom-gcl lint fmt test fuzz coverage accuracy clean init
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -33,6 +33,9 @@ coverage:
 	mkdir -p coverage
 	go test -race -coverprofile=coverage/coverage.out ./...
 	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+
+accuracy:
+	go test -run TestAccuracy -v ./internal/testutil/...
 
 clean:
 	rm -rf bin/ dist/ coverage/ custom-gcl
