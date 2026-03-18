@@ -68,6 +68,73 @@ func TestIsGarbledText(t *testing.T) {
 	}
 }
 
+func TestIsSpacedOutText(t *testing.T) {
+	tests := []struct {
+		name  string
+		label string
+		want  bool
+	}{
+		{
+			name:  "spaced out encoded characters",
+			label: "V S R W dan derivatif/",
+			want:  true,
+		},
+		{
+			name:  "spaced out with symbols",
+			label: "K _ G > i > S & S ^ > * K l m K _",
+			want:  true,
+		},
+		{
+			name:  "spaced out with dots",
+			label: "0 > _ a S K _ . q F q l",
+			want:  true,
+		},
+		{
+			name:  "normal financial label indonesian",
+			label: "Kas dan Setara Kas",
+			want:  false,
+		},
+		{
+			name:  "normal financial label english",
+			label: "Cash and Cash Equivalents",
+			want:  false,
+		},
+		{
+			name:  "short label not enough words",
+			label: "A B C",
+			want:  false,
+		},
+		{
+			name:  "empty string",
+			label: "",
+			want:  false,
+		},
+		{
+			name:  "normal multi-word label",
+			label: "Giro pada Bank Indonesia",
+			want:  false,
+		},
+		{
+			name:  "single long word",
+			label: "Revenue",
+			want:  false,
+		},
+		{
+			name:  "mixed short and long words below threshold",
+			label: "a very long sentence with words",
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isSpacedOutText(tt.label); got != tt.want {
+				t.Errorf("isSpacedOutText(%q) = %v, want %v", tt.label, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsPageRefValue(t *testing.T) {
 	tests := []struct {
 		name   string
