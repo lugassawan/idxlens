@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -24,6 +25,8 @@ type Dictionary struct {
 	Version int              `json:"version"`
 	Items   []DictionaryItem `json:"items"`
 }
+
+var multiSpacePattern = regexp.MustCompile(`\s+`)
 
 // LoadDictionary loads a dictionary for the given report type.
 func LoadDictionary(docType DocType) (*Dictionary, error) {
@@ -51,7 +54,7 @@ func LoadDictionary(docType DocType) (*Dictionary, error) {
 // line-item labels are Indonesian.
 // Returns nil and 0 if no match is found.
 func (d *Dictionary) MatchLabel(text string, lang string) (*DictionaryItem, float64) {
-	normalized := strings.TrimSpace(text)
+	normalized := normalizeWhitespace(text)
 	if normalized == "" {
 		return nil, 0
 	}
@@ -117,6 +120,10 @@ func matchLabels(normalized string, lowered string, labels []string) float64 {
 		if best < 0.7 && strings.Contains(lowered, labelLower) {
 			best = 0.7
 		}
+
+		if best < 0.6 && len(lowered) > 3 && strings.Contains(labelLower, lowered) {
+			best = 0.6
+		}
 	}
 
 	return best
@@ -136,4 +143,20 @@ func docTypeFilename(docType DocType) (string, error) {
 	}
 
 	return filename, nil
+}
+
+// normalizeWhitespace replaces non-breaking spaces and other Unicode
+// whitespace with ASCII spaces, collapses runs, and trims the result.
+func normalizeWhitespace(text string) string {
+	// Replace common non-ASCII whitespace characters with ASCII space.
+	s := strings.Map(func(r rune) rune {
+		switch r {
+		case '\u00A0', '\u2002', '\u2003', '\u2009', '\u200A':
+			return ' '
+		default:
+			return r
+		}
+	}, text)
+
+	return strings.TrimSpace(multiSpacePattern.ReplaceAllString(s, " "))
 }
