@@ -162,3 +162,43 @@ idxlens extract text report.pdf
 # Extract specific pages
 idxlens extract text report.pdf --pages "1-3,5"
 ```
+
+---
+
+### `batch`
+
+Process multiple PDF files matching a glob pattern using bounded concurrency. Each file runs through the full extraction pipeline and results are written to the specified output directory.
+
+```sh
+idxlens batch [glob-pattern]
+```
+
+**Arguments:**
+
+| Argument       | Description                                |
+|---------------|--------------------------------------------|
+| `glob-pattern` | File glob pattern (e.g. `"reports/*.pdf"`) |
+
+**Flags:**
+
+| Flag            | Short | Default | Description                                              |
+|-----------------|-------|---------|----------------------------------------------------------|
+| `--workers`     | `-w`  | `4`     | Number of concurrent workers (capped at CPU count)       |
+| `--output-dir`  | `-d`  |         | Output directory for results                             |
+| `--format`      | `-f`  | `json`  | Output format (`json`, `csv`)                            |
+| `--type`        | `-t`  | (auto)  | Report type (e.g. `balance-sheet`, `income-statement`)   |
+
+**Examples:**
+
+```sh
+# Process all PDFs in reports/ with default settings
+idxlens batch "reports/*.pdf"
+
+# Use 8 workers and save results to output/
+idxlens batch "reports/*.pdf" --workers 8 --output-dir output/
+
+# Process as CSV with explicit type
+idxlens batch "data/*.pdf" --format csv --type balance-sheet
+```
+
+The command outputs a JSON summary with the count of successful and failed files.
