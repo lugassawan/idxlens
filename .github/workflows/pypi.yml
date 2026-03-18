@@ -21,12 +21,21 @@ jobs:
           install: true
 
       - name: Build CGo shared library
+        env:
+          CGO_ENABLED: "1"
+        shell: bash
         run: |
-          CGO_ENABLED=1 go build -buildmode=c-shared \
-            -o bindings/python/idxlens/libidxlens.so \
+          case "$RUNNER_OS" in
+            Linux)   EXT=so ;;
+            macOS)   EXT=dylib ;;
+            Windows) EXT=dll ;;
+          esac
+          go build -buildmode=c-shared \
+            -o "bindings/python/idxlens/libidxlens.${EXT}" \
             ./bindings/cgo/
 
       - name: Build wheel
+        shell: bash
         run: |
           pip install build
           cd bindings/python && python -m build
