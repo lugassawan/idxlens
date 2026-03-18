@@ -220,12 +220,19 @@ func parseTd(tokens []string, i int, ts *textState) {
 }
 
 func parseTm(tokens []string, i int, ts *textState) {
-	if i >= 6 {
-		ts.tmA = parseFloat(tokens[i-6])
-		ts.tmD = parseFloat(tokens[i-3])
-		ts.x = parseFloat(tokens[i-2])
-		ts.y = parseFloat(tokens[i-1])
+	if i < 6 {
+		return
 	}
+
+	args := tokens[i-6 : i]
+	if len(args) < 6 {
+		return
+	}
+
+	ts.tmA = parseFloat(args[0])
+	ts.tmD = parseFloat(args[3])
+	ts.x = parseFloat(args[4])
+	ts.y = parseFloat(args[5])
 }
 
 func parseTj(tokens []string, i int, ts *textState) *TextElement {
