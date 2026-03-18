@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,7 +13,13 @@ import (
 	pdfcpuapi "github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
+
+// spaceThresholdThou is the threshold in thousandths of text space units
+// above which a TJ kerning displacement is treated as an inter-word space.
+// A value of 300 means 30% of the font size (0.3 * 1000).
+const spaceThresholdThou = 300
 
 var (
 	errNotOpened = errors.New("reader not opened")
@@ -134,11 +141,142 @@ func (r *pdfcpuReader) extractElements(pageNr int) ([]TextElement, error) {
 		return nil, fmt.Errorf("read content stream: %w", err)
 	}
 
-	if len(bb) == 0 {
+	content := string(bb)
+	elements := parseContentStream(content)
+
+	// Extract text from Form XObjects referenced by Do operators.
+	xObjElements, err := r.extractFormXObjects(pageNr, content)
+	if err != nil {
+		return nil, fmt.Errorf("extract form xobjects: %w", err)
+	}
+
+	elements = append(elements, xObjElements...)
+
+	if len(elements) == 0 {
 		return nil, nil
 	}
 
-	return parseContentStream(string(bb)), nil
+	return elements, nil
+}
+
+// extractFormXObjects finds Do operators in the content stream and extracts
+// text from any referenced Form XObjects. Pages that use Form XObjects for
+// their text content would otherwise return empty.
+func (r *pdfcpuReader) extractFormXObjects(pageNr int, content string) ([]TextElement, error) {
+	xObjNames := findDoOperands(content)
+	if len(xObjNames) == 0 {
+		return nil, nil
+	}
+
+	pageDict, _, inhAttrs, err := r.ctx.PageDict(pageNr, false)
+	if err != nil {
+		return nil, fmt.Errorf("get page dict: %w", err)
+	}
+
+	xObjDict := resolveXObjectDict(r.ctx, pageDict, inhAttrs)
+	if xObjDict == nil {
+		return nil, nil
+	}
+
+	var elements []TextElement
+
+	for _, name := range xObjNames {
+		els, err := r.extractSingleFormXObject(xObjDict, name)
+		if err != nil {
+			continue
+		}
+
+		elements = append(elements, els...)
+	}
+
+	return elements, nil
+}
+
+// resolveXObjectDict retrieves the XObject resource dictionary from the page
+// dict or inherited page attributes.
+func resolveXObjectDict(ctx *model.Context, pageDict types.Dict, inhAttrs *model.InheritedPageAttrs) types.Dict {
+	resDict := extractResourceDict(ctx, pageDict)
+	if resDict == nil && inhAttrs != nil {
+		resDict = inhAttrs.Resources
+	}
+
+	if resDict == nil {
+		return nil
+	}
+
+	obj, found := resDict.Find("XObject")
+	if !found {
+		return nil
+	}
+
+	d, err := ctx.DereferenceDict(obj)
+	if err != nil {
+		return nil
+	}
+
+	return d
+}
+
+// extractResourceDict dereferences the Resources entry from a page dict.
+func extractResourceDict(ctx *model.Context, pageDict types.Dict) types.Dict {
+	obj, found := pageDict.Find("Resources")
+	if !found {
+		return nil
+	}
+
+	d, err := ctx.DereferenceDict(obj)
+	if err != nil {
+		return nil
+	}
+
+	return d
+}
+
+// extractSingleFormXObject extracts text elements from a single Form XObject.
+func (r *pdfcpuReader) extractSingleFormXObject(xObjDict types.Dict, name string) ([]TextElement, error) {
+	obj, found := xObjDict.Find(name)
+	if !found {
+		return nil, nil
+	}
+
+	indRef, ok := obj.(types.IndirectRef)
+	if !ok {
+		return nil, nil
+	}
+
+	sd, err := r.ctx.DereferenceXObjectDict(indRef)
+	if err != nil || sd == nil {
+		return nil, err
+	}
+
+	subType := sd.Subtype()
+	if subType == nil || *subType != "Form" {
+		return nil, nil
+	}
+
+	if err := sd.Decode(); err != nil {
+		return nil, fmt.Errorf("decode xobject stream: %w", err)
+	}
+
+	return parseContentStream(string(sd.Content)), nil
+}
+
+// findDoOperands extracts XObject names from Do operators in a content stream.
+func findDoOperands(content string) []string {
+	tokens := tokenize(content)
+
+	var names []string
+
+	for i, tok := range tokens {
+		if tok == "Do" && i >= 1 {
+			name := strings.TrimPrefix(tokens[i-1], "/")
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+	}
+
+	return names
 }
 
 // parseContentStream extracts text elements from a PDF content stream
@@ -156,10 +294,13 @@ func parseContentStream(content string) []TextElement {
 
 // textState tracks the current text rendering state within a BT...ET block.
 type textState struct {
-	fontName string
-	fontSize float64
-	x        float64
-	y        float64
+	fontName    string
+	fontSize    float64
+	x           float64
+	y           float64
+	wordSpacing float64
+	charSpacing float64
+	textLeading float64
 	// Text matrix components for Tm operator.
 	tmA float64
 	tmD float64
@@ -176,27 +317,55 @@ func parseTextBlock(block string) []TextElement {
 	tokens := tokenize(block)
 
 	for i := range tokens {
-		switch tokens[i] {
-		case "Tf":
-			parseTf(tokens, i, &ts)
-		case "Td", "TD":
-			parseTd(tokens, i, &ts)
-		case "Tm":
-			parseTm(tokens, i, &ts)
-		case "Tj":
-			el := parseTj(tokens, i, &ts)
-			if el != nil {
-				elements = append(elements, *el)
-			}
-		case "TJ":
-			els := parseTJArray(tokens, i, &ts)
-			elements = append(elements, els...)
-		case "'":
-			parseQuote(&ts)
-			el := parseTj(tokens, i, &ts)
-			if el != nil {
-				elements = append(elements, *el)
-			}
+		updateTextState(tokens, i, &ts)
+		elements = appendTextElements(elements, tokens, i, &ts)
+	}
+
+	return elements
+}
+
+// updateTextState applies state-modifying operators (Tf, Td, Tm, T*, TL, Tw, Tc).
+func updateTextState(tokens []string, i int, ts *textState) {
+	switch tokens[i] {
+	case "Tf":
+		parseTf(tokens, i, ts)
+	case "Td", "TD":
+		parseTd(tokens, i, ts)
+	case "Tm":
+		parseTm(tokens, i, ts)
+	case "T*":
+		parseQuote(ts)
+	case "TL":
+		parseTL(tokens, i, ts)
+	case "Tw":
+		parseTw(tokens, i, ts)
+	case "Tc":
+		parseTc(tokens, i, ts)
+	}
+}
+
+// appendTextElements handles text-emitting operators (Tj, TJ, ', ").
+func appendTextElements(elements []TextElement, tokens []string, i int, ts *textState) []TextElement {
+	switch tokens[i] {
+	case "Tj":
+		el := parseTj(tokens, i, ts)
+		if el != nil {
+			elements = append(elements, *el)
+		}
+	case "TJ":
+		els := parseTJArray(tokens, i, ts)
+		elements = append(elements, els...)
+	case "'":
+		parseQuote(ts)
+		el := parseTj(tokens, i, ts)
+		if el != nil {
+			elements = append(elements, *el)
+		}
+	case `"`:
+		parseDoubleQuote(tokens, i, ts)
+		el := parseTj(tokens, i, ts)
+		if el != nil {
+			elements = append(elements, *el)
 		}
 	}
 
@@ -271,8 +440,41 @@ func effectiveFontSize(ts *textState) float64 {
 	return fontSize
 }
 
+func parseTL(tokens []string, i int, ts *textState) {
+	if i >= 1 {
+		ts.textLeading = parseFloat(tokens[i-1])
+	}
+}
+
+func parseTw(tokens []string, i int, ts *textState) {
+	if i >= 1 {
+		ts.wordSpacing = parseFloat(tokens[i-1])
+	}
+}
+
+func parseTc(tokens []string, i int, ts *textState) {
+	if i >= 1 {
+		ts.charSpacing = parseFloat(tokens[i-1])
+	}
+}
+
 func parseQuote(ts *textState) {
-	ts.y -= ts.fontSize
+	if ts.textLeading != 0 {
+		ts.y -= ts.textLeading
+	} else {
+		ts.y -= ts.fontSize
+	}
+}
+
+// parseDoubleQuote handles the " operator: set word spacing, char spacing,
+// then move to next line. The string operand is handled by parseTj.
+func parseDoubleQuote(tokens []string, i int, ts *textState) {
+	if i >= 3 {
+		ts.wordSpacing = parseFloat(tokens[i-3])
+		ts.charSpacing = parseFloat(tokens[i-2])
+	}
+
+	parseQuote(ts)
 }
 
 func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
@@ -280,6 +482,8 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 	if start < 0 {
 		return nil
 	}
+
+	fontSize := effectiveFontSize(ts)
 
 	var combined strings.Builder
 
@@ -290,6 +494,15 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 
 		if isStringToken(tokens[j]) {
 			combined.WriteString(decodeStringToken(tokens[j]))
+			continue
+		}
+
+		// Numeric values in TJ arrays represent glyph displacement in
+		// thousandths of a unit of text space. Negative values move the
+		// text position forward; large negative values indicate a space.
+		kerning := parseFloat(tokens[j])
+		if isKerningSpace(kerning) {
+			combined.WriteByte(' ')
 		}
 	}
 
@@ -297,8 +510,6 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 	if text == "" {
 		return nil
 	}
-
-	fontSize := effectiveFontSize(ts)
 
 	el := TextElement{
 		Text:     text,
@@ -313,6 +524,15 @@ func parseTJArray(tokens []string, i int, ts *textState) []TextElement {
 	}
 
 	return []TextElement{el}
+}
+
+// isKerningSpace returns true when a TJ kerning displacement is large
+// enough to represent an inter-word space. TJ kerning values are in
+// thousandths of a unit of text space. A value of -1000 moves by one
+// full font size unit. We treat values whose magnitude exceeds
+// spaceThresholdThou (300, i.e. 30% of font size) as word spaces.
+func isKerningSpace(kerning float64) bool {
+	return math.Abs(kerning) > spaceThresholdThou
 }
 
 func findArrayStart(tokens []string, i int) int {

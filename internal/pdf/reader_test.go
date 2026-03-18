@@ -125,6 +125,117 @@ func addTextContent(t *testing.T, xRefTable *model.XRefTable, pageDict types.Dic
 	pageDict.Insert("Contents", *streamRef)
 }
 
+// buildTestPDFWithXObject creates a PDF where page content uses a Form XObject
+// referenced by a Do operator. The Form XObject contains the actual text.
+func buildTestPDFWithXObject(t *testing.T) *bytes.Reader {
+	t.Helper()
+
+	xRefTable, err := pdfcpu.CreateXRefTableWithRootDict()
+	if err != nil {
+		t.Fatalf("create xref table: %v", err)
+	}
+
+	mediaBox := types.NewRectangle(0, 0, 595, 842)
+
+	rootDict, err := xRefTable.Catalog()
+	if err != nil {
+		t.Fatalf("get catalog: %v", err)
+	}
+
+	pagesDict := types.NewDict()
+	pagesDict.InsertName("Type", "Pages")
+	pagesDict.InsertInt("Count", 1)
+
+	pagesRef, err := xRefTable.IndRefForNewObject(pagesDict)
+	if err != nil {
+		t.Fatalf("create pages ref: %v", err)
+	}
+
+	rootDict.Insert("Pages", *pagesRef)
+
+	// Create Form XObject with text content.
+	xObjContent := "BT\n/F1 12 Tf\n72 700 Td\n(XObject Text) Tj\nET\n"
+	xObjSD, err := xRefTable.NewStreamDictForBuf([]byte(xObjContent))
+	if err != nil {
+		t.Fatalf("create xobject stream dict: %v", err)
+	}
+
+	xObjSD.InsertName("Type", "XObject")
+	xObjSD.InsertName("Subtype", "Form")
+	xObjSD.Insert("BBox", mediaBox.Array())
+
+	if err := xObjSD.Encode(); err != nil {
+		t.Fatalf("encode xobject stream: %v", err)
+	}
+
+	xObjRef, err := xRefTable.IndRefForNewObject(*xObjSD)
+	if err != nil {
+		t.Fatalf("create xobject ref: %v", err)
+	}
+
+	// Create font resource.
+	fontDict := types.NewDict()
+	fontDict.InsertName("Type", "Font")
+	fontDict.InsertName("Subtype", "Type1")
+	fontDict.InsertName("BaseFont", "Helvetica")
+
+	fontRef, err := xRefTable.IndRefForNewObject(fontDict)
+	if err != nil {
+		t.Fatalf("create font ref: %v", err)
+	}
+
+	fontMap := types.NewDict()
+	fontMap.Insert("F1", *fontRef)
+
+	xObjMap := types.NewDict()
+	xObjMap.Insert("Fm0", *xObjRef)
+
+	resDict := types.NewDict()
+	resDict.Insert("Font", fontMap)
+	resDict.Insert("XObject", xObjMap)
+
+	// Page content only references the XObject via Do.
+	pageContent := "q /Fm0 Do Q\n"
+	contentSD, err := xRefTable.NewStreamDictForBuf([]byte(pageContent))
+	if err != nil {
+		t.Fatalf("create content stream dict: %v", err)
+	}
+
+	if err := contentSD.Encode(); err != nil {
+		t.Fatalf("encode content stream: %v", err)
+	}
+
+	contentRef, err := xRefTable.IndRefForNewObject(*contentSD)
+	if err != nil {
+		t.Fatalf("create content ref: %v", err)
+	}
+
+	pageDict := types.NewDict()
+	pageDict.InsertName("Type", "Page")
+	pageDict.Insert("Parent", *pagesRef)
+	pageDict.Insert("MediaBox", mediaBox.Array())
+	pageDict.Insert("Resources", resDict)
+	pageDict.Insert("Contents", *contentRef)
+
+	pageRef, err := xRefTable.IndRefForNewObject(pageDict)
+	if err != nil {
+		t.Fatalf("create page ref: %v", err)
+	}
+
+	pagesDict.Insert("Kids", types.Array{*pageRef})
+	xRefTable.PageCount = 1
+
+	conf := model.NewDefaultConfiguration()
+	ctx := pdfcpu.CreateContext(xRefTable, conf)
+
+	var buf bytes.Buffer
+	if err := pdfcpuapi.WriteContext(ctx, &buf); err != nil {
+		t.Fatalf("write pdf: %v", err)
+	}
+
+	return bytes.NewReader(buf.Bytes())
+}
+
 func TestNewReader(t *testing.T) {
 	r := NewReader()
 	if r == nil {
@@ -446,6 +557,48 @@ func TestParseContentStream(t *testing.T) {
 			content:  "BT\n% this is a comment\n/F1 12 Tf 72 700 Td (Test) Tj ET",
 			wantLen:  1,
 			wantText: "Test",
+		},
+		{
+			name:     "TJ with large kerning inserts space",
+			content:  "BT /F1 12 Tf 72 700 Td [(Kas) -500 (Dana)] TJ ET",
+			wantLen:  1,
+			wantText: "Kas Dana",
+		},
+		{
+			name:     "TJ with small kerning preserves number",
+			content:  "BT /F1 12 Tf 72 700 Td [(202) -20 (5)] TJ ET",
+			wantLen:  1,
+			wantText: "2025",
+		},
+		{
+			name:     "TJ number with comma kerning",
+			content:  "BT /F1 12 Tf 72 700 Td [(868,) -10 (686,) -10 (210)] TJ ET",
+			wantLen:  1,
+			wantText: "868,686,210",
+		},
+		{
+			name:     "T* operator moves to next line",
+			content:  "BT /F1 12 Tf 72 700 Td (Line1) Tj T* (Line2) Tj ET",
+			wantLen:  2,
+			wantText: "Line1",
+		},
+		{
+			name:     "TL sets text leading for T*",
+			content:  "BT /F1 12 Tf 72 700 Td 14 TL (Line1) Tj T* (Line2) Tj ET",
+			wantLen:  2,
+			wantText: "Line1",
+		},
+		{
+			name:     "Tw sets word spacing",
+			content:  "BT /F1 12 Tf 72 700 Td 2 Tw (Hello) Tj ET",
+			wantLen:  1,
+			wantText: "Hello",
+		},
+		{
+			name:     "Tc sets character spacing",
+			content:  "BT /F1 12 Tf 72 700 Td 0.5 Tc (Hello) Tj ET",
+			wantLen:  1,
+			wantText: "Hello",
 		},
 	}
 
@@ -855,5 +1008,240 @@ func TestSkipComment(t *testing.T) {
 				t.Errorf("skipComment() = %d, want %d", got, tt.wantEnd)
 			}
 		})
+	}
+}
+
+func TestFormXObjectExtraction(t *testing.T) {
+	rs := buildTestPDFWithXObject(t)
+	r := NewReader()
+
+	if err := r.Open(rs); err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer r.Close()
+
+	page, err := r.Page(1)
+	if err != nil {
+		t.Fatalf("Page(1): %v", err)
+	}
+
+	if len(page.Elements) == 0 {
+		t.Fatal("expected text elements from Form XObject, got 0")
+	}
+
+	found := false
+	for _, el := range page.Elements {
+		if strings.Contains(el.Text, "XObject Text") {
+			found = true
+		}
+	}
+
+	if !found {
+		texts := make([]string, 0, len(page.Elements))
+		for _, el := range page.Elements {
+			texts = append(texts, el.Text)
+		}
+		t.Errorf("expected element containing %q, got: %v", "XObject Text", texts)
+	}
+}
+
+func TestIsKerningSpace(t *testing.T) {
+	tests := []struct {
+		name    string
+		kerning float64
+		want    bool
+	}{
+		{
+			name:    "small negative kerning is not a space",
+			kerning: -10,
+			want:    false,
+		},
+		{
+			name:    "small positive kerning is not a space",
+			kerning: 50,
+			want:    false,
+		},
+		{
+			name:    "large negative kerning is a space",
+			kerning: -500,
+			want:    true,
+		},
+		{
+			name:    "large positive kerning is a space",
+			kerning: 400,
+			want:    true,
+		},
+		{
+			name:    "exactly at threshold is not a space",
+			kerning: -300,
+			want:    false,
+		},
+		{
+			name:    "just above threshold is a space",
+			kerning: -301,
+			want:    true,
+		},
+		{
+			name:    "zero kerning is not a space",
+			kerning: 0,
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isKerningSpace(tt.kerning)
+			if got != tt.want {
+				t.Errorf("isKerningSpace(%v) = %v, want %v", tt.kerning, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFindDoOperands(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    []string
+	}{
+		{
+			name:    "no Do operators",
+			content: "BT /F1 12 Tf (Hello) Tj ET",
+			want:    nil,
+		},
+		{
+			name:    "single Do operator",
+			content: "q /Form1 Do Q",
+			want:    []string{"Form1"},
+		},
+		{
+			name:    "multiple Do operators",
+			content: "q /Fm0 Do Q q /Fm1 Do Q",
+			want:    []string{"Fm0", "Fm1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findDoOperands(tt.content)
+			if len(got) != len(tt.want) {
+				t.Errorf("findDoOperands() = %v, want %v", got, tt.want)
+				return
+			}
+
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("findDoOperands()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParseTJArraySpacing(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string
+		wantText string
+	}{
+		{
+			name:     "small kerning keeps text together",
+			content:  "BT /F1 12 Tf 72 700 Td [(25,) -10 (305,) -10 (031)] TJ ET",
+			wantText: "25,305,031",
+		},
+		{
+			name:     "large kerning inserts space between words",
+			content:  "BT /F1 12 Tf 72 700 Td [(Statement) -600 (of)] TJ ET",
+			wantText: "Statement of",
+		},
+		{
+			name:     "mixed kerning values",
+			content:  "BT /F1 12 Tf 72 700 Td [(Lap) -20 (oran) -500 (posisi)] TJ ET",
+			wantText: "Laporan posisi",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			elements := parseContentStream(tt.content)
+			if len(elements) == 0 {
+				t.Fatal("expected at least one element")
+			}
+
+			if elements[0].Text != tt.wantText {
+				t.Errorf("text = %q, want %q", elements[0].Text, tt.wantText)
+			}
+		})
+	}
+}
+
+func TestParseDoubleQuote(t *testing.T) {
+	ts := textState{fontSize: 12, y: 700, tmA: 1, tmD: 1}
+	tokens := []string{"2", "0.5", "(Hello)", `"`}
+	parseDoubleQuote(tokens, 3, &ts)
+
+	if ts.wordSpacing != 2 {
+		t.Errorf("wordSpacing = %v, want 2", ts.wordSpacing)
+	}
+
+	if ts.charSpacing != 0.5 {
+		t.Errorf("charSpacing = %v, want 0.5", ts.charSpacing)
+	}
+
+	if ts.y != 688 {
+		t.Errorf("y after double quote = %v, want 688", ts.y)
+	}
+}
+
+func TestParseTL(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"14", "TL"}
+	parseTL(tokens, 1, &ts)
+
+	if ts.textLeading != 14 {
+		t.Errorf("textLeading = %v, want 14", ts.textLeading)
+	}
+}
+
+func TestParseTw(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"2.5", "Tw"}
+	parseTw(tokens, 1, &ts)
+
+	if ts.wordSpacing != 2.5 {
+		t.Errorf("wordSpacing = %v, want 2.5", ts.wordSpacing)
+	}
+}
+
+func TestParseTc(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"0.5", "Tc"}
+	parseTc(tokens, 1, &ts)
+
+	if ts.charSpacing != 0.5 {
+		t.Errorf("charSpacing = %v, want 0.5", ts.charSpacing)
+	}
+}
+
+func TestParseContentStreamDoubleQuote(t *testing.T) {
+	// The " operator format: aw ac (string) "
+	content := `BT /F1 12 Tf 72 700 Td 2 0.5 (Hello) " ET`
+	elements := parseContentStream(content)
+
+	if len(elements) != 1 {
+		t.Fatalf("expected 1 element, got %d", len(elements))
+	}
+
+	if elements[0].Text != "Hello" {
+		t.Errorf("text = %q, want %q", elements[0].Text, "Hello")
+	}
+}
+
+func TestParseQuoteWithTextLeading(t *testing.T) {
+	ts := textState{fontSize: 12, y: 700, textLeading: 14, tmA: 1, tmD: 1}
+	parseQuote(&ts)
+
+	if ts.y != 686 {
+		t.Errorf("y after quote with leading = %v, want 686", ts.y)
 	}
 }
