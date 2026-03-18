@@ -1,0 +1,58 @@
+name: IDXLens
+description: Extract structured financial data from Indonesia Stock Exchange (IDX) PDF reports.
+author: lugassawan
+
+branding:
+  icon: file-text
+  color: blue
+
+inputs:
+  pdf-path:
+    description: Path to the IDX PDF report file.
+    required: true
+  report-type:
+    description: >-
+      Report type to extract (e.g. balance-sheet, income-statement).
+      If omitted, IDXLens will attempt to classify the document automatically.
+    required: false
+    default: ""
+  output-format:
+    description: "Output format: json or csv."
+    required: false
+    default: json
+  output-path:
+    description: >-
+      File path to write the output. If omitted, output is written to stdout
+      and captured in the `result` output.
+    required: false
+    default: ""
+  version:
+    description: >-
+      IDXLens version to use (e.g. 1.2.0). Defaults to "latest", which
+      resolves to the most recent GitHub Release.
+    required: false
+    default: latest
+
+outputs:
+  result:
+    description: Extraction result (populated when output-path is not set).
+    value: ${{ steps.run.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install IDXLens
+      shell: bash
+      env:
+        IDXLENS_VERSION: ${{ inputs.version }}
+      run: ${{ github.action_path }}/action/entrypoint.sh install
+
+    - name: Run extraction
+      id: run
+      shell: bash
+      env:
+        IDXLENS_PDF_PATH: ${{ inputs.pdf-path }}
+        IDXLENS_REPORT_TYPE: ${{ inputs.report-type }}
+        IDXLENS_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        IDXLENS_OUTPUT_PATH: ${{ inputs.output-path }}
+      run: ${{ github.action_path }}/action/entrypoint.sh extract
