@@ -1,6 +1,6 @@
 {
   "type": "cash-flow",
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "key": "cash_flows_from_operating",
@@ -159,7 +159,7 @@
       "key": "net_cash_from_operating",
       "labels": {
         "id": ["Kas Bersih Diperoleh dari Aktivitas Operasi", "Arus Kas Bersih dari Aktivitas Operasi"],
-        "en": ["Net Cash from Operating Activities", "Net Cash Provided by Operating Activities"]
+        "en": ["Net Cash from Operating Activities", "Net Cash Provided by Operating Activities", "Net cash provided by (used in) operating activities"]
       },
       "section": "operating",
       "level": 0
@@ -294,7 +294,7 @@
       "key": "net_cash_from_investing",
       "labels": {
         "id": ["Kas Bersih Digunakan untuk Aktivitas Investasi", "Arus Kas Bersih dari Aktivitas Investasi"],
-        "en": ["Net Cash from Investing Activities", "Net Cash Used in Investing Activities"]
+        "en": ["Net Cash from Investing Activities", "Net Cash Used in Investing Activities", "Net cash provided by (used in) investing activities"]
       },
       "section": "investing",
       "level": 0
@@ -411,7 +411,7 @@
       "key": "net_cash_from_financing",
       "labels": {
         "id": ["Kas Bersih Diperoleh dari Aktivitas Pendanaan", "Arus Kas Bersih dari Aktivitas Pendanaan"],
-        "en": ["Net Cash from Financing Activities", "Net Cash Used in Financing Activities"]
+        "en": ["Net Cash from Financing Activities", "Net Cash Used in Financing Activities", "Net cash provided by (used in) financing activities"]
       },
       "section": "financing",
       "level": 0
@@ -448,6 +448,87 @@
       "labels": {
         "id": ["Kas dan Setara Kas Akhir Periode", "Kas dan Setara Kas Akhir Tahun"],
         "en": ["Cash and Cash Equivalents at End of Period", "Cash at End of Year"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "net_increase_decrease_banking",
+      "labels": {
+        "id": ["Kenaikan (Penurunan)", "Kenaikan (penurunan)", "Penurunan (Kenaikan)", "Penurunan (kenaikan)"],
+        "en": ["Increase (Decrease)", "Decrease (Increase)"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "adjustments",
+      "labels": {
+        "id": ["Penyesuaian", "Penyesuaian Lainnya", "Penyesuaian lainnya"],
+        "en": ["Adjustments", "Other Adjustments"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "receipts_interest_fees_commissions",
+      "labels": {
+        "id": ["Penerimaan Bunga, Provisi dan Komisi"],
+        "en": ["Receipts of Interest Income, Fees and Commissions", "Receipts of interest income, fees and commissions"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payments_interest_fees_commissions",
+      "labels": {
+        "id": ["Pembayaran Bunga, Provisi dan Komisi"],
+        "en": ["Payments of Interest Expenses, Fees and Commissions", "Payments of interest expenses , fees and commissions"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payment_of_income_tax",
+      "labels": {
+        "id": ["Pembayaran Pajak Penghasilan"],
+        "en": ["Payment of Income Tax", "Payment of income tax"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payment_of_cash_dividends",
+      "labels": {
+        "id": ["Pembayaran Dividen Kas", "Pembayaran Dividen Tunai"],
+        "en": ["Payment of Cash Dividends", "Payment of cash dividends", "Cash Dividends", "Cash dividends"]
+      },
+      "section": "financing",
+      "level": 1
+    },
+    {
+      "key": "cash_dividends_received",
+      "labels": {
+        "id": ["Penerimaan Dividen Kas dari Investasi Saham"],
+        "en": ["Cash Dividends Received from Investment in Shares", "Cash dividends received from investment in shares"]
+      },
+      "section": "investing",
+      "level": 1
+    },
+    {
+      "key": "payments_post_employment_benefits",
+      "labels": {
+        "id": ["Pembayaran Imbalan Pascakerja"],
+        "en": ["Payments of Post-Employment Benefits", "Payments of post-employment benefits"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payment_of_tantiem",
+      "labels": {
+        "id": ["Pembayaran Tantiem kepada Dewan Komisaris dan Direksi"],
+        "en": ["Payment of Tantiem to Board of Commissioners and Board of Directors", "Payment of tantiem to Board of Commissioners and Board of Directors"]
       },
       "section": "financing",
       "level": 1

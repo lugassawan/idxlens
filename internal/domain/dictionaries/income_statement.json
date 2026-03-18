@@ -1,6 +1,6 @@
 {
   "type": "income-statement",
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "key": "net_sales",
@@ -42,7 +42,7 @@
       "key": "fee_and_commission_income",
       "labels": {
         "id": ["Pendapatan Provisi dan Komisi"],
-        "en": ["Fee and Commission Income"]
+        "en": ["Fee and Commission Income", "Fees and commission income - net", "Fees and Commission Income"]
       },
       "section": "revenue",
       "level": 2
@@ -51,7 +51,16 @@
       "key": "other_operating_income",
       "labels": {
         "id": ["Pendapatan Usaha Lainnya", "Pendapatan Operasional Lainnya"],
-        "en": ["Other Operating Income"]
+        "en": ["Other Operating Income", "Other operating income", "Total other operating income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "ujrah_income",
+      "labels": {
+        "id": ["Penerimaan Ujrah", "Pendapatan Ujrah"],
+        "en": ["Ujrah Income"]
       },
       "section": "revenue",
       "level": 2
@@ -559,6 +568,312 @@
       },
       "section": "comprehensive_income",
       "level": 1
+    },
+    {
+      "key": "fee_and_commission_expense",
+      "labels": {
+        "id": ["Beban Provisi dan Komisi", "Beban provisi dan"],
+        "en": ["Fee and Commission Expense"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "personnel_expenses",
+      "labels": {
+        "id": ["Beban Tenaga Kerja", "Beban Pegawai"],
+        "en": ["Personnel Expenses", "Personnel expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "general_and_admin_expenses_banking",
+      "labels": {
+        "id": ["Beban Umum dan Administrasi", "Beban umum dan"],
+        "en": ["General and Administrative Expenses", "General and administrative expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "total_operating_expenses_banking",
+      "labels": {
+        "id": ["Beban Operasional", "Jumlah Beban Operasional"],
+        "en": ["Total Operating Expenses", "Total other operating expenses", "Other operating expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 1
+    },
+    {
+      "key": "non_operating_expenses",
+      "labels": {
+        "id": ["Beban Bukan Operasional", "Beban Non-Operasional"],
+        "en": ["Non-Operating Expenses"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "insurance_acquisition_cost",
+      "labels": {
+        "id": ["Beban Akuisisi", "Beban akuisisi dari"],
+        "en": ["Insurance Acquisition Cost", "Acquisition Cost"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "insurance_commission_expense",
+      "labels": {
+        "id": ["Beban Komisi Asuransi"],
+        "en": ["Insurance Commission Expense"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "reinsurance_premium",
+      "labels": {
+        "id": ["Premi Reasuransi"],
+        "en": ["Reinsurance Premium"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "retrocession_premium",
+      "labels": {
+        "id": ["Premi Retrosesi"],
+        "en": ["Retrocession Premium"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "reinsurance_claims",
+      "labels": {
+        "id": ["Klaim Reasuransi"],
+        "en": ["Reinsurance Claims"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "retrocession_claims",
+      "labels": {
+        "id": ["Klaim Retrosesi"],
+        "en": ["Retrocession Claims"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "ujrah_expense",
+      "labels": {
+        "id": ["Ujrah Dibayar", "Beban Ujrah"],
+        "en": ["Ujrah Expense", "Ujrah Paid"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "gain_on_securities",
+      "labels": {
+        "id": ["Keuntungan Penjualan Efek-efek", "Keuntungan"],
+        "en": ["Gain on Sale of Securities"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "impairment_losses_on_assets",
+      "labels": {
+        "id": ["Beban Penurunan Nilai Aset", "Kerugian Penurunan Nilai Aset"],
+        "en": ["Impairment Losses on Assets", "Impairment losses on assets"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "interest_income_en",
+      "labels": {
+        "id": ["Pendapatan Bunga"],
+        "en": ["Interest Income", "INTEREST INCOME", "Interest income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "interest_expense_en",
+      "labels": {
+        "id": ["Beban Bunga"],
+        "en": ["Interest Expenses", "Interest expenses"]
+      },
+      "section": "cost_of_revenue",
+      "level": 2
+    },
+    {
+      "key": "income_before_tax_en",
+      "labels": {
+        "id": ["Laba Sebelum Pajak"],
+        "en": ["INCOME BEFORE TAX", "Income Before Tax"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "income_tax_expense_en",
+      "labels": {
+        "id": ["Beban Pajak Penghasilan"],
+        "en": ["INCOME TAX EXPENSE", "Income Tax Expense", "Income tax"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "net_income_en",
+      "labels": {
+        "id": ["Laba Bersih Tahun Berjalan"],
+        "en": ["NET INCOME", "Net Income", "Net income for the year"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "total_comprehensive_income_en",
+      "labels": {
+        "id": ["Jumlah Laba Rugi Komprehensif"],
+        "en": ["TOTAL COMPREHENSIVE INCOME", "Total Comprehensive Income", "Total comprehensive income for the year"]
+      },
+      "section": "comprehensive_income",
+      "level": 0
+    },
+    {
+      "key": "total_profit_loss",
+      "labels": {
+        "id": ["Jumlah Laba Rugi", "Jumlah laba rugi", "Jumlah Laba (Rugi)"],
+        "en": ["Total Profit (Loss)"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "total_profit_loss_from_operations",
+      "labels": {
+        "id": ["Jumlah Laba (Rugi) dari", "Jumlah laba (rugi) dari"],
+        "en": ["Total Profit (Loss) from Operations"]
+      },
+      "section": "operating_expenses",
+      "level": 0
+    },
+    {
+      "key": "total_profit_loss_before_tax",
+      "labels": {
+        "id": ["Jumlah Laba (Rugi) Sebelum", "Jumlah laba (rugi) sebelum"],
+        "en": ["Total Profit (Loss) Before Tax"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "profit_loss_from_discontinued",
+      "labels": {
+        "id": ["Laba (Rugi) dari Operasi yang"],
+        "en": ["Profit (Loss) from Discontinued Operations"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "earnings_per_share",
+      "labels": {
+        "id": ["Laba (Rugi) per Saham", "Laba (rugi) per saham"],
+        "en": ["Earnings per Share"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "profit_loss_attributable",
+      "labels": {
+        "id": ["Laba (Rugi) yang Dapat", "Laba (rugi) yang dapat"],
+        "en": ["Profit (Loss) Attributable to"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "comprehensive_income_total",
+      "labels": {
+        "id": ["Laba Rugi Komprehensif", "Laba rugi komprehensif", "Jumlah Laba (Rugi)"],
+        "en": ["Comprehensive Income"]
+      },
+      "section": "comprehensive_income",
+      "level": 0
+    },
+    {
+      "key": "share_of_profit_loss",
+      "labels": {
+        "id": ["Bagian atas Laba (Rugi)", "Bagian atas laba (rugi)"],
+        "en": ["Share of Profit (Loss)"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "third_party_share",
+      "labels": {
+        "id": ["Hak Pihak Ketiga atas", "Hak pihak ketiga atas"],
+        "en": ["Third Party Share of"]
+      },
+      "section": "tax",
+      "level": 1
+    },
+    {
+      "key": "provision_formation",
+      "labels": {
+        "id": ["Pembentukan Cadangan", "Pembentukan"],
+        "en": ["Provision Formation"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "reversal_of_provision",
+      "labels": {
+        "id": ["Pemulihan Penyisihan", "Pemulihan penyisihan"],
+        "en": ["Reversal of Provision"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "recovery_of_receivables",
+      "labels": {
+        "id": ["Penerimaan Kembali", "Penerimaan kembali"],
+        "en": ["Recovery of Receivables"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "remeasurements_defined_benefit",
+      "labels": {
+        "id": ["Pengukuran Kembali atas Liabilitas Imbalan Pasti"],
+        "en": ["Remeasurements of Defined Benefit Obligation", "Remeasurements of defined benefit obligation"]
+      },
+      "section": "comprehensive_income",
+      "level": 3
+    },
+    {
+      "key": "net_of_income_tax",
+      "labels": {
+        "id": ["Setelah Pajak Penghasilan"],
+        "en": ["NET OF INCOME TAX", "Net of Income Tax"]
+      },
+      "section": "comprehensive_income",
+      "level": 2
     }
   ]
 }
