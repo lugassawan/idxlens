@@ -183,6 +183,15 @@
       "level": 1
     },
     {
+      "key": "conversion_of_convertible_bonds",
+      "labels": {
+        "id": ["Konversi Obligasi Konversi"],
+        "en": ["Conversion of Convertible Bonds"]
+      },
+      "section": "transactions",
+      "level": 1
+    },
+    {
       "key": "other_equity_movements",
       "labels": {
         "id": ["Perubahan Ekuitas Lainnya", "Transaksi Ekuitas Lainnya"],

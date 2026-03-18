@@ -165,6 +165,69 @@
       "level": 2
     },
     {
+      "key": "professional_fees",
+      "labels": {
+        "id": ["Beban Jasa Profesional"],
+        "en": ["Professional Fees"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "rental_expenses",
+      "labels": {
+        "id": ["Beban Sewa"],
+        "en": ["Rental Expenses", "Rent Expense"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "utilities_expenses",
+      "labels": {
+        "id": ["Beban Listrik, Air dan Telekomunikasi", "Beban Utilitas"],
+        "en": ["Utilities Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "repair_and_maintenance",
+      "labels": {
+        "id": ["Beban Perbaikan dan Pemeliharaan"],
+        "en": ["Repair and Maintenance Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "insurance_expenses",
+      "labels": {
+        "id": ["Beban Asuransi"],
+        "en": ["Insurance Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "transportation_expenses",
+      "labels": {
+        "id": ["Beban Pengangkutan", "Beban Transportasi"],
+        "en": ["Transportation Expenses", "Freight Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "advertising_and_promotion",
+      "labels": {
+        "id": ["Beban Iklan dan Promosi"],
+        "en": ["Advertising and Promotion Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
       "key": "other_operating_expenses",
       "labels": {
         "id": ["Beban Usaha Lainnya", "Beban Operasional Lainnya"],

@@ -102,6 +102,51 @@
       "level": 1
     },
     {
+      "key": "insurance_premiums_received",
+      "labels": {
+        "id": ["Penerimaan Premi Asuransi"],
+        "en": ["Insurance Premiums Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "insurance_claims_paid",
+      "labels": {
+        "id": ["Pembayaran Klaim Asuransi"],
+        "en": ["Insurance Claims Paid"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "royalties_received",
+      "labels": {
+        "id": ["Penerimaan Royalti"],
+        "en": ["Royalties Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "fees_and_commissions_received",
+      "labels": {
+        "id": ["Penerimaan Provisi dan Komisi"],
+        "en": ["Fees and Commissions Received"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
+      "key": "payments_for_operating_leases",
+      "labels": {
+        "id": ["Pembayaran Sewa Operasi"],
+        "en": ["Payments for Operating Leases"]
+      },
+      "section": "operating",
+      "level": 1
+    },
+    {
       "key": "other_operating_payments",
       "labels": {
         "id": ["Pembayaran Kas Operasi Lainnya", "Pembayaran Lainnya"],
