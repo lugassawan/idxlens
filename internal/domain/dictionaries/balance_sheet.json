@@ -1,6 +1,6 @@
 {
   "type": "balance-sheet",
-  "version": 2,
+  "version": 3,
   "items": [
     {
       "key": "total_assets",
@@ -855,6 +855,168 @@
         "en": ["Premium Income Receivable", "Premium Receivables"]
       },
       "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "cash",
+      "labels": {
+        "id": ["Kas"],
+        "en": ["Cash"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "bills_receivable",
+      "labels": {
+        "id": ["Tagihan Wesel", "Wesel Tagih"],
+        "en": ["Bills Receivable"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "consumer_financing_receivables",
+      "labels": {
+        "id": ["Piutang Pembiayaan Konsumen"],
+        "en": ["Consumer Financing Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "reinsurance_assets",
+      "labels": {
+        "id": ["Aset Reasuransi"],
+        "en": ["Reinsurance Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "insurance_receivables",
+      "labels": {
+        "id": ["Piutang Asuransi"],
+        "en": ["Insurance Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "other_assets",
+      "labels": {
+        "id": ["Aset Lain-lain", "Aset Lainnya"],
+        "en": ["Other Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "net_carrying_amount_assets",
+      "labels": {
+        "id": ["Nilai tercatat dari aset"],
+        "en": ["Net Carrying Amount of Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "accruals_and_other_liabilities",
+      "labels": {
+        "id": ["Akrual dan Liabilitas Lainnya", "Beban Akrual dan Liabilitas Lain-lain"],
+        "en": ["Accruals and Other Liabilities", "Accruals and other liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "subordinated_bonds",
+      "labels": {
+        "id": ["Obligasi Subordinasi"],
+        "en": ["Subordinated Bonds", "Subordinated bonds"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "tax_payables",
+      "labels": {
+        "id": ["Utang Pajak", "Hutang Pajak"],
+        "en": ["Tax Payables", "Tax payables"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "post_employment_benefits_obligation",
+      "labels": {
+        "id": ["Liabilitas Imbalan Pascakerja", "Kewajiban Imbalan Pascakerja"],
+        "en": ["Post-Employment Benefits Obligation", "Post-employment benefits obligation"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "estimated_losses_commitments",
+      "labels": {
+        "id": ["Estimasi Kerugian Komitmen dan Kontinjensi", "Estimasi Kerugian atas Komitmen dan Kontinjensi"],
+        "en": ["Estimated Losses from Commitments and Contingencies", "Estimated losses from commitments and contingencies"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "insurance_contract_liabilities",
+      "labels": {
+        "id": ["Liabilitas Kontrak Asuransi"],
+        "en": ["Insurance Contract Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "prepaid_tax",
+      "labels": {
+        "id": ["Pajak Dibayar di Muka", "Pajak Dibayar Dimuka"],
+        "en": ["Prepaid Tax", "Prepaid tax"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "paid_in_capital_subsidiary",
+      "labels": {
+        "id": ["Modal Disetor pada Entitas Anak"],
+        "en": ["Paid-in Capital on Subsidiary", "Paid-in capital on Subsidiary"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "retained_earnings_appropriated_en",
+      "labels": {
+        "id": ["Telah Ditentukan Penggunaannya"],
+        "en": ["Appropriated"]
+      },
+      "section": "equity",
+      "level": 3
+    },
+    {
+      "key": "retained_earnings_unappropriated_en",
+      "labels": {
+        "id": ["Belum Ditentukan Penggunaannya"],
+        "en": ["Unappropriated"]
+      },
+      "section": "equity",
+      "level": 3
+    },
+    {
+      "key": "financial_liabilities_fvtpl",
+      "labels": {
+        "id": ["Liabilitas Keuangan pada Nilai Wajar melalui Laba Rugi"],
+        "en": ["Financial Liabilities at Fair Value through Profit or Loss", "Financial Liabilities at FVTPL"]
+      },
+      "section": "liabilities",
       "level": 2
     }
   ]
