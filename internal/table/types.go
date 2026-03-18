@@ -29,9 +29,10 @@ type Column struct {
 
 // Table represents a detected table structure.
 type Table struct {
-	Rows    []Row
-	Columns []Column
-	Bounds  pdf.Rect
-	PageNum int
-	Headers []string // column header texts
+	Rows     []Row
+	Columns  []Column
+	Bounds   pdf.Rect
+	PageNum  int
+	Headers  []string // column header texts
+	PageText []string // non-table text lines from the same page
 }

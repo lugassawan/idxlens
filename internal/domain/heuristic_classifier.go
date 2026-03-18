@@ -15,11 +15,16 @@ const xbrlMarkerWeight = 10.0
 
 // xbrlMarkers maps XBRL taxonomy codes to document types.
 // These codes appear in IDX PDF XBRL metadata sections as "[code] Title".
+// Multiple codes map to the same type because IDX uses different taxonomy
+// versions (OJK 2020 uses 3xxx/5xxx/6xxx, OJK 2023+ uses 4xxx).
 var xbrlMarkers = map[string]DocType{
 	"[4220000]": DocTypeBalanceSheet,
 	"[3210000]": DocTypeIncomeStatement,
+	"[4322000]": DocTypeIncomeStatement,
 	"[5310000]": DocTypeCashFlow,
+	"[4510000]": DocTypeCashFlow,
 	"[6110000]": DocTypeEquityChanges,
+	"[4410000]": DocTypeEquityChanges,
 }
 
 // coverPagePhrases are terms found on bureaucratic cover pages that should
