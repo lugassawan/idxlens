@@ -28,6 +28,14 @@ type Dictionary struct {
 
 var multiSpacePattern = regexp.MustCompile(`\s+`)
 
+// financialDocTypes lists the document types that have dictionaries.
+var financialDocTypes = []DocType{
+	DocTypeBalanceSheet,
+	DocTypeIncomeStatement,
+	DocTypeCashFlow,
+	DocTypeEquityChanges,
+}
+
 // LoadDictionary loads a dictionary for the given report type.
 func LoadDictionary(docType DocType) (*Dictionary, error) {
 	filename, err := docTypeFilename(docType)
@@ -46,6 +54,25 @@ func LoadDictionary(docType DocType) (*Dictionary, error) {
 	}
 
 	return &dict, nil
+}
+
+// LoadAllDictionaries loads dictionaries for all financial statement types
+// and merges their items into a single dictionary. This enables matching
+// labels from composite reports (audited, annual) that contain multiple
+// statement types.
+func LoadAllDictionaries() (*Dictionary, error) {
+	merged := &Dictionary{Type: "all", Version: 1}
+
+	for _, dt := range financialDocTypes {
+		d, err := LoadDictionary(dt)
+		if err != nil {
+			return nil, fmt.Errorf("load all dictionaries: %w", err)
+		}
+
+		merged.Items = append(merged.Items, d.Items...)
+	}
+
+	return merged, nil
 }
 
 // MatchLabel finds the best matching dictionary item for a given text label.
