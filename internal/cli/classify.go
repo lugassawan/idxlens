@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const maxClassifyPages = 3
+const maxClassifyPages = 10
 
 var classifyCmd = &cobra.Command{
 	Use:   "classify [pdf-path]",
