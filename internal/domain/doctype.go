@@ -4,13 +4,16 @@ package domain
 type DocType string
 
 const (
-	DocTypeBalanceSheet    DocType = "balance-sheet"
-	DocTypeIncomeStatement DocType = "income-statement"
-	DocTypeCashFlow        DocType = "cash-flow"
-	DocTypeEquityChanges   DocType = "equity-changes"
-	DocTypeNotes           DocType = "notes"
-	DocTypeAuditorReport   DocType = "auditor-report"
-	DocTypeUnknown         DocType = "unknown"
+	DocTypeBalanceSheet          DocType = "balance-sheet"
+	DocTypeIncomeStatement       DocType = "income-statement"
+	DocTypeCashFlow              DocType = "cash-flow"
+	DocTypeEquityChanges         DocType = "equity-changes"
+	DocTypeNotes                 DocType = "notes"
+	DocTypeAuditorReport         DocType = "auditor-report"
+	DocTypeSustainabilityReport  DocType = "sustainability-report"
+	DocTypeAnnualReport          DocType = "annual-report"
+	DocTypeCorporatePresentation DocType = "corporate-presentation"
+	DocTypeUnknown               DocType = "unknown"
 )
 
 // Classification holds the result of document classification.
@@ -30,5 +33,8 @@ func AllDocTypes() []DocType {
 		DocTypeEquityChanges,
 		DocTypeNotes,
 		DocTypeAuditorReport,
+		DocTypeSustainabilityReport,
+		DocTypeAnnualReport,
+		DocTypeCorporatePresentation,
 	}
 }
