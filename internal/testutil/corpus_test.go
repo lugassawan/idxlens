@@ -2,6 +2,8 @@ package testutil
 
 import (
 	"encoding/json"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -105,8 +107,8 @@ func TestCorpusEntryPDFPath(t *testing.T) {
 		t.Fatal("PDFPath() returned empty string")
 	}
 
-	wantSuffix := "testdata/corpus/sample.pdf"
-	if len(path) < len(wantSuffix) || path[len(path)-len(wantSuffix):] != wantSuffix {
+	wantSuffix := filepath.Join("testdata", "corpus", "sample.pdf")
+	if !strings.HasSuffix(path, wantSuffix) {
 		t.Errorf("PDFPath() = %q, want suffix %q", path, wantSuffix)
 	}
 }
