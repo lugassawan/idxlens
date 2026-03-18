@@ -179,6 +179,75 @@ func TestDictionaryMatchLabel(t *testing.T) {
 	}
 }
 
+func TestDictionaryMatchLabelIncomeStatement(t *testing.T) {
+	dict, err := LoadDictionary(DocTypeIncomeStatement)
+	if err != nil {
+		t.Fatalf("failed to load dictionary: %v", err)
+	}
+
+	tests := []struct {
+		name           string
+		text           string
+		lang           string
+		wantKey        string
+		wantConfidence float64
+	}{
+		{
+			name:           "interest income exact case variant",
+			text:           "Interest income",
+			lang:           "en",
+			wantKey:        "interest_income_en",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "interest expenses exact variant",
+			text:           "Interest expenses",
+			lang:           "en",
+			wantKey:        "interest_expense_en",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "INTEREST INCOME all caps",
+			text:           "INTEREST INCOME",
+			lang:           "en",
+			wantKey:        "interest_income_en",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "non-breaking space normalization",
+			text:           "Interest\u00A0Income",
+			lang:           "en",
+			wantKey:        "interest_income_bank",
+			wantConfidence: 1.0,
+		},
+		{
+			name:           "profit or loss partial match",
+			text:           "profit or loss",
+			lang:           "en",
+			wantKey:        "oci_not_reclassified",
+			wantConfidence: 0.6,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item, confidence := dict.MatchLabel(tt.text, tt.lang)
+
+			if item == nil {
+				t.Fatalf("expected item, got nil for %q", tt.text)
+			}
+
+			if item.Key != tt.wantKey {
+				t.Errorf("key = %q, want %q", item.Key, tt.wantKey)
+			}
+
+			if confidence != tt.wantConfidence {
+				t.Errorf("confidence = %f, want %f", confidence, tt.wantConfidence)
+			}
+		})
+	}
+}
+
 func TestDictionaryValidation(t *testing.T) {
 	docTypes := []DocType{
 		DocTypeBalanceSheet,

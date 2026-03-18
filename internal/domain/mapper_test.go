@@ -947,6 +947,17 @@ func TestDeduplicateItems(t *testing.T) {
 			wantCount: 2,
 			wantKeys:  []string{"cash", "debt"},
 		},
+		{
+			name: "drops unkeyed zero-value items",
+			items: []LineItem{
+				{Key: "", Label: "Penurunan (kenaikan)", Values: map[string]float64{"2025-12-31": 0, "2024-12-31": 0}},
+				{Key: "cash", Label: "Cash", Values: map[string]float64{"2025-12-31": 500}},
+				{Key: "", Label: "Non-zero unkeyed", Values: map[string]float64{"2025-12-31": 100}},
+			},
+			wantCount: 2,
+			wantKeys:  []string{"cash", ""},
+			wantVals:  []float64{500},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1102,6 +1113,32 @@ func TestPeriodDetectionFiltersNonFiscalDates(t *testing.T) {
 				if stmt.Periods[i] != want {
 					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
 				}
+			}
+		})
+	}
+}
+
+func TestIsNoiseLabel(t *testing.T) {
+	tests := []struct {
+		label string
+		want  bool
+	}{
+		{"202 5", true},
+		{"2025", true},
+		{"2024", true},
+		{"42", true},
+		{"AB", true},
+		{"", true},
+		{"Kas dan Setara Kas", false},
+		{"Interest Income", false},
+		{"Revenue", false},
+		{"Laba", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			if got := isNoiseLabel(tt.label); got != tt.want {
+				t.Errorf("isNoiseLabel(%q) = %v, want %v", tt.label, got, tt.want)
 			}
 		})
 	}
