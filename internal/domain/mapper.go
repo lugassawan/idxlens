@@ -112,7 +112,7 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 		return nil, fmt.Errorf("map %s: no tables provided", docType)
 	}
 
-	dict, err := loadDictionaryForDocType(docType)
+	dict, err := LoadAllDictionaries()
 	if err != nil {
 		return nil, fmt.Errorf("map %s: %w", docType, err)
 	}
@@ -147,14 +147,6 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 // financial statement sections (e.g., audited reports and annual reports).
 func isCompositeDocType(docType DocType) bool {
 	return docType == DocTypeAuditorReport || docType == DocTypeAnnualReport
-}
-
-// loadDictionaryForDocType loads all financial dictionaries merged together.
-// Real-world IDX PDFs frequently contain multiple statement types regardless
-// of classification, so we always load all dictionaries for best matching
-// coverage. The performance impact is negligible (4 small JSON files).
-func loadDictionaryForDocType(_ DocType) (*Dictionary, error) {
-	return LoadAllDictionaries()
 }
 
 // deduplicateItems removes duplicate keyed items, keeping the one with the

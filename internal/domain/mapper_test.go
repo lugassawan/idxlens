@@ -1214,36 +1214,6 @@ func TestIsCompositeDocType(t *testing.T) {
 	}
 }
 
-func TestLoadDictionaryForDocType(t *testing.T) {
-	tests := []struct {
-		name    string
-		docType DocType
-	}{
-		{"balance sheet loads all", DocTypeBalanceSheet},
-		{"income statement loads all", DocTypeIncomeStatement},
-		{"auditor report loads all", DocTypeAuditorReport},
-		{"annual report loads all", DocTypeAnnualReport},
-		{"unknown type loads all", DocTypeUnknown},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dict, err := loadDictionaryForDocType(tt.docType)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if dict == nil {
-				t.Fatal("dict is nil")
-			}
-
-			if len(dict.Items) == 0 {
-				t.Error("dict has no items")
-			}
-		})
-	}
-}
-
 func TestMapperCompositeDocType(t *testing.T) {
 	m := NewMapper()
 
