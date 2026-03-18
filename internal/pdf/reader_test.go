@@ -447,6 +447,48 @@ func TestParseContentStream(t *testing.T) {
 			wantLen:  1,
 			wantText: "Test",
 		},
+		{
+			name:     "TJ with large kerning inserts space",
+			content:  "BT /F1 12 Tf 72 700 Td [(Kas) -500 (Dana)] TJ ET",
+			wantLen:  1,
+			wantText: "Kas Dana",
+		},
+		{
+			name:     "TJ with small kerning preserves number",
+			content:  "BT /F1 12 Tf 72 700 Td [(202) -20 (5)] TJ ET",
+			wantLen:  1,
+			wantText: "2025",
+		},
+		{
+			name:     "TJ number with comma kerning",
+			content:  "BT /F1 12 Tf 72 700 Td [(868,) -10 (686,) -10 (210)] TJ ET",
+			wantLen:  1,
+			wantText: "868,686,210",
+		},
+		{
+			name:     "T* operator moves to next line",
+			content:  "BT /F1 12 Tf 72 700 Td (Line1) Tj T* (Line2) Tj ET",
+			wantLen:  2,
+			wantText: "Line1",
+		},
+		{
+			name:     "TL sets text leading for T*",
+			content:  "BT /F1 12 Tf 72 700 Td 14 TL (Line1) Tj T* (Line2) Tj ET",
+			wantLen:  2,
+			wantText: "Line1",
+		},
+		{
+			name:     "Tw sets word spacing",
+			content:  "BT /F1 12 Tf 72 700 Td 2 Tw (Hello) Tj ET",
+			wantLen:  1,
+			wantText: "Hello",
+		},
+		{
+			name:     "Tc sets character spacing",
+			content:  "BT /F1 12 Tf 72 700 Td 0.5 Tc (Hello) Tj ET",
+			wantLen:  1,
+			wantText: "Hello",
+		},
 	}
 
 	for _, tt := range tests {
@@ -855,5 +897,192 @@ func TestSkipComment(t *testing.T) {
 				t.Errorf("skipComment() = %d, want %d", got, tt.wantEnd)
 			}
 		})
+	}
+}
+
+func TestIsKerningSpace(t *testing.T) {
+	tests := []struct {
+		name    string
+		kerning float64
+		want    bool
+	}{
+		{
+			name:    "small negative kerning is not a space",
+			kerning: -10,
+			want:    false,
+		},
+		{
+			name:    "small positive kerning is not a space",
+			kerning: 50,
+			want:    false,
+		},
+		{
+			name:    "large negative kerning is a space",
+			kerning: -500,
+			want:    true,
+		},
+		{
+			name:    "large positive kerning is a space",
+			kerning: 400,
+			want:    true,
+		},
+		{
+			name:    "exactly at threshold is not a space",
+			kerning: -300,
+			want:    false,
+		},
+		{
+			name:    "just above threshold is a space",
+			kerning: -301,
+			want:    true,
+		},
+		{
+			name:    "zero kerning is not a space",
+			kerning: 0,
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isKerningSpace(tt.kerning)
+			if got != tt.want {
+				t.Errorf("isKerningSpace(%v) = %v, want %v", tt.kerning, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFindDoOperands(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    []string
+	}{
+		{
+			name:    "no Do operators",
+			content: "BT /F1 12 Tf (Hello) Tj ET",
+			want:    nil,
+		},
+		{
+			name:    "single Do operator",
+			content: "q /Form1 Do Q",
+			want:    []string{"Form1"},
+		},
+		{
+			name:    "multiple Do operators",
+			content: "q /Fm0 Do Q q /Fm1 Do Q",
+			want:    []string{"Fm0", "Fm1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findDoOperands(tt.content)
+			if len(got) != len(tt.want) {
+				t.Errorf("findDoOperands() = %v, want %v", got, tt.want)
+				return
+			}
+
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("findDoOperands()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParseTJArraySpacing(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string
+		wantText string
+	}{
+		{
+			name:     "small kerning keeps text together",
+			content:  "BT /F1 12 Tf 72 700 Td [(25,) -10 (305,) -10 (031)] TJ ET",
+			wantText: "25,305,031",
+		},
+		{
+			name:     "large kerning inserts space between words",
+			content:  "BT /F1 12 Tf 72 700 Td [(Statement) -600 (of)] TJ ET",
+			wantText: "Statement of",
+		},
+		{
+			name:     "mixed kerning values",
+			content:  "BT /F1 12 Tf 72 700 Td [(Lap) -20 (oran) -500 (posisi)] TJ ET",
+			wantText: "Laporan posisi",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			elements := parseContentStream(tt.content)
+			if len(elements) == 0 {
+				t.Fatal("expected at least one element")
+			}
+
+			if elements[0].Text != tt.wantText {
+				t.Errorf("text = %q, want %q", elements[0].Text, tt.wantText)
+			}
+		})
+	}
+}
+
+func TestParseDoubleQuote(t *testing.T) {
+	ts := textState{fontSize: 12, y: 700, tmA: 1, tmD: 1}
+	tokens := []string{"2", "0.5", "(Hello)", `"`}
+	parseDoubleQuote(tokens, 3, &ts)
+
+	if ts.wordSpacing != 2 {
+		t.Errorf("wordSpacing = %v, want 2", ts.wordSpacing)
+	}
+
+	if ts.charSpacing != 0.5 {
+		t.Errorf("charSpacing = %v, want 0.5", ts.charSpacing)
+	}
+
+	if ts.y != 688 {
+		t.Errorf("y after double quote = %v, want 688", ts.y)
+	}
+}
+
+func TestParseTL(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"14", "TL"}
+	parseTL(tokens, 1, &ts)
+
+	if ts.textLeading != 14 {
+		t.Errorf("textLeading = %v, want 14", ts.textLeading)
+	}
+}
+
+func TestParseTw(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"2.5", "Tw"}
+	parseTw(tokens, 1, &ts)
+
+	if ts.wordSpacing != 2.5 {
+		t.Errorf("wordSpacing = %v, want 2.5", ts.wordSpacing)
+	}
+}
+
+func TestParseTc(t *testing.T) {
+	ts := newTextState()
+	tokens := []string{"0.5", "Tc"}
+	parseTc(tokens, 1, &ts)
+
+	if ts.charSpacing != 0.5 {
+		t.Errorf("charSpacing = %v, want 0.5", ts.charSpacing)
+	}
+}
+
+func TestParseQuoteWithTextLeading(t *testing.T) {
+	ts := textState{fontSize: 12, y: 700, textLeading: 14, tmA: 1, tmD: 1}
+	parseQuote(&ts)
+
+	if ts.y != 686 {
+		t.Errorf("y after quote with leading = %v, want 686", ts.y)
 	}
 }
