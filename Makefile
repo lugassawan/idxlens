@@ -1,4 +1,4 @@
-.PHONY: build custom-gcl lint fmt test bench fuzz coverage accuracy clean init
+.PHONY: build custom-gcl lint fmt test bench fuzz coverage accuracy clean init docker
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -39,6 +39,9 @@ coverage:
 
 accuracy:
 	go test -run TestAccuracy -v ./internal/testutil/...
+
+docker:
+	docker build -t idxlens:latest .
 
 clean:
 	rm -rf bin/ dist/ coverage/ custom-gcl
