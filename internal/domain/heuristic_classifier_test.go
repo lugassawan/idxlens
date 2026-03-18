@@ -159,6 +159,75 @@ func TestHeuristicClassifierClassify(t *testing.T) {
 			wantLang:   "id",
 			wantMinCon: 0.1,
 		},
+		{
+			name: "xbrl balance sheet marker",
+			pageTexts: []string{
+				"Cover page",
+				"[4220000] Statement of financial position",
+			},
+			wantType:   DocTypeBalanceSheet,
+			wantLang:   "en",
+			wantMinCon: 0.5,
+		},
+		{
+			name: "xbrl income statement marker",
+			pageTexts: []string{
+				"Cover page",
+				"[3210000] Statement of profit or loss",
+			},
+			wantType:   DocTypeIncomeStatement,
+			wantLang:   "en",
+			wantMinCon: 0.5,
+		},
+		{
+			name: "xbrl cash flow marker",
+			pageTexts: []string{
+				"Cover page",
+				"[5310000] Statement of cash flows",
+			},
+			wantType:   DocTypeCashFlow,
+			wantLang:   "en",
+			wantMinCon: 0.5,
+		},
+		{
+			name: "xbrl equity changes marker",
+			pageTexts: []string{
+				"Cover page",
+				"[6110000] Statement of changes in equity",
+			},
+			wantType:   DocTypeEquityChanges,
+			wantLang:   "en",
+			wantMinCon: 0.5,
+		},
+		{
+			name: "cover page with diaudit does not classify as auditor report",
+			pageTexts: []string{
+				"Penyampaian Laporan Keuangan\nNomor Surat: S-123\nDiaudit / Audited\nKode Emiten: BBCA",
+				"[4220000] Statement of financial position",
+			},
+			wantType:   DocTypeBalanceSheet,
+			wantLang:   "en",
+			wantMinCon: 0.5,
+		},
+		{
+			name: "genuine auditor report with cover page is still auditor report",
+			pageTexts: []string{
+				"Penyampaian Laporan Keuangan\nDiaudit / Audited",
+				"LAPORAN AUDITOR INDEPENDEN\nKepada Pemegang Saham",
+			},
+			wantType:   DocTypeAuditorReport,
+			wantLang:   "id",
+			wantMinCon: 0.1,
+		},
+		{
+			name: "xbrl marker with indonesian text",
+			pageTexts: []string{
+				"[4220000] Laporan Posisi Keuangan",
+			},
+			wantType:   DocTypeBalanceSheet,
+			wantLang:   "id",
+			wantMinCon: 0.5,
+		},
 	}
 
 	classifier := NewHeuristicClassifier()
@@ -207,4 +276,127 @@ func TestHeuristicClassifierConfidence(t *testing.T) {
 				gotMulti.Confidence, gotSingle.Confidence)
 		}
 	})
+
+	t.Run("xbrl markers produce higher confidence than keywords alone", func(t *testing.T) {
+		keywordOnly := makeTestPages([]string{"LAPORAN POSISI KEUANGAN"})
+		withXBRL := makeTestPages([]string{"LAPORAN POSISI KEUANGAN\n[4220000] Statement of financial position"})
+
+		gotKeyword, err := classifier.Classify(keywordOnly)
+		if err != nil {
+			t.Fatalf("Classify() error = %v", err)
+		}
+		gotXBRL, err := classifier.Classify(withXBRL)
+		if err != nil {
+			t.Fatalf("Classify() error = %v", err)
+		}
+
+		if gotXBRL.Confidence <= gotKeyword.Confidence {
+			t.Errorf("xbrl confidence (%f) should be > keyword-only (%f)",
+				gotXBRL.Confidence, gotKeyword.Confidence)
+		}
+	})
+}
+
+func TestIsCoverPage(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want bool
+	}{
+		{
+			name: "cover page with penyampaian",
+			text: "penyampaian laporan keuangan tahunan",
+			want: true,
+		},
+		{
+			name: "cover page with nomor surat",
+			text: "nomor surat: s-123/bej/2024",
+			want: true,
+		},
+		{
+			name: "cover page with kode emiten",
+			text: "kode emiten: bbca",
+			want: true,
+		},
+		{
+			name: "financial statement page",
+			text: "laporan posisi keuangan per 31 desember 2024",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isCoverPage(tt.text)
+			if got != tt.want {
+				t.Errorf("isCoverPage() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHasMetadataAuditLabel(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want bool
+	}{
+		{
+			name: "diaudit label",
+			text: "status: diaudit / audited",
+			want: true,
+		},
+		{
+			name: "audited slash label",
+			text: "laporan keuangan / audited financial statements",
+			want: true,
+		},
+		{
+			name: "no audit label",
+			text: "laporan posisi keuangan",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := hasMetadataAuditLabel(tt.text)
+			if got != tt.want {
+				t.Errorf("hasMetadataAuditLabel() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHasAuditorReportHeader(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want bool
+	}{
+		{
+			name: "indonesian auditor header",
+			text: "laporan auditor independen",
+			want: true,
+		},
+		{
+			name: "english auditor header",
+			text: "independent auditor report",
+			want: true,
+		},
+		{
+			name: "no auditor header",
+			text: "diaudit / audited",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := hasAuditorReportHeader(tt.text)
+			if got != tt.want {
+				t.Errorf("hasAuditorReportHeader() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
