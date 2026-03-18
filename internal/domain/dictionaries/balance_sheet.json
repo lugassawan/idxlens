@@ -1,0 +1,276 @@
+{
+  "type": "balance-sheet",
+  "version": 1,
+  "items": [
+    {
+      "key": "total_assets",
+      "labels": {
+        "id": ["Jumlah Aset", "Total Aset"],
+        "en": ["Total Assets"]
+      },
+      "section": "assets",
+      "level": 0
+    },
+    {
+      "key": "current_assets",
+      "labels": {
+        "id": ["Aset Lancar", "Jumlah Aset Lancar", "Total Aset Lancar"],
+        "en": ["Current Assets", "Total Current Assets"]
+      },
+      "section": "assets",
+      "level": 1
+    },
+    {
+      "key": "cash_and_equivalents",
+      "labels": {
+        "id": ["Kas dan Setara Kas", "Kas dan Bank"],
+        "en": ["Cash and Cash Equivalents", "Cash and Banks"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "trade_receivables",
+      "labels": {
+        "id": ["Piutang Usaha", "Piutang Usaha - Pihak Ketiga"],
+        "en": ["Trade Receivables", "Trade Accounts Receivable"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "other_receivables",
+      "labels": {
+        "id": ["Piutang Lain-lain", "Piutang Lainnya"],
+        "en": ["Other Receivables"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "inventories",
+      "labels": {
+        "id": ["Persediaan"],
+        "en": ["Inventories"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "prepaid_expenses",
+      "labels": {
+        "id": ["Biaya Dibayar di Muka", "Beban Dibayar di Muka"],
+        "en": ["Prepaid Expenses", "Prepayments"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "advances",
+      "labels": {
+        "id": ["Uang Muka"],
+        "en": ["Advances"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "non_current_assets",
+      "labels": {
+        "id": ["Aset Tidak Lancar", "Jumlah Aset Tidak Lancar", "Total Aset Tidak Lancar"],
+        "en": ["Non-Current Assets", "Total Non-Current Assets", "Non Current Assets"]
+      },
+      "section": "assets",
+      "level": 1
+    },
+    {
+      "key": "fixed_assets",
+      "labels": {
+        "id": ["Aset Tetap", "Aset Tetap - Neto"],
+        "en": ["Fixed Assets", "Property, Plant and Equipment", "Fixed Assets - Net"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "intangible_assets",
+      "labels": {
+        "id": ["Aset Takberwujud", "Aset Tidak Berwujud"],
+        "en": ["Intangible Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "investment_properties",
+      "labels": {
+        "id": ["Properti Investasi"],
+        "en": ["Investment Properties"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "long_term_investments",
+      "labels": {
+        "id": ["Investasi Jangka Panjang"],
+        "en": ["Long-Term Investments", "Long Term Investments"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "deferred_tax_assets",
+      "labels": {
+        "id": ["Aset Pajak Tangguhan"],
+        "en": ["Deferred Tax Assets"]
+      },
+      "section": "assets",
+      "level": 2
+    },
+    {
+      "key": "total_liabilities",
+      "labels": {
+        "id": ["Jumlah Liabilitas", "Total Liabilitas"],
+        "en": ["Total Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 0
+    },
+    {
+      "key": "current_liabilities",
+      "labels": {
+        "id": ["Liabilitas Jangka Pendek", "Jumlah Liabilitas Jangka Pendek", "Total Liabilitas Jangka Pendek"],
+        "en": ["Current Liabilities", "Total Current Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 1
+    },
+    {
+      "key": "trade_payables",
+      "labels": {
+        "id": ["Utang Usaha", "Utang Usaha - Pihak Ketiga"],
+        "en": ["Trade Payables", "Trade Accounts Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "short_term_borrowings",
+      "labels": {
+        "id": ["Utang Bank Jangka Pendek", "Pinjaman Jangka Pendek"],
+        "en": ["Short-Term Borrowings", "Short Term Bank Loans"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "accrued_expenses",
+      "labels": {
+        "id": ["Beban Akrual", "Biaya yang Masih Harus Dibayar"],
+        "en": ["Accrued Expenses", "Accrued Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "taxes_payable",
+      "labels": {
+        "id": ["Utang Pajak"],
+        "en": ["Taxes Payable"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "current_portion_long_term_debt",
+      "labels": {
+        "id": ["Bagian Lancar Utang Jangka Panjang"],
+        "en": ["Current Portion of Long-Term Debt", "Current Maturities of Long-Term Debt"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "non_current_liabilities",
+      "labels": {
+        "id": ["Liabilitas Jangka Panjang", "Jumlah Liabilitas Jangka Panjang", "Total Liabilitas Jangka Panjang"],
+        "en": ["Non-Current Liabilities", "Total Non-Current Liabilities", "Non Current Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 1
+    },
+    {
+      "key": "long_term_borrowings",
+      "labels": {
+        "id": ["Utang Bank Jangka Panjang", "Pinjaman Jangka Panjang"],
+        "en": ["Long-Term Borrowings", "Long Term Bank Loans"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "deferred_tax_liabilities",
+      "labels": {
+        "id": ["Liabilitas Pajak Tangguhan"],
+        "en": ["Deferred Tax Liabilities"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "employee_benefits",
+      "labels": {
+        "id": ["Liabilitas Imbalan Kerja", "Liabilitas Imbalan Pascakerja"],
+        "en": ["Employee Benefits Liability", "Post-Employment Benefits Liability"]
+      },
+      "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "total_equity",
+      "labels": {
+        "id": ["Jumlah Ekuitas", "Total Ekuitas"],
+        "en": ["Total Equity"]
+      },
+      "section": "equity",
+      "level": 0
+    },
+    {
+      "key": "share_capital",
+      "labels": {
+        "id": ["Modal Saham", "Modal Ditempatkan dan Disetor Penuh"],
+        "en": ["Share Capital", "Issued and Fully Paid Capital"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "additional_paid_in_capital",
+      "labels": {
+        "id": ["Tambahan Modal Disetor", "Agio Saham"],
+        "en": ["Additional Paid-in Capital", "Share Premium"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "retained_earnings",
+      "labels": {
+        "id": ["Saldo Laba", "Laba Ditahan"],
+        "en": ["Retained Earnings"]
+      },
+      "section": "equity",
+      "level": 2
+    },
+    {
+      "key": "non_controlling_interests",
+      "labels": {
+        "id": ["Kepentingan Nonpengendali"],
+        "en": ["Non-Controlling Interests", "Minority Interests"]
+      },
+      "section": "equity",
+      "level": 2
+    }
+  ]
+}
