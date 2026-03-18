@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	pdfcpuapi "github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
@@ -17,6 +18,10 @@ var (
 	errNotOpened = errors.New("reader not opened")
 	// btETPattern matches BT...ET text blocks in a content stream.
 	btETPattern = regexp.MustCompile(`(?s)BT\s(.*?)\sET`)
+	// initOnce ensures pdfcpu's global config is initialized exactly once,
+	// avoiding a data race in model.NewDefaultConfiguration when called
+	// concurrently from multiple goroutines.
+	initOnce sync.Once
 )
 
 // NewReader creates a new PDF Reader backed by pdfcpu.
@@ -29,6 +34,12 @@ type pdfcpuReader struct {
 }
 
 func (r *pdfcpuReader) Open(rs io.ReadSeeker) error {
+	initOnce.Do(func() {
+		// Pre-initialize pdfcpu's global config to avoid data race
+		// when multiple goroutines call NewDefaultConfiguration concurrently.
+		_ = model.NewDefaultConfiguration()
+	})
+
 	conf := model.NewDefaultConfiguration()
 	conf.ValidationMode = model.ValidationRelaxed
 
