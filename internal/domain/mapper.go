@@ -13,6 +13,7 @@ import (
 const (
 	currencyIDR      = "IDR"
 	currencyUSD      = "USD"
+	maxPeriods       = 3
 	metadataScanRows = 5
 	unitMillions     = "millions"
 	unitBillions     = "billions"
@@ -356,8 +357,19 @@ func collapseKernedDigits(text string) string {
 }
 
 func addPeriod(stmt *FinancialStatement, day, month, year string, months map[string]int, lang string) {
+	if len(stmt.Periods) >= maxPeriods {
+		return
+	}
+
 	iso := formatDateISO(day, month, year, months)
 	if iso == "" || slices.Contains(stmt.Periods, iso) {
+		return
+	}
+
+	dayInt, _ := strconv.Atoi(day)
+	monthInt := months[strings.ToLower(month)]
+
+	if !isFiscalPeriodEnd(dayInt, monthInt) {
 		return
 	}
 
@@ -365,6 +377,23 @@ func addPeriod(stmt *FinancialStatement, day, month, year string, months map[str
 
 	if stmt.Language == "" {
 		stmt.Language = lang
+	}
+}
+
+// isFiscalPeriodEnd returns true if the date is a fiscal quarter-end or
+// year-end: Dec 31, Mar 31, Jun 30, or Sep 30.
+func isFiscalPeriodEnd(day, month int) bool {
+	switch {
+	case month == 12 && day == 31: // Annual / Q4
+		return true
+	case month == 3 && day == 31: // Q1
+		return true
+	case month == 6 && day == 30: // Q2
+		return true
+	case month == 9 && day == 30: // Q3
+		return true
+	default:
+		return false
 	}
 }
 
