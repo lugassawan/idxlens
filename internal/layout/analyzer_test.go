@@ -46,7 +46,7 @@ func TestAnalyzerAnalyze(t *testing.T) {
 			wantRegion: 1,
 		},
 		{
-			name: "multiple elements same line sorted by X",
+			name: "multiple elements same line sorted by X with column gap",
 			page: pdf.Page{
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
@@ -66,7 +66,7 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				},
 			},
 			wantLines:  1,
-			wantText:   []string{"Hello World"},
+			wantText:   []string{"Hello\tWorld"},
 			wantRegion: 1,
 		},
 		{
@@ -171,6 +171,41 @@ func TestAnalyzerAnalyze(t *testing.T) {
 			wantText:   []string{"Title", "Body text"},
 			wantRegion: 2,
 		},
+		{
+			name: "bilingual multi-column layout uses tabs at column boundaries",
+			page: pdf.Page{
+				Number: 1,
+				Size:   pdf.PageSize{Width: 612, Height: 792},
+				Elements: []pdf.TextElement{
+					{Text: "Kas", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 50, Y1: 500, X2: 70, Y2: 508}},
+					{Text: "25,305,031", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 200, Y1: 500, X2: 250, Y2: 508}},
+					{Text: "29,315,878", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 300, Y1: 500, X2: 350, Y2: 508}},
+					{Text: "Cash", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 450, Y1: 500, X2: 470, Y2: 508}},
+					{Text: "Dana yang dibatasi", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 50, Y1: 480, X2: 140, Y2: 488}},
+					{Text: "0", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 240, Y1: 480, X2: 245, Y2: 488}},
+					{Text: "0", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 340, Y1: 480, X2: 345, Y2: 488}},
+					{Text: "Restricted funds", FontName: "Arial", FontSize: 8, Bounds: pdf.Rect{X1: 450, Y1: 480, X2: 520, Y2: 488}},
+				},
+			},
+			wantLines: 2,
+			wantText: []string{
+				"Kas\t25,305,031\t29,315,878\tCash",
+				"Dana yang dibatasi\t0\t0\tRestricted funds",
+			},
+		},
+		{
+			name: "small gaps within words use spaces not tabs",
+			page: pdf.Page{
+				Number: 1,
+				Size:   pdf.PageSize{Width: 612, Height: 792},
+				Elements: []pdf.TextElement{
+					{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
+					{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 58, Y1: 700, X2: 98, Y2: 712}},
+				},
+			},
+			wantLines: 1,
+			wantText:  []string{"Hello World"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -212,8 +247,8 @@ func TestAnalyzerAnalyzeBoundsUnion(t *testing.T) {
 		Number: 1,
 		Size:   pdf.PageSize{Width: 612, Height: 792},
 		Elements: []pdf.TextElement{
-			{Text: "A", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 20, Y2: 712}},
-			{Text: "B", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 50, Y1: 698, X2: 60, Y2: 714}},
+			{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
+			{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 55, Y1: 698, X2: 95, Y2: 714}},
 		},
 	}
 
@@ -227,8 +262,8 @@ func TestAnalyzerAnalyzeBoundsUnion(t *testing.T) {
 	}
 
 	b := result.Lines[0].Bounds
-	if b.X1 != 10 || b.X2 != 60 {
-		t.Errorf("bounds X = [%v, %v], want [10, 60]", b.X1, b.X2)
+	if b.X1 != 10 || b.X2 != 95 {
+		t.Errorf("bounds X = [%v, %v], want [10, 95]", b.X1, b.X2)
 	}
 
 	if b.Y1 != 698 || b.Y2 != 714 {
@@ -243,8 +278,8 @@ func TestAnalyzerAnalyzeLineElements(t *testing.T) {
 		Number: 1,
 		Size:   pdf.PageSize{Width: 612, Height: 792},
 		Elements: []pdf.TextElement{
-			{Text: "B", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 50, Y1: 700, X2: 60, Y2: 712}},
-			{Text: "A", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 20, Y2: 712}},
+			{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 50, Y1: 700, X2: 90, Y2: 712}},
+			{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 45, Y2: 712}},
 		},
 	}
 
@@ -257,11 +292,11 @@ func TestAnalyzerAnalyzeLineElements(t *testing.T) {
 		t.Fatalf("got %d elements, want 2", len(result.Lines[0].Elements))
 	}
 
-	if result.Lines[0].Elements[0].Text != "A" {
-		t.Errorf("first element = %q, want %q", result.Lines[0].Elements[0].Text, "A")
+	if result.Lines[0].Elements[0].Text != "Hello" {
+		t.Errorf("first element = %q, want %q", result.Lines[0].Elements[0].Text, "Hello")
 	}
 
-	if result.Lines[0].Elements[1].Text != "B" {
-		t.Errorf("second element = %q, want %q", result.Lines[0].Elements[1].Text, "B")
+	if result.Lines[0].Elements[1].Text != "World" {
+		t.Errorf("second element = %q, want %q", result.Lines[0].Elements[1].Text, "World")
 	}
 }
