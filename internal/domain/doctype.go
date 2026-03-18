@@ -15,10 +15,10 @@ const (
 
 // Classification holds the result of document classification.
 type Classification struct {
-	Type       DocType
-	Confidence float64 // 0.0 to 1.0
-	Language   string  // "id" or "en"
-	Title      string  // detected report title
+	Type       DocType `json:"type"`
+	Confidence float64 `json:"confidence"`      // 0.0 to 1.0
+	Language   string  `json:"language"`        // "id" or "en"
+	Title      string  `json:"title,omitempty"` // detected report title
 }
 
 // AllDocTypes returns all known document types (excluding unknown).
