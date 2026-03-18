@@ -137,6 +137,7 @@ func (m *mapper) Map(docType DocType, tables []table.Table) (*FinancialStatement
 	}
 
 	stmt.Items = deduplicateItems(stmt.Items)
+	stmt.Items = filterPageReferences(stmt.Items, stmt.Unit)
 	filterColKeys(stmt)
 
 	return stmt, nil
@@ -286,6 +287,10 @@ func (m *mapper) mapTableRows(
 		}
 
 		if isNoiseLabel(label) {
+			continue
+		}
+
+		if isGarbledText(label) {
 			continue
 		}
 
@@ -506,6 +511,10 @@ func filterFinancialTables(tables []table.Table, docType DocType) []table.Table 
 		return tables
 	}
 
+	if docType == DocTypeAnnualReport {
+		return filterAnnualReportTables(tables)
+	}
+
 	if isCompositeDocType(docType) {
 		return filterCompositeFinancialTables(tables)
 	}
@@ -516,6 +525,18 @@ func filterFinancialTables(tables []table.Table, docType DocType) []table.Table 
 	}
 
 	return filterByHeuristic(tables)
+}
+
+// filterAnnualReportTables filters tables specifically for annual reports.
+// It first tries XBRL markers, then falls back to financial section header
+// detection which is stricter than generic numeric content filtering.
+func filterAnnualReportTables(tables []table.Table) []table.Table {
+	markers := scanXBRLMarkers(tables)
+	if len(markers) > 0 {
+		return filterByXBRLMarkedPages(tables, markers)
+	}
+
+	return filterByFinancialContent(tables)
 }
 
 // filterCompositeFinancialTables filters tables for composite document types
