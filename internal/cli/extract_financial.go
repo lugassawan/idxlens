@@ -29,8 +29,8 @@ financial statement mapping, and output formatting.`,
 
 func init() {
 	extractCmd.AddCommand(extractFinancialCmd)
-	extractFinancialCmd.Flags().StringP("type", "t", "", "report type (e.g. balance-sheet, income-statement)")
-	extractFinancialCmd.Flags().StringP(flagFormat, "f", "json", "output format (json, csv)")
+	extractFinancialCmd.Flags().StringP(flagType, "t", "", "report type (e.g. balance-sheet, income-statement)")
+	extractFinancialCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
 	extractFinancialCmd.Flags().StringP("output", "o", "", "output file path (default: stdout)")
 	extractFinancialCmd.Flags().Bool("pretty", false, "pretty-print output (JSON only)")
 }
@@ -59,7 +59,7 @@ type financialFlags struct {
 }
 
 func parseFinancialFlags(cmd *cobra.Command) (financialFlags, error) {
-	typeStr, err := cmd.Flags().GetString("type")
+	typeStr, err := cmd.Flags().GetString(flagType)
 	if err != nil {
 		return financialFlags{}, fmt.Errorf("read type flag: %w", err)
 	}

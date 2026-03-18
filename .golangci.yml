@@ -94,6 +94,8 @@ linters:
       - path: _test\.go
         linters: [tidygo]
         text: "nolateexport:"
+      - path: bindings/cgo/
+        linters: [tidygo]
 
 formatters:
   enable:
