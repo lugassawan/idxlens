@@ -7,7 +7,12 @@ import (
 	"github.com/lugassawan/idxlens/internal/pdf"
 )
 
-const defaultLineThreshold = 2.0
+const (
+	defaultLineThreshold = 2.0
+	regionXTolerance     = 5.0
+	spaceGapRatio        = 0.3
+	fallbackWidthRatio   = 0.5
+)
 
 type fontKey struct {
 	name string
@@ -142,7 +147,7 @@ func estimateAvgCharWidth(elements []pdf.TextElement, dominantFontSize float64) 
 	}
 
 	if totalChars == 0 {
-		return dominantFontSize * 0.5
+		return dominantFontSize * fallbackWidthRatio
 	}
 
 	return totalWidth / float64(totalChars)
@@ -159,7 +164,7 @@ func buildLineText(elements []pdf.TextElement, avgCharWidth float64) string {
 	for i := 1; i < len(elements); i++ {
 		gap := elements[i].Bounds.X1 - elements[i-1].Bounds.X2
 
-		if gap > avgCharWidth*0.3 {
+		if gap > avgCharWidth*spaceGapRatio {
 			result = append(result, ' ')
 		}
 
@@ -240,8 +245,7 @@ func detectRegions(lines []TextLine) []Region {
 }
 
 func linesShareRegion(prev, curr TextLine) bool {
-	xTolerance := 5.0
-	sameIndent := math.Abs(prev.Bounds.X1-curr.Bounds.X1) < xTolerance
+	sameIndent := math.Abs(prev.Bounds.X1-curr.Bounds.X1) < regionXTolerance
 	sameFont := prev.FontName == curr.FontName && prev.FontSize == curr.FontSize
 
 	return sameIndent && sameFont
