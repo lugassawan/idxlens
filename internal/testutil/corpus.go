@@ -28,9 +28,11 @@ type CorpusClassification struct {
 	Language string `json:"language"`
 }
 
+const corpusDir = "corpus"
+
 // LoadCorpus reads the corpus manifest from testdata/corpus/.
 func LoadCorpus() (*CorpusManifest, error) {
-	path := filepath.Join(projectRoot(), "testdata", "corpus", "manifest.json")
+	path := filepath.Join(projectRoot(), "testdata", corpusDir, "manifest.json")
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -47,7 +49,7 @@ func LoadCorpus() (*CorpusManifest, error) {
 
 // PDFPath returns the full path to a corpus PDF file.
 func (e *CorpusEntry) PDFPath() string {
-	return filepath.Join(projectRoot(), "testdata", "corpus", e.File)
+	return filepath.Join(projectRoot(), "testdata", corpusDir, e.File)
 }
 
 // projectRoot finds the project root by walking up from the current file.

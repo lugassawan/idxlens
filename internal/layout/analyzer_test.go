@@ -33,7 +33,12 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
+					{
+						Text:     "Hello",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712},
+					},
 				},
 			},
 			wantLines:  1,
@@ -46,8 +51,18 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 100, Y1: 700, X2: 140, Y2: 712}},
-					{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
+					{
+						Text:     "World",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 100, Y1: 700, X2: 140, Y2: 712},
+					},
+					{
+						Text:     "Hello",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712},
+					},
 				},
 			},
 			wantLines:  1,
@@ -60,7 +75,12 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "Bottom", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 600, X2: 60, Y2: 612}},
+					{
+						Text:     "Bottom",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 600, X2: 60, Y2: 612},
+					},
 					{Text: "Top", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 40, Y2: 712}},
 				},
 			},
@@ -74,8 +94,18 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
-					{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 60, Y1: 700, X2: 100, Y2: 712}},
+					{
+						Text:     "Hello",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712},
+					},
+					{
+						Text:     "World",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 60, Y1: 700, X2: 100, Y2: 712},
+					},
 				},
 			},
 			wantLines: 1,
@@ -100,8 +130,18 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "Hello", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712}},
-					{Text: "World", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 60, Y1: 701, X2: 100, Y2: 713}},
+					{
+						Text:     "Hello",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 700, X2: 50, Y2: 712},
+					},
+					{
+						Text:     "World",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 60, Y1: 701, X2: 100, Y2: 713},
+					},
 				},
 			},
 			wantLines: 1,
@@ -113,8 +153,18 @@ func TestAnalyzerAnalyze(t *testing.T) {
 				Number: 1,
 				Size:   pdf.PageSize{Width: 612, Height: 792},
 				Elements: []pdf.TextElement{
-					{Text: "Title", FontName: "Arial-Bold", FontSize: 18, Bounds: pdf.Rect{X1: 10, Y1: 750, X2: 80, Y2: 768}},
-					{Text: "Body text", FontName: "Arial", FontSize: 12, Bounds: pdf.Rect{X1: 10, Y1: 700, X2: 90, Y2: 712}},
+					{
+						Text:     "Title",
+						FontName: "Arial-Bold",
+						FontSize: 18,
+						Bounds:   pdf.Rect{X1: 10, Y1: 750, X2: 80, Y2: 768},
+					},
+					{
+						Text:     "Body text",
+						FontName: "Arial",
+						FontSize: 12,
+						Bounds:   pdf.Rect{X1: 10, Y1: 700, X2: 90, Y2: 712},
+					},
 				},
 			},
 			wantLines:  2,

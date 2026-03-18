@@ -8,6 +8,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/lugassawan/idxlens/actions/workflows/ci.yml/badge.svg)](https://github.com/lugassawan/idxlens/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
