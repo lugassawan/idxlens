@@ -24,7 +24,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	listCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
-	listCmd.Flags().String(flagPeriod, "", "Filter by report period (e.g. Q1, Q2, Q3, Audit)")
+	listCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
 	_ = listCmd.MarkFlagRequired(flagYear)
 	rootCmd.AddCommand(listCmd)
 }

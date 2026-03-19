@@ -15,6 +15,7 @@ const (
 	defaultWorkers = 4
 
 	descYearRequired = "Report year (required)"
+	descPeriod       = "Report period (e.g. TW1, TW2, TW3, Tahunan)"
 
 	formatXLSX = "xlsx"
 	formatXBRL = "xbrl"

@@ -33,7 +33,7 @@ Presentations are fetched from the registry (company IR pages, no Cloudflare).`,
 
 func init() {
 	fetchCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
-	fetchCmd.Flags().String(flagPeriod, "", "Filter by report period (e.g. Q1, Q2, Q3, Audit)")
+	fetchCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
 	_ = fetchCmd.MarkFlagRequired(flagYear)
