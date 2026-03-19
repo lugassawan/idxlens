@@ -76,7 +76,7 @@ func analyzeTicker(
 	}
 
 	mode := "financial"
-	if best.Format == "pdf" {
+	if best.Format == formatPDF {
 		mode = "presentation"
 	}
 
