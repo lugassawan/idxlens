@@ -143,8 +143,11 @@ func TestDownloadAsset(t *testing.T) {
 		t.Fatalf("stat: %v", err)
 	}
 
-	if info.Mode()&0o100 == 0 {
-		t.Error("file is not executable")
+	// Unix only — Windows doesn't have executable permission bits
+	if runtime.GOOS != "windows" {
+		if info.Mode()&0o100 == 0 {
+			t.Error("file is not executable")
+		}
 	}
 }
 
@@ -160,6 +163,83 @@ func TestDownloadAssetServerError(t *testing.T) {
 	err := downloadAssetFrom(context.Background(), srv.URL, destPath, srv.Client())
 	if err == nil {
 		t.Fatal("expected error for server error response")
+	}
+}
+
+func TestLatestReleaseMalformedJSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{invalid json`))
+	}))
+	defer srv.Close()
+
+	_, err := latestReleaseFrom(context.Background(), srv.URL, srv.Client())
+	if err == nil {
+		t.Fatal("expected error for malformed JSON")
+	}
+
+	if !strings.Contains(err.Error(), "decode release") {
+		t.Errorf("error = %q, want to contain %q", err.Error(), "decode release")
+	}
+}
+
+func TestLatestReleaseInvalidURL(t *testing.T) {
+	_, err := latestReleaseFrom(context.Background(), "://bad-url", &http.Client{})
+	if err == nil {
+		t.Fatal("expected error for invalid URL")
+	}
+}
+
+func TestDownloadAssetWriteError(t *testing.T) {
+	content := "binary content"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(content))
+	}))
+	defer srv.Close()
+
+	// Write to a path inside a non-existent directory
+	destPath := filepath.Join(t.TempDir(), "no-such-dir", "nested", "idxlens")
+
+	err := downloadAssetFrom(context.Background(), srv.URL, destPath, srv.Client())
+	if err == nil {
+		t.Fatal("expected error for write to non-existent directory")
+	}
+}
+
+func TestDownloadAssetInvalidURL(t *testing.T) {
+	err := downloadAssetFrom(context.Background(), "://bad-url", "/tmp/idxlens", &http.Client{})
+	if err == nil {
+		t.Fatal("expected error for invalid URL")
+	}
+}
+
+func TestLatestReleaseCancelledContext(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v1.0.0"}`))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := latestReleaseFrom(ctx, srv.URL, srv.Client())
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestDownloadAssetCancelledContext(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("data"))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := downloadAssetFrom(ctx, srv.URL, filepath.Join(t.TempDir(), "out"), srv.Client())
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
 	}
 }
 
