@@ -21,12 +21,12 @@ var extractCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(extractCmd)
-	extractCmd.Flags().String("mode", "financial", "extraction mode (financial, presentation)")
+	extractCmd.Flags().String(flagMode, "financial", "extraction mode (financial, presentation)")
 	extractCmd.Flags().IntP(flagYear, "y", 0, "report year")
 	extractCmd.Flags().StringP(flagPeriod, "p", "", "report period")
 	extractCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
-	extractCmd.Flags().StringP("output", "o", "", "output file path")
-	extractCmd.Flags().Bool("pretty", false, "pretty-print JSON output")
+	extractCmd.Flags().StringP(flagOutput, "o", "", "output file path")
+	extractCmd.Flags().Bool(flagPretty, false, "pretty-print JSON output")
 }
 
 func runExtract(cmd *cobra.Command, args []string) error {
@@ -38,8 +38,8 @@ func runExtract(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("resolve inputs: %w", err)
 	}
 
-	pretty, _ := cmd.Flags().GetBool("pretty")
-	outputPath, _ := cmd.Flags().GetString("output")
+	pretty, _ := cmd.Flags().GetBool(flagPretty)
+	outputPath, _ := cmd.Flags().GetString(flagOutput)
 
 	w, cleanup, err := openWriter(cmd, outputPath)
 	if err != nil {
