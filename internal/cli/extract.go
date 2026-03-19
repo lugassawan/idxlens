@@ -51,7 +51,7 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	}
 	defer cleanup()
 
-	mode, _ := cmd.Flags().GetString("mode")
+	mode, _ := cmd.Flags().GetString(flagMode)
 
 	for _, input := range inputs {
 		if err := extractFile(w, input, mode, pretty); err != nil {

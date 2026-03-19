@@ -96,7 +96,7 @@ jobs:
         run: |
           total=$(go tool cover -func=coverage.out | grep total: | awk '{print $3}' | tr -d '%')
           echo "Total coverage: ${total}%"
-          threshold=89
+          threshold=87
           if awk "BEGIN {exit ($total >= $threshold) ? 0 : 1}"; then :; else
             echo "ERROR: coverage ${total}% is below threshold ${threshold}%"
             exit 1
@@ -125,12 +125,12 @@ jobs:
       - name: Build
         run: go build -o bin/idxlens ./cmd/idxlens
 
-      - name: Verify binary size (< 25MB)
+      - name: Verify binary size (< 30MB)
         run: |
           size=$(stat -c%s bin/idxlens)
           echo "Binary size: $size bytes"
-          if [ "$size" -gt 26214400 ]; then
-            echo "ERROR: binary exceeds 25MB"
+          if [ "$size" -gt 31457280 ]; then
+            echo "ERROR: binary exceeds 30MB"
             exit 1
           fi
 

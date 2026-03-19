@@ -84,7 +84,7 @@ func analyzeTicker(
 }
 
 func bestFormat(files []InputFile) *InputFile {
-	priority := map[string]int{"xlsx": 3, "xbrl": 2, "pdf": 1}
+	priority := map[string]int{formatXLSX: 3, formatXBRL: 2, formatPDF: 1}
 
 	var best *InputFile
 
