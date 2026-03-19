@@ -157,8 +157,9 @@ func extractBinary(r io.Reader) (io.Reader, error) {
 		}
 
 		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == "idxlens" {
+			const maxBinarySize = 256 << 20 // 256 MiB
 			var buf bytes.Buffer
-			if _, err := io.Copy(&buf, tr); err != nil {
+			if _, err := io.Copy(&buf, io.LimitReader(tr, maxBinarySize)); err != nil {
 				return nil, fmt.Errorf("read binary: %w", err)
 			}
 
