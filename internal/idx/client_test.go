@@ -3,6 +3,8 @@ package idx
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -60,6 +62,70 @@ func TestWithHTTPClient(t *testing.T) {
 
 	if c.httpClient.Timeout != 99*time.Second {
 		t.Errorf("timeout = %v, want 99s", c.httpClient.Timeout)
+	}
+}
+
+func TestNewAuthenticatedClient(t *testing.T) {
+	tests := []struct {
+		name       string
+		setup      func(t *testing.T, dir string)
+		wantErr    bool
+		wantClient bool
+	}{
+		{
+			name: "no cookies file",
+			setup: func(t *testing.T, dir string) {
+				t.Helper()
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid empty cookies",
+			setup: func(t *testing.T, dir string) {
+				t.Helper()
+				err := os.WriteFile(filepath.Join(dir, "cookies.json"), []byte("[]"), 0o600)
+				if err != nil {
+					t.Fatalf("write cookies.json: %v", err)
+				}
+			},
+			wantClient: true,
+		},
+		{
+			name: "valid cookies",
+			setup: func(t *testing.T, dir string) {
+				t.Helper()
+				data := `[{"name":"cf_clearance","value":"abc123","domain":".idx.co.id","path":"/"}]`
+				err := os.WriteFile(filepath.Join(dir, "cookies.json"), []byte(data), 0o600)
+				if err != nil {
+					t.Fatalf("write cookies.json: %v", err)
+				}
+			},
+			wantClient: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("IDXLENS_HOME", dir)
+			tt.setup(t, dir)
+
+			client, err := NewAuthenticatedClient()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if tt.wantClient && client == nil {
+				t.Fatal("expected non-nil client, got nil")
+			}
+		})
 	}
 }
 
