@@ -15,7 +15,7 @@ This downloads the latest release binary for your OS and architecture, installs 
 To install a specific version:
 
 ```sh
-VERSION=v2.0.0 curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
+VERSION=v1.1.0 curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
 ```
 
 ### Using `go install`
@@ -57,7 +57,7 @@ idxlens version
 Expected output:
 
 ```
-idxlens v2.0.0 (commit: abc1234, built: 2026-01-01T00:00:00Z)
+idxlens v1.1.0 (commit: abc1234, built: 2026-01-01T00:00:00Z)
 ```
 
 ## Quick start
