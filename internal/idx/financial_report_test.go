@@ -34,7 +34,7 @@ func TestListReports(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(fixture)
+			_, _ = w.Write(fixture)
 		}))
 		defer srv.Close()
 
@@ -49,9 +49,9 @@ func TestListReports(t *testing.T) {
 		}
 
 		tests := []struct {
-			name     string
-			got      string
-			want     string
+			name string
+			got  string
+			want string
 		}{
 			{"first file name", attachments[0].FileName, "Financial Report Q3 2024.pdf"},
 			{"first file type", attachments[0].FileType, "pdf"},
@@ -91,7 +91,7 @@ func TestListReports(t *testing.T) {
 	t.Run("invalid JSON response", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte("not json"))
+			_, _ = w.Write([]byte("not json"))
 		}))
 		defer srv.Close()
 
@@ -105,7 +105,7 @@ func TestListReports(t *testing.T) {
 	t.Run("empty results", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"Results": []}`))
+			_, _ = w.Write([]byte(`{"Results": []}`))
 		}))
 		defer srv.Close()
 

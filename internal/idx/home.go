@@ -27,6 +27,8 @@ func Home() (string, error) {
 		dir = filepath.Join(home, defaultDir)
 	}
 
+	dir = filepath.Clean(dir)
+	//nolint:gosec // dir is from IDXLENS_HOME env or os.UserHomeDir, not user input
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("create idxlens home %s: %w", dir, err)
 	}

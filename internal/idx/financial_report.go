@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 // Attachment represents a single file attachment from an IDX financial report.
@@ -31,16 +33,22 @@ const reportEndpoint = "/primary/ListedCompany/GetFinancialReport"
 
 // ListReports fetches financial report attachments for the given ticker, year, and period.
 func (c *Client) ListReports(ctx context.Context, ticker string, year int, period string) ([]Attachment, error) {
-	url := fmt.Sprintf(
-		"%s%s?periode=%s&year=%d&kodeEmiten=%s&reportType=rdf&indexFrom=0&pageSize=1000",
-		c.baseURL, reportEndpoint, period, year, ticker,
-	)
+	endpoint := c.baseURL + reportEndpoint
+	params := url.Values{
+		"periode":    {period},
+		"year":       {strconv.Itoa(year)},
+		"kodeEmiten": {ticker},
+		"reportType": {"rdf"},
+		"indexFrom":  {"0"},
+		"pageSize":   {"1000"},
+	}
 
-	req, err := c.newRequest(ctx, http.MethodGet, url)
+	req, err := c.newRequest(ctx, http.MethodGet, endpoint+"?"+params.Encode())
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
 
+	//nolint:gosec // URL built from trusted baseURL set at client construction
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("list reports request: %w", err)
