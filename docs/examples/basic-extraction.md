@@ -2,138 +2,91 @@
 
 This guide walks through common extraction workflows with IDXLens.
 
-## Classify a report first
+## Extract from XLSX
 
-Before extracting data, you can check what type of report a PDF contains:
-
-```sh
-idxlens classify quarterly-report.pdf
-```
-
-```
-Type:       balance-sheet
-Confidence: 95%
-Language:   id
-```
-
-For machine-readable output:
+XLSX is the preferred format for financial data extraction. It produces the most accurate results.
 
 ```sh
-idxlens classify quarterly-report.pdf --format json
+idxlens extract report.xlsx
 ```
 
-```json
-{
-  "type": "balance-sheet",
-  "confidence": 0.95,
-  "language": "id"
-}
-```
-
-## Extract financial data
-
-### Auto-detect report type
+Pretty-print the output:
 
 ```sh
-idxlens extract financial quarterly-report.pdf
+idxlens extract report.xlsx --pretty
 ```
 
-IDXLens classifies the document automatically and extracts structured data. The output is JSON by default.
-
-### Specify report type explicitly
-
-If auto-classification does not produce the expected result, specify the type:
+Save to a file:
 
 ```sh
-idxlens extract financial quarterly-report.pdf --type income-statement
+idxlens extract report.xlsx --output result.json
 ```
 
-Available types: `balance-sheet`, `income-statement`, `cash-flow`, `equity-changes`.
+## Extract from XBRL ZIP
 
-### Pretty-print JSON
+XBRL archives contain taxonomy-based financial data:
 
 ```sh
-idxlens extract financial quarterly-report.pdf --pretty
+idxlens extract report.zip
 ```
-
-Sample output:
-
-```json
-{
-  "type": "balance-sheet",
-  "company": "PT Example Tbk",
-  "periods": ["2024-12-31", "2023-12-31"],
-  "currency": "IDR",
-  "unit": "millions",
-  "language": "id",
-  "items": [
-    {
-      "key": "total_assets",
-      "label": "Jumlah Aset",
-      "section": "assets",
-      "level": 0,
-      "confidence": 1.0,
-      "values": {
-        "2024-12-31": 50000000,
-        "2023-12-31": 45000000
-      }
-    }
-  ]
-}
-```
-
-### Export to CSV
 
 ```sh
-idxlens extract financial quarterly-report.pdf --format csv --output data.csv
+idxlens extract report.zip --pretty
 ```
 
-The CSV includes columns for label, key, section, and one column per period.
+## Extract presentation from PDF
 
-## Extract raw text
-
-Use `extract text` to inspect what text IDXLens sees in the PDF. This is useful for debugging or understanding why a label is not matching a dictionary entry.
-
-### All pages
+Corporate presentations can be extracted as key-value pairs using the `--mode presentation` flag:
 
 ```sh
-idxlens extract text quarterly-report.pdf
+idxlens extract presentation.pdf --mode presentation
 ```
 
-### Specific pages
-
 ```sh
-idxlens extract text quarterly-report.pdf --pages "2-4"
+idxlens extract presentation.pdf --mode presentation --pretty
 ```
 
-### Single page
+## Full pipeline with analyze
+
+The `analyze` command fetches reports (if not cached) and extracts from the best available format:
 
 ```sh
-idxlens extract text quarterly-report.pdf --pages "1"
+# Single ticker
+idxlens analyze BBCA -y 2024 -p Q3 --pretty
+
+# Multiple tickers
+idxlens analyze BBCA,BMRI,BBRI -y 2024 -p Q3
+
+# Save output
+idxlens analyze BBCA -y 2024 --output bbca.json
 ```
 
-## Combine with other tools
+The format priority is XLSX > XBRL > PDF. If XLSX is available, it will be used first.
 
-### Pipe JSON to jq
+## Pipe to jq
+
+IDXLens outputs JSON by default, making it easy to pipe to `jq` for filtering and transformation.
+
+### Filter items by section
 
 ```sh
-idxlens extract financial report.pdf | jq '.items[] | select(.section == "assets")'
+idxlens extract report.xlsx | jq '.items[] | select(.section == "assets")'
 ```
 
 ### Extract a single field
 
 ```sh
-idxlens extract financial report.pdf | jq -r '.company'
+idxlens extract report.xlsx | jq -r '.company'
 ```
 
 ### Count line items
 
 ```sh
-idxlens extract financial report.pdf | jq '.items | length'
+idxlens extract report.xlsx | jq '.items | length'
 ```
 
-### Filter by confidence
+### Get values for a specific period
 
 ```sh
-idxlens extract financial report.pdf | jq '.items[] | select(.confidence >= 0.9)'
+idxlens analyze BBCA -y 2024 -p Q3 | jq '.items[] | {label: .label, value: .values["2024-09-30"]}'
 ```

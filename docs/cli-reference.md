@@ -1,6 +1,6 @@
 # CLI Reference
 
-IDXLens provides commands for classifying and extracting data from IDX PDF reports.
+IDXLens provides commands for fetching and extracting structured financial data from IDX reports.
 
 ## Global
 
@@ -8,9 +8,200 @@ IDXLens provides commands for classifying and extracting data from IDX PDF repor
 idxlens [command]
 ```
 
-IDXLens is a CLI tool for extracting structured financial data from Indonesia Stock Exchange (IDX) PDF reports. It converts unstructured PDF tables into clean, machine-readable formats.
+IDXLens is a CLI tool that fetches and extracts structured financial data from Indonesia Stock Exchange (IDX) reports. Supports XLSX, XBRL, and PDF formats.
+
+## Environment
+
+| Variable       | Default       | Description                    |
+|---------------|---------------|--------------------------------|
+| `IDXLENS_HOME` | `~/.idxlens` | Local cache and session directory |
 
 ## Commands
+
+### `auth`
+
+Authenticate with the IDX portal via headless Chrome. Stores the session locally for use by `list`, `fetch`, and `analyze` commands.
+
+```sh
+idxlens auth
+```
+
+Chrome must be installed. The command launches a headless browser session, navigates to the IDX portal, and stores authentication cookies in `IDXLENS_HOME`.
+
+---
+
+### `list`
+
+List available financial reports for one or more tickers.
+
+```sh
+idxlens list TICKER[,TICKER...]
+```
+
+**Arguments:**
+
+| Argument  | Description                              |
+|----------|------------------------------------------|
+| `TICKER`  | One or more ticker symbols (comma-separated) |
+
+**Flags:**
+
+| Flag       | Short | Default | Description                              |
+|-----------|-------|---------|------------------------------------------|
+| `--year`   | `-y`  |         | Filter by reporting year                 |
+| `--period` | `-p`  |         | Filter by period (`Q1`, `Q2`, `Q3`, `FY`) |
+
+**Examples:**
+
+```sh
+# List all reports for BBCA
+idxlens list BBCA
+
+# Filter by year
+idxlens list BBCA -y 2024
+
+# Filter by year and period
+idxlens list BBCA,BMRI -y 2024 -p Q3
+```
+
+---
+
+### `fetch`
+
+Download financial reports to the local cache.
+
+```sh
+idxlens fetch TICKER[,TICKER...]
+```
+
+**Arguments:**
+
+| Argument  | Description                              |
+|----------|------------------------------------------|
+| `TICKER`  | One or more ticker symbols (comma-separated) |
+
+**Flags:**
+
+| Flag          | Short | Default | Description                                        |
+|--------------|-------|---------|----------------------------------------------------|
+| `--year`      | `-y`  |         | Filter by reporting year                           |
+| `--period`    | `-p`  |         | Filter by period (`Q1`, `Q2`, `Q3`, `FY`)          |
+| `--file-type` |       |         | Filter by file type (`xlsx`, `xbrl`, `pdf`)        |
+| `--workers`   | `-w`  | `4`     | Number of concurrent download workers              |
+
+**Examples:**
+
+```sh
+# Fetch all reports for BBCA
+idxlens fetch BBCA
+
+# Fetch specific year and period
+idxlens fetch BBCA -y 2024 -p Q3
+
+# Fetch only XLSX files with 8 workers
+idxlens fetch BBCA,BMRI -y 2024 --file-type xlsx -w 8
+```
+
+Reports are saved to `IDXLENS_HOME/reports/<ticker>/`.
+
+---
+
+### `extract`
+
+Extract structured financial data from a local file or fetched report.
+
+```sh
+idxlens extract [TICKER|FILE]
+```
+
+**Arguments:**
+
+| Argument       | Description                                    |
+|---------------|------------------------------------------------|
+| `TICKER|FILE`  | Ticker symbol (uses cached report) or file path |
+
+**Flags:**
+
+| Flag       | Short | Default | Description                                          |
+|-----------|-------|---------|------------------------------------------------------|
+| `--mode`   | `-m`  |         | Extraction mode (`presentation` for PDF KV extraction) |
+| `--year`   | `-y`  |         | Reporting year (when using ticker)                   |
+| `--period` | `-p`  |         | Reporting period (when using ticker)                 |
+| `--format` | `-f`  | `json`  | Output format (`json`)                               |
+| `--output` | `-o`  | stdout  | Output file path                                     |
+| `--pretty` |       | `false` | Pretty-print JSON output                             |
+
+**Examples:**
+
+```sh
+# Extract from a local XLSX file
+idxlens extract path/to/report.xlsx --pretty
+
+# Extract from a XBRL ZIP archive
+idxlens extract path/to/report.zip
+
+# Extract presentation KV pairs from a PDF
+idxlens extract path/to/presentation.pdf --mode presentation
+
+# Save output to a file
+idxlens extract report.xlsx --output result.json
+```
+
+---
+
+### `analyze`
+
+Full pipeline: fetch reports if not cached, then extract from the best available format (XLSX > XBRL > PDF).
+
+```sh
+idxlens analyze TICKER[,TICKER...]
+```
+
+**Arguments:**
+
+| Argument  | Description                              |
+|----------|------------------------------------------|
+| `TICKER`  | One or more ticker symbols (comma-separated) |
+
+**Flags:**
+
+| Flag       | Short | Default | Description                     |
+|-----------|-------|---------|---------------------------------|
+| `--year`   | `-y`  |         | Reporting year                  |
+| `--period` | `-p`  |         | Reporting period                |
+| `--format` | `-f`  | `json`  | Output format (`json`)          |
+| `--output` | `-o`  | stdout  | Output file path                |
+| `--pretty` |       | `false` | Pretty-print JSON output        |
+
+**Examples:**
+
+```sh
+# Analyze BBCA Q3 2024
+idxlens analyze BBCA -y 2024 -p Q3
+
+# Pretty-print output
+idxlens analyze BBCA -y 2024 -p Q3 --pretty
+
+# Analyze multiple tickers
+idxlens analyze BBCA,BMRI,BBRI -y 2024 -p Q3
+
+# Save to file
+idxlens analyze BBCA -y 2024 --output bbca.json
+```
+
+---
+
+### `upgrade`
+
+Self-update IDXLens to the latest version from GitHub Releases.
+
+```sh
+idxlens upgrade
+```
+
+Checks for the latest release, downloads the platform-specific binary, and atomically replaces the current binary.
+
+---
 
 ### `version`
 
@@ -21,231 +212,3 @@ idxlens version
 ```
 
 Output includes version tag, commit hash, and build timestamp.
-
----
-
-### `classify`
-
-Classify an IDX PDF report by type. Analyzes the first few pages to determine the report type using heuristic matching.
-
-```sh
-idxlens classify [pdf-path]
-```
-
-**Arguments:**
-
-| Argument   | Description              |
-|-----------|--------------------------|
-| `pdf-path` | Path to the PDF file     |
-
-**Flags:**
-
-| Flag              | Short | Default | Description                    |
-|-------------------|-------|---------|--------------------------------|
-| `--format`        | `-f`  | `text`  | Output format (`text`, `json`) |
-
-**Examples:**
-
-```sh
-# Text output (default)
-idxlens classify report.pdf
-
-# JSON output
-idxlens classify report.pdf --format json
-```
-
-**Text output:**
-
-```
-Type:       balance-sheet
-Confidence: 95%
-Language:   id
-```
-
-**JSON output:**
-
-```json
-{
-  "type": "balance-sheet",
-  "confidence": 0.95,
-  "language": "id"
-}
-```
-
-**Supported report types:**
-
-| Type                       | Description                      |
-|----------------------------|----------------------------------|
-| `balance-sheet`            | Statement of Financial Position  |
-| `income-statement`         | Statement of Profit or Loss      |
-| `cash-flow`                | Statement of Cash Flows          |
-| `equity-changes`           | Statement of Changes in Equity   |
-| `sustainability-report`    | ESG/Sustainability Report        |
-| `annual-report`            | Annual Report                    |
-| `corporate-presentation`   | Corporate Presentation           |
-| `auditor-report`           | Independent Auditor's Report     |
-| `notes`                    | Notes to Financial Statements    |
-
----
-
-### `extract`
-
-Parent command for data extraction subcommands.
-
-```sh
-idxlens extract [subcommand]
-```
-
----
-
-### `extract financial`
-
-Extract structured financial data from an IDX PDF report. Runs the full L0-L4 pipeline: PDF parsing, layout analysis, document classification, table detection, financial statement mapping, and output formatting.
-
-Supports banking-specific line items (NIM, NPL, CASA, DPK, etc.), bilingual tab-separated column detection for side-by-side Indonesian/English layouts, presentation-style "Rp tn" unit detection, and abbreviated period parsing (e.g., "Dec-25", "FY-25", "3Q-25").
-
-```sh
-idxlens extract financial [pdf-path]
-```
-
-**Arguments:**
-
-| Argument   | Description              |
-|-----------|--------------------------|
-| `pdf-path` | Path to the PDF file     |
-
-**Flags:**
-
-| Flag              | Short | Default | Description                                              |
-|-------------------|-------|---------|----------------------------------------------------------|
-| `--type`          | `-t`  | (auto)  | Report type (e.g. `balance-sheet`, `income-statement`)   |
-| `--format`        | `-f`  | `json`  | Output format (`json`, `csv`)                            |
-| `--output`        | `-o`  | stdout  | Output file path                                         |
-| `--pretty`        |       | `false` | Pretty-print output (JSON only)                          |
-
-When `--type` is omitted, IDXLens auto-classifies the document. If classification fails, use `--type` to specify it explicitly.
-
-**Examples:**
-
-```sh
-# Auto-detect type, output JSON to stdout
-idxlens extract financial report.pdf
-
-# Specify type, pretty JSON
-idxlens extract financial report.pdf --type balance-sheet --pretty
-
-# CSV output to file
-idxlens extract financial report.pdf --format csv --output data.csv
-```
-
----
-
-### `extract text`
-
-Extract text lines from a PDF by running the L0 (PDF parser) and L1 (layout analyzer) pipeline. Outputs one text line per line, grouped by page.
-
-```sh
-idxlens extract text [pdf-path]
-```
-
-**Arguments:**
-
-| Argument   | Description              |
-|-----------|--------------------------|
-| `pdf-path` | Path to the PDF file     |
-
-**Flags:**
-
-| Flag       | Short | Default   | Description                           |
-|-----------|-------|-----------|---------------------------------------|
-| `--pages` |       | all pages | Page range (e.g. `"1-3,5,7-9"`)      |
-
-**Examples:**
-
-```sh
-# Extract all pages
-idxlens extract text report.pdf
-
-# Extract specific pages
-idxlens extract text report.pdf --pages "1-3,5"
-```
-
----
-
-### `extract esg`
-
-Extract ESG/GRI content index data from a sustainability report. Scans tables for GRI disclosure numbers and extracts structured data including disclosure number, title, description, page references, and reporting status.
-
-```sh
-idxlens extract esg [pdf-path]
-```
-
-**Arguments:**
-
-| Argument   | Description              |
-|-----------|--------------------------|
-| `pdf-path` | Path to the PDF file     |
-
-**Examples:**
-
-```sh
-# Extract GRI disclosures from a sustainability report
-idxlens extract esg sustainability-report.pdf
-```
-
-**Output (JSON):**
-
-```json
-{
-  "disclosures": [
-    {
-      "number": "201-1",
-      "title": "Direct economic value generated and distributed",
-      "description": "",
-      "page_ref": "45",
-      "status": "reported"
-    }
-  ],
-  "framework": "GRI"
-}
-```
-
----
-
-### `batch`
-
-Process multiple PDF files matching a glob pattern using bounded concurrency. Each file runs through the full extraction pipeline and results are written to the specified output directory.
-
-```sh
-idxlens batch [glob-pattern]
-```
-
-**Arguments:**
-
-| Argument       | Description                                |
-|---------------|--------------------------------------------|
-| `glob-pattern` | File glob pattern (e.g. `"reports/*.pdf"`) |
-
-**Flags:**
-
-| Flag            | Short | Default | Description                                              |
-|-----------------|-------|---------|----------------------------------------------------------|
-| `--workers`     | `-w`  | `4`     | Number of concurrent workers (capped at CPU count)       |
-| `--output-dir`  | `-d`  |         | Output directory for results                             |
-| `--format`      | `-f`  | `json`  | Output format (`json`, `csv`)                            |
-| `--type`        | `-t`  | (auto)  | Report type (e.g. `balance-sheet`, `income-statement`)   |
-
-**Examples:**
-
-```sh
-# Process all PDFs in reports/ with default settings
-idxlens batch "reports/*.pdf"
-
-# Use 8 workers and save results to output/
-idxlens batch "reports/*.pdf" --workers 8 --output-dir output/
-
-# Process as CSV with explicit type
-idxlens batch "data/*.pdf" --format csv --type balance-sheet
-```
-
-The command outputs a JSON summary with the count of successful and failed files.

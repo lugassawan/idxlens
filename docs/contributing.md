@@ -172,6 +172,6 @@ Optional context for reviewers.
 
 See [architecture.md](architecture.md) for the layer structure. Key rules:
 
-- Dependencies flow downward only: `cli -> output -> domain -> table -> layout -> pdf`
+- Dependencies flow downward only: `cli -> service -> idx/xlsx/xbrl`, `cli -> service -> domain -> layout -> pdf`
 - Cross-layer boundaries use interfaces
 - All logic lives in `internal/`
