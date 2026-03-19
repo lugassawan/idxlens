@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lugassawan/idxlens/internal/table"
 )
@@ -14,6 +15,7 @@ const (
 	currencyIDR      = "IDR"
 	currencyUSD      = "USD"
 	maxPeriods       = 3
+	maxFutureYears   = 1
 	metadataScanRows = 5
 	unitMillions     = "millions"
 	unitBillions     = "billions"
@@ -21,6 +23,9 @@ const (
 	unitThousands    = "thousands"
 	fmtAnnualEnd     = "%04d-12-31"
 )
+
+// timeNow is a seam for testing date validation without mocking time.
+var timeNow = time.Now
 
 // Mapper maps raw table data into a standardized FinancialStatement.
 type Mapper interface {
@@ -489,8 +494,13 @@ func addPeriod(stmt *FinancialStatement, day, month, year string, months map[str
 
 	dayInt, _ := strconv.Atoi(day)
 	monthInt := months[strings.ToLower(month)]
+	yearInt, _ := strconv.Atoi(year)
 
 	if !isFiscalPeriodEnd(dayInt, monthInt) {
+		return
+	}
+
+	if isFutureDate(yearInt, monthInt) {
 		return
 	}
 
@@ -517,6 +527,11 @@ func addAbbrevPeriod(stmt *FinancialStatement, label, yearShort string) {
 
 	iso := abbrevToISO(label, year)
 	if iso == "" || slices.Contains(stmt.Periods, iso) {
+		return
+	}
+
+	month := abbrevMonth(label)
+	if isFutureDate(year, month) {
 		return
 	}
 
@@ -609,6 +624,50 @@ func isFiscalPeriodEnd(day, month int) bool {
 	default:
 		return false
 	}
+}
+
+// isFutureDate returns true if the given year/month is more than
+// maxFutureYears from the current date. This filters out dates parsed
+// from regulation numbers, page references, or other non-period text.
+func isFutureDate(year, month int) bool {
+	now := timeNow()
+	cutoff := now.AddDate(maxFutureYears, 0, 0)
+
+	// Use the first of the month for comparison; exact day doesn't
+	// matter since we only need year+month granularity.
+	candidate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+
+	return candidate.After(cutoff)
+}
+
+// abbrevMonth extracts the month number from an abbreviated period label.
+// Returns 12 for FY and quarterly labels (which resolve to a quarter-end
+// month), and the calendar month for month abbreviations.
+func abbrevMonth(label string) int {
+	lower := strings.ToLower(label)
+
+	if lower == "fy" {
+		return 12
+	}
+
+	if len(lower) == 2 && lower[1] == 'q' {
+		switch lower[0] {
+		case '1':
+			return 3
+		case '2':
+			return 6
+		case '3':
+			return 9
+		case '4':
+			return 12
+		}
+	}
+
+	if month, ok := monthAbbrevEN[lower]; ok {
+		return month
+	}
+
+	return 12
 }
 
 func formatDateISO(dayStr, monthStr, yearStr string, months map[string]int) string {
