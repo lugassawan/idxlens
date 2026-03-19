@@ -33,6 +33,7 @@ idxlens/
 ├── registry/           # Report registry data (presentations.json)
 ├── docs/               # Documentation site
 ├── testdata/           # Sample PDFs for testing
+├── Dockerfile          # Docker image with Chrome for headless auth
 ├── .github/workflows/  # CI/CD pipelines
 └── .githooks/          # Git hooks (pre-commit, commit-msg)
 ```
@@ -58,6 +59,7 @@ make fmt        # Auto-format Go code (gofmt + golines)
 make test       # Run all tests
 make coverage   # Generate coverage report -> coverage/
 make clean      # Remove build artifacts
+docker build -t idxlens .    # Build Docker image
 ```
 
 ### CLI Commands

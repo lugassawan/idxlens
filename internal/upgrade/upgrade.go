@@ -1,9 +1,14 @@
 package upgrade
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -116,7 +121,12 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 		return fmt.Errorf("download asset: status %d", resp.StatusCode)
 	}
 
-	if err := safefile.Write(destPath, resp.Body); err != nil {
+	binary, err := extractBinary(resp.Body)
+	if err != nil {
+		return fmt.Errorf("extract binary: %w", err)
+	}
+
+	if err := safefile.Write(destPath, binary); err != nil {
 		return fmt.Errorf("write asset: %w", err)
 	}
 
@@ -125,4 +135,37 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 	}
 
 	return nil
+}
+
+func extractBinary(r io.Reader) (io.Reader, error) {
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, fmt.Errorf("open gzip: %w", err)
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("read tar: %w", err)
+		}
+
+		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == "idxlens" {
+			const maxBinarySize = 256 << 20 // 256 MiB
+			var buf bytes.Buffer
+			if _, err := io.Copy(&buf, io.LimitReader(tr, maxBinarySize)); err != nil {
+				return nil, fmt.Errorf("read binary: %w", err)
+			}
+
+			return &buf, nil
+		}
+	}
+
+	return nil, errors.New("idxlens binary not found in archive")
 }

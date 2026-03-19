@@ -40,6 +40,19 @@ go install github.com/lugassawan/idxlens/cmd/idxlens@latest
 # Or download a prebuilt binary from GitHub Releases
 ```
 
+## Docker
+
+```sh
+# Pull from GitHub Container Registry
+docker pull ghcr.io/lugassawan/idxlens:latest
+
+# Run extraction
+docker run --rm -v $(pwd):/data ghcr.io/lugassawan/idxlens extract /data/report.xlsx
+
+# Authenticate (requires display forwarding for headless Chrome)
+docker run --rm -v ~/.idxlens:/root/.idxlens ghcr.io/lugassawan/idxlens auth
+```
+
 ## Usage
 
 ```sh
