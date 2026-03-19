@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -71,9 +72,13 @@ func listReports(
 
 	wg.Wait()
 
-	for i, err := range errResults {
-		if err != nil {
-			return fmt.Errorf("list reports for %s: %w", tickers[i], err)
+	var errs []error
+
+	for i := range errResults {
+		if errResults[i] != nil {
+			errs = append(errs, fmt.Errorf("list reports for %s: %w", tickers[i], errResults[i]))
+
+			continue
 		}
 
 		for _, att := range attResults[i] {
@@ -81,6 +86,10 @@ func listReports(
 				att.EmitenCode, att.FileName, att.FileType, att.FileSize,
 				att.ReportPeriod, att.ReportYear)
 		}
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return err
 	}
 
 	return tw.Flush()

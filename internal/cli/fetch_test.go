@@ -323,7 +323,7 @@ func TestFetchTickerDocuments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			downloaded, failed, err := fetchTickerDocuments(
-				context.Background(), tt.client, tt.ticker, 0, "", tt.fileType,
+				context.Background(), tt.client, tt.ticker, t.TempDir(), 0, "", tt.fileType,
 			)
 
 			if tt.wantErr {

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -74,6 +75,11 @@ func fetchIDXDocuments(
 	ctx context.Context, client service.IDXFetcher, tickers []string,
 	year int, period, fileType string, summary *fetchSummary,
 ) error {
+	dataDir, err := idx.DataDir()
+	if err != nil {
+		return fmt.Errorf("resolve data directory: %w", err)
+	}
+
 	downloadedSlices := make([][]string, len(tickers))
 	failedSlices := make([][]string, len(tickers))
 	errSlices := make([]error, len(tickers))
@@ -86,7 +92,7 @@ func fetchIDXDocuments(
 		go func(index int, t string) {
 			defer wg.Done()
 
-			dl, fl, err := fetchTickerDocuments(ctx, client, t, year, period, fileType)
+			dl, fl, err := fetchTickerDocuments(ctx, client, t, dataDir, year, period, fileType)
 			downloadedSlices[index] = dl
 			failedSlices[index] = fl
 			errSlices[index] = err
@@ -95,20 +101,22 @@ func fetchIDXDocuments(
 
 	wg.Wait()
 
-	for i, err := range errSlices {
-		if err != nil {
-			return fmt.Errorf("list reports for %s: %w", tickers[i], err)
+	var errs []error
+
+	for i := range errSlices {
+		if errSlices[i] != nil {
+			errs = append(errs, fmt.Errorf("list reports for %s: %w", tickers[i], errSlices[i]))
 		}
 
 		summary.Downloaded = append(summary.Downloaded, downloadedSlices[i]...)
 		summary.Failed = append(summary.Failed, failedSlices[i]...)
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func fetchTickerDocuments(
-	ctx context.Context, client service.IDXFetcher, ticker string,
+	ctx context.Context, client service.IDXFetcher, ticker, dataDir string,
 	year int, period, fileType string,
 ) (downloaded, failed []string, err error) {
 	atts, err := client.ListReports(ctx, ticker, year, period)
@@ -119,11 +127,6 @@ func fetchTickerDocuments(
 	filtered := filterAttachments(atts, fileType)
 	if len(filtered) == 0 {
 		return nil, nil, nil
-	}
-
-	dataDir, err := idx.DataDir()
-	if err != nil {
-		return nil, nil, fmt.Errorf("resolve data directory: %w", err)
 	}
 
 	for _, att := range filtered {
