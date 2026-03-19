@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -104,6 +105,47 @@ func TestExtractPDFFinancialModeError(t *testing.T) {
 	}
 }
 
+func TestExtractPresentationWithRealPDF(t *testing.T) {
+	// Use a real PDF from testdata to exercise the full extractPresentation path
+	pdfPath := filepath.Join("..", "..", "tmp", "testdata", "IPCM", "IPCM_2025-Annual-Public-Expose.pdf")
+	if _, err := os.Stat(pdfPath); os.IsNotExist(err) {
+		t.Skip("test PDF not available")
+	}
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"extract", pdfPath, "--mode", "presentation"})
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("Execute() error: %v", err)
+	}
+
+	if buf.Len() == 0 {
+		t.Fatal("expected JSON output, got empty")
+	}
+}
+
+func TestExtractPresentationWithRealPDFPretty(t *testing.T) {
+	pdfPath := filepath.Join("..", "..", "tmp", "testdata", "IPCM", "IPCM_2025-Annual-Public-Expose.pdf")
+	if _, err := os.Stat(pdfPath); os.IsNotExist(err) {
+		t.Skip("test PDF not available")
+	}
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"extract", pdfPath, "--mode", "presentation", "--pretty"})
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("Execute() error: %v", err)
+	}
+
+	if buf.Len() == 0 {
+		t.Fatal("expected JSON output, got empty")
+	}
+}
+
 func TestExtractPDFPresentationModeRouting(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "report.pdf")
@@ -128,6 +170,27 @@ func TestExtractPDFPresentationModeRouting(t *testing.T) {
 	}
 }
 
+func TestExtractXLSXToFile(t *testing.T) {
+	xlsxPath := createTestXLSX(t)
+	dir := t.TempDir()
+	outputPath := filepath.Join(dir, "output.json")
+
+	rootCmd.SetArgs([]string{"extract", xlsxPath, "--output", outputPath, "--pretty"})
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("Execute() error: %v", err)
+	}
+
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+
+	if len(data) == 0 {
+		t.Fatal("output file is empty")
+	}
+}
+
 func TestExtractNonExistentFile(t *testing.T) {
 	rootCmd.SetArgs([]string{"extract", "/nonexistent/file.xlsx"})
 
@@ -135,6 +198,136 @@ func TestExtractNonExistentFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-existent file")
 	}
+}
+
+func TestExtractFileUnsupportedFormat(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := extractFile(&buf, InputFile{Path: "test.dat", Format: "dat"}, "financial", false)
+	if err == nil {
+		t.Fatal("expected error for unsupported format")
+	}
+
+	want := "unsupported format: dat"
+	if err.Error() != want {
+		t.Errorf("error = %q, want %q", err.Error(), want)
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	tests := []struct {
+		name   string
+		v      any
+		pretty bool
+		want   string
+	}{
+		{
+			name: "compact",
+			v:    map[string]int{"a": 1},
+			want: "{\"a\":1}\n",
+		},
+		{
+			name:   "pretty",
+			v:      map[string]int{"a": 1},
+			pretty: true,
+			want:   "{\n  \"a\": 1\n}\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := writeJSON(&buf, tt.v, tt.pretty); err != nil {
+				t.Fatalf("writeJSON() error: %v", err)
+			}
+
+			if buf.String() != tt.want {
+				t.Errorf("writeJSON() = %q, want %q", buf.String(), tt.want)
+			}
+		})
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	tests := []struct {
+		name   string
+		v      any
+		pretty bool
+		want   string
+	}{
+		{"compact", []int{1, 2}, false, "[1,2]"},
+		{"pretty", []int{1, 2}, true, "[\n  1,\n  2\n]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := marshalJSON(tt.v, tt.pretty)
+			if err != nil {
+				t.Fatalf("marshalJSON() error: %v", err)
+			}
+
+			if string(got) != tt.want {
+				t.Errorf("marshalJSON() = %q, want %q", string(got), tt.want)
+			}
+		})
+	}
+}
+
+func TestOpenWriter(t *testing.T) {
+	t.Run("empty path returns stdout", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		var buf bytes.Buffer
+		cmd.SetOut(&buf)
+
+		w, cleanup, err := openWriter(cmd, "")
+		if err != nil {
+			t.Fatalf("openWriter() error: %v", err)
+		}
+		defer cleanup()
+
+		if w == nil {
+			t.Fatal("writer is nil")
+		}
+
+		// Write and verify it goes to the cmd output
+		_, _ = w.Write([]byte("hello"))
+		if buf.String() != "hello" {
+			t.Errorf("output = %q, want %q", buf.String(), "hello")
+		}
+	})
+
+	t.Run("file path creates file", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "output.json")
+
+		cmd := &cobra.Command{}
+
+		w, cleanup, err := openWriter(cmd, path)
+		if err != nil {
+			t.Fatalf("openWriter() error: %v", err)
+		}
+
+		_, _ = w.Write([]byte("test data"))
+		cleanup()
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read output file: %v", err)
+		}
+
+		if string(got) != "test data" {
+			t.Errorf("file content = %q, want %q", string(got), "test data")
+		}
+	})
+
+	t.Run("invalid path returns error", func(t *testing.T) {
+		cmd := &cobra.Command{}
+
+		_, _, err := openWriter(cmd, "/nonexistent/dir/output.json")
+		if err == nil {
+			t.Fatal("expected error for invalid path")
+		}
+	})
 }
 
 func createTestXLSX(t *testing.T) string {

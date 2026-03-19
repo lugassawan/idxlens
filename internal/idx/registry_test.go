@@ -80,6 +80,24 @@ func TestFetchRegistry(t *testing.T) {
 	})
 }
 
+func TestFetchRegistryCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := FetchRegistry(ctx)
+	if err == nil {
+		t.Fatal("FetchRegistry() expected error for cancelled context")
+	}
+}
+
+func TestFetchRegistryFromConnectionRefused(t *testing.T) {
+	// Use a URL with a port that refuses connections
+	_, err := fetchRegistryFrom(context.Background(), "http://127.0.0.1:1/invalid")
+	if err == nil {
+		t.Fatal("fetchRegistryFrom() expected error for connection refused")
+	}
+}
+
 func TestRegistryPath(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
@@ -141,6 +159,20 @@ func TestCachedRegistry(t *testing.T) {
 		_, err := LoadCachedRegistry("/nonexistent/path/registry.json")
 		if err == nil {
 			t.Fatal("LoadCachedRegistry() expected error for missing file")
+		}
+	})
+
+	t.Run("load invalid JSON returns error", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "bad.json")
+
+		if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
+			t.Fatalf("write file: %v", err)
+		}
+
+		_, err := LoadCachedRegistry(path)
+		if err == nil {
+			t.Fatal("LoadCachedRegistry() expected error for invalid JSON")
 		}
 	})
 

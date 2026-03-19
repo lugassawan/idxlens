@@ -68,6 +68,19 @@ func TestSaveCookies(t *testing.T) {
 	})
 }
 
+func TestSaveCookiesError(t *testing.T) {
+	t.Run("write to invalid path returns error", func(t *testing.T) {
+		cookies := []*http.Cookie{
+			{Name: "test", Value: "value"},
+		}
+
+		err := SaveCookies("/nonexistent/dir/cookies.json", cookies)
+		if err == nil {
+			t.Fatal("SaveCookies() expected error for invalid path")
+		}
+	})
+}
+
 func TestLoadCookies(t *testing.T) {
 	t.Run("missing file returns error", func(t *testing.T) {
 		_, err := LoadCookies("/nonexistent/cookies.json")

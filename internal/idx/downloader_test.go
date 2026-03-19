@@ -114,6 +114,68 @@ func TestDownload(t *testing.T) {
 	})
 }
 
+func TestDownloadCancelledContext(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("data"))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	destDir := t.TempDir()
+	c := New(WithBaseURL(srv.URL))
+	att := Attachment{FileName: "test.pdf", FilePath: "/files/test.pdf"}
+
+	_, err := c.Download(ctx, att, destDir)
+	if err == nil {
+		t.Fatal("Download() expected error for cancelled context")
+	}
+}
+
+func TestDownloadAllWithZeroWorkers(t *testing.T) {
+	content := "test data"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(content))
+	}))
+	defer srv.Close()
+
+	destDir := t.TempDir()
+	c := New(WithBaseURL(srv.URL))
+
+	atts := []Attachment{
+		{FileName: "a.pdf", FilePath: "/files/a.pdf"},
+	}
+
+	// workers < 1 should be clamped to 1
+	results := c.DownloadAll(context.Background(), atts, destDir, 0)
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
+
+	if results[0].Err != nil {
+		t.Errorf("unexpected error: %v", results[0].Err)
+	}
+
+	got, err := os.ReadFile(results[0].LocalPath)
+	if err != nil {
+		t.Fatalf("read file: %v", err)
+	}
+
+	if string(got) != content {
+		t.Errorf("content = %q, want %q", string(got), content)
+	}
+}
+
+func TestDownloadAllEmpty(t *testing.T) {
+	c := New()
+	results := c.DownloadAll(context.Background(), nil, t.TempDir(), 2)
+
+	if len(results) != 0 {
+		t.Errorf("got %d results, want 0", len(results))
+	}
+}
+
 func TestDownloadAll(t *testing.T) {
 	t.Run("multiple files with bounded concurrency", func(t *testing.T) {
 		files := map[string]string{

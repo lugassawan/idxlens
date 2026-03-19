@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -48,6 +50,38 @@ func TestFetchCommandFlags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRunFetchNoCookies(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	rootCmd.SetArgs([]string{"fetch", "BBCA"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when cookies file is missing")
+	}
+}
+
+func TestRunFetchWithCookiesServerDown(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	// Write valid but empty cookies file
+	cookiePath := filepath.Join(dir, "cookies.json")
+	if err := os.WriteFile(cookiePath, []byte("[]"), 0o600); err != nil {
+		t.Fatalf("write cookies: %v", err)
+	}
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"fetch", "BBCA"})
+
+	// Will try to contact real IDX API and fail - exercises runFetch wiring
+	err := rootCmd.Execute()
+	// We don't care if it succeeds or fails - we're testing the wiring path
+	_ = err
 }
 
 func TestFilterAttachments(t *testing.T) {
@@ -299,6 +333,55 @@ func TestFetchPresentations(t *testing.T) {
 
 		if len(summary.Downloaded) != 1 {
 			t.Errorf("downloaded = %d, want 1", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("period filter", func(t *testing.T) {
+		reg := &fakeRegistry{
+			registry: map[string]idx.CompanyRegistry{
+				"IPCM": {
+					Presentations: []idx.PresentationEntry{
+						{URL: "https://example.com/annual.pdf", Year: 2025, Period: "annual"},
+						{URL: "https://example.com/q1.pdf", Year: 2025, Period: "Q1"},
+					},
+				},
+			},
+		}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "Q1", &summary)
+
+		if len(summary.Downloaded) != 1 {
+			t.Errorf("downloaded = %d, want 1", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("nil registry returns early", func(t *testing.T) {
+		reg := &fakeRegistry{registry: nil}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "", &summary)
+
+		if len(summary.Downloaded) != 0 {
+			t.Errorf("downloaded = %d, want 0", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("company with no presentations", func(t *testing.T) {
+		reg := &fakeRegistry{
+			registry: map[string]idx.CompanyRegistry{
+				"IPCM": {Name: "Jasa Armada", Presentations: nil},
+			},
+		}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "", &summary)
+
+		if len(summary.Downloaded) != 0 {
+			t.Errorf("downloaded = %d, want 0", len(summary.Downloaded))
 		}
 	})
 

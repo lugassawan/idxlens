@@ -1,6 +1,13 @@
 package cli
 
-import "testing"
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/xuri/excelize/v2"
+)
 
 func TestAnalyzeCommandRegistered(t *testing.T) {
 	found := false
@@ -41,6 +48,89 @@ func TestAnalyzeCommandFlags(t *testing.T) {
 				t.Errorf("analyze command missing --%s flag", tt.flag)
 			}
 		})
+	}
+}
+
+func TestRunAnalyzeNoCookies(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	rootCmd.SetArgs([]string{"analyze", "BBCA", "--year", "2024", "--period", "Q3"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when cookies file is missing")
+	}
+}
+
+func TestRunAnalyzeWithExistingFiles(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	// Create a fake PDF in the expected location
+	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
+	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+
+	pdfPath := filepath.Join(tickerDir, "presentation.pdf")
+	if err := os.WriteFile(pdfPath, []byte("fake pdf"), 0o644); err != nil {
+		t.Fatalf("create file: %v", err)
+	}
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"analyze", "BBCA", "--year", "2024", "--period", "Q3"})
+
+	// Will fail trying to parse the fake PDF, but it exercises analyzeTicker
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error parsing fake PDF")
+	}
+}
+
+func TestRunAnalyzeWithXLSX(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
+	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+
+	// Create a real XLSX file
+	xlsxPath := filepath.Join(tickerDir, "FinancialStatement-2024-Q3-BBCA.xlsx")
+	f := excelize.NewFile()
+
+	sheetName := "Balance Sheet"
+	sheetIdx, err := f.NewSheet(sheetName)
+	if err != nil {
+		t.Fatalf("create sheet: %v", err)
+	}
+
+	f.SetActiveSheet(sheetIdx)
+	_ = f.DeleteSheet("Sheet1")
+	_ = f.SetCellValue(sheetName, "A1", "Account")
+	_ = f.SetCellValue(sheetName, "B1", "2024")
+	_ = f.SetCellValue(sheetName, "A2", "Total Assets")
+	_ = f.SetCellValue(sheetName, "B2", 1000000)
+
+	if err := f.SaveAs(xlsxPath); err != nil {
+		t.Fatalf("save fixture: %v", err)
+	}
+
+	f.Close()
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"analyze", "BBCA", "--year", "2024", "--period", "Q3"})
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("Execute() error: %v", err)
+	}
+
+	if buf.Len() == 0 {
+		t.Fatal("expected JSON output, got empty")
 	}
 }
 
