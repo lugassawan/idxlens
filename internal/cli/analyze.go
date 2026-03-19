@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -45,13 +46,15 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	ctx := cmd.Context()
 
+	var errs []error
+
 	for _, ticker := range tickers {
 		if err := analyzeTicker(ctx, w, ticker, year, period, pretty); err != nil {
-			return fmt.Errorf("analyze %s: %w", ticker, err)
+			errs = append(errs, fmt.Errorf("analyze %s: %w", ticker, err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func analyzeTicker(
