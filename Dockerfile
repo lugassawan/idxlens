@@ -11,8 +11,16 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /idxlens ./cmd/idxlens
 
 # Stage 2: Final
-FROM scratch
+FROM alpine:3.21
 
-COPY --from=builder /idxlens /idxlens
+RUN apk add --no-cache \
+    chromium \
+    ca-certificates \
+    tzdata
 
-ENTRYPOINT ["/idxlens"]
+# chromedp expects Chrome at a well-known path
+ENV CHROME_PATH=/usr/bin/chromium-browser
+
+COPY --from=builder /idxlens /usr/local/bin/idxlens
+
+ENTRYPOINT ["idxlens"]
