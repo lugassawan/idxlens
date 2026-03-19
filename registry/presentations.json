@@ -1,0 +1,34 @@
+{
+  "IPCM": {
+    "name": "Jasa Armada Indonesia",
+    "ir_page": "https://ipcmarine.co.id/hubungan-investor/presentasi-perusahaan/",
+    "presentations": [
+      {
+        "url": "https://ipcmarine.co.id/wp-content/uploads/2021/06/IPCM_2025-Annual-Public-Expose.pdf",
+        "year": 2025,
+        "period": "annual",
+        "title": "Annual Public Expose FY2025"
+      }
+    ]
+  },
+  "BBCA": {
+    "name": "Bank Central Asia",
+    "ir_page": "https://www.bca.co.id/id/tentang-bca/hubungan-investor/laporan-presentasi/presentasi-perusahaan",
+    "presentations": []
+  },
+  "ADRO": {
+    "name": "Alamtri Resources Indonesia",
+    "ir_page": "https://www.alamtri.com/pages/read/10/45/Presentasi",
+    "presentations": []
+  },
+  "ASII": {
+    "name": "Astra International",
+    "ir_page": "https://www.astra.co.id/investor-relations/quarterly-update",
+    "presentations": []
+  },
+  "TLKM": {
+    "name": "Telkom Indonesia",
+    "ir_page": "https://www.telkom.co.id/sites/investor-relations/en_US/page/reports-1027",
+    "presentations": []
+  }
+}
