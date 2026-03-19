@@ -98,7 +98,7 @@ func extractXBRL(w io.Writer, path string, pretty bool) error {
 func extractPresentation(w io.Writer, pdfPath string, pretty bool) error {
 	pairs, err := service.ExtractPresentation(pdfPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("extract presentation: %w", err)
 	}
 
 	return writeJSON(w, pairs, pretty)
