@@ -17,4 +17,7 @@ const (
 	formatXLSX = "xlsx"
 	formatXBRL = "xbrl"
 	formatPDF  = "pdf"
+
+	modeFinancial    = "financial"
+	modePresentation = "presentation"
 )

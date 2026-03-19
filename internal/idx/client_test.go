@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestNew(t *testing.T) {
@@ -47,6 +48,19 @@ func TestNew(t *testing.T) {
 			t.Errorf("cookie name = %q, want %q", c.cookies[0].Name, "test")
 		}
 	})
+}
+
+func TestWithHTTPClient(t *testing.T) {
+	custom := &http.Client{Timeout: 99 * time.Second}
+	c := New(WithHTTPClient(custom))
+
+	if c.httpClient != custom {
+		t.Error("WithHTTPClient did not set the custom HTTP client")
+	}
+
+	if c.httpClient.Timeout != 99*time.Second {
+		t.Errorf("timeout = %v, want 99s", c.httpClient.Timeout)
+	}
 }
 
 func TestNewRequest(t *testing.T) {

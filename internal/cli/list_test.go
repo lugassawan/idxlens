@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -144,6 +146,39 @@ func TestListReports(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRunListNoCookies(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"list", "BBCA"})
+
+	// Should fail because there's no cookies.json file
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when cookies file is missing")
+	}
+}
+
+func TestRunListWithCookiesServerDown(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	cookiePath := filepath.Join(dir, "cookies.json")
+	if err := os.WriteFile(cookiePath, []byte("[]"), 0o600); err != nil {
+		t.Fatalf("write cookies: %v", err)
+	}
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"list", "BBCA"})
+
+	// Will try to contact real IDX API - exercises runList wiring
+	err := rootCmd.Execute()
+	_ = err
 }
 
 func TestListReportsHeader(t *testing.T) {
