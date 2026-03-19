@@ -15,9 +15,10 @@ import (
 
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze TICKER[,TICKER...]",
-	Short: "Fetch (if needed) and extract financial data",
-	Long: `Full pipeline: check local cache for files, fetch from IDX if missing,
-then extract from the best available format (XBRL > XLSX > PDF for presentations).`,
+	Short: "Fetch and extract financial data",
+	Long: `Full pipeline: fetch all available formats from IDX, then extract from
+the best format (XBRL > XLSX > PDF for presentations). Falls back to locally
+cached files if fetch fails.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runAnalyze,
 }
@@ -62,21 +63,24 @@ func analyzeTicker(
 	ctx context.Context, w io.Writer,
 	ticker string, year int, period string, pretty bool,
 ) error {
+	// Always fetch to ensure all formats are available for best selection.
+	// Auth or fetch errors are non-fatal if local files already exist.
+	var fetchErr error
+
+	client, err := idx.NewAuthenticatedClient()
+	if err != nil {
+		fetchErr = fmt.Errorf("create client: %w", err)
+	} else {
+		fetchErr = fetchForTicker(ctx, client, ticker, year, period)
+	}
+
 	files, err := ResolveInputs(ticker, year, period)
 	if err != nil {
-		client, clientErr := idx.NewAuthenticatedClient()
-		if clientErr != nil {
-			return fmt.Errorf("create client: %w", clientErr)
-		}
-
-		if fetchErr := fetchForTicker(ctx, client, ticker, year, period); fetchErr != nil {
+		if fetchErr != nil {
 			return fetchErr
 		}
 
-		files, err = ResolveInputs(ticker, year, period)
-		if err != nil {
-			return fmt.Errorf("resolve after fetch: %w", err)
-		}
+		return fmt.Errorf("no files available for %s: %w", ticker, err)
 	}
 
 	best := bestFormat(files)

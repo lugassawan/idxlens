@@ -83,6 +83,8 @@ func TestRunAnalyzeWithExistingFiles(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
 
+	writeFakeCookies(t, dir)
+
 	// Create a fake PDF in the expected location
 	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
 	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
@@ -108,6 +110,8 @@ func TestRunAnalyzeWithExistingFiles(t *testing.T) {
 func TestRunAnalyzeWithXLSX(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
+
+	writeFakeCookies(t, dir)
 
 	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
 	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
@@ -191,6 +195,8 @@ func TestRunAnalyzeContinuesOnError(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
 
+	writeFakeCookies(t, dir)
+
 	// Create XLSX for BBCA so it succeeds
 	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
 	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
@@ -239,6 +245,15 @@ func TestRunAnalyzeContinuesOnError(t *testing.T) {
 	// BBCA should have produced output despite IPCC failing
 	if buf.Len() == 0 {
 		t.Error("expected BBCA output even when IPCC fails")
+	}
+}
+
+func writeFakeCookies(t *testing.T, home string) {
+	t.Helper()
+
+	cookiePath := filepath.Join(home, "cookies.json")
+	if err := os.WriteFile(cookiePath, []byte("[]"), 0o644); err != nil {
+		t.Fatalf("write fake cookies: %v", err)
 	}
 }
 
