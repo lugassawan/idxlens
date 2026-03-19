@@ -57,7 +57,7 @@ func ParseZip(zipPath string) (*Statement, error) {
 	for _, xf := range xbrlFiles {
 		facts, err := parseZipEntry(xf)
 		if err != nil {
-			return nil, fmt.Errorf("parse %s: %w", xf.Name, err)
+			continue
 		}
 
 		stmt.Facts = append(stmt.Facts, facts...)
