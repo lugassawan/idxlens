@@ -107,11 +107,11 @@ func buildGlobPattern(dataDir, ticker string, year int, period string) string {
 func detectFormat(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".xlsx":
-		return "xlsx"
+		return formatXLSX
 	case ".zip":
-		return "xbrl"
+		return formatXBRL
 	case ".pdf":
-		return "pdf"
+		return formatPDF
 	default:
 		return ""
 	}

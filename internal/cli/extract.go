@@ -58,11 +58,11 @@ func runExtract(cmd *cobra.Command, args []string) error {
 
 func extractFile(w io.Writer, input InputFile, pretty bool) error {
 	switch input.Format {
-	case "xlsx":
+	case formatXLSX:
 		return extractXLSX(w, input.Path, pretty)
-	case "xbrl":
+	case formatXBRL:
 		return errors.New("XBRL extraction not yet implemented")
-	case "pdf":
+	case formatPDF:
 		return errors.New("PDF extraction not yet implemented")
 	default:
 		return fmt.Errorf("unsupported format: %s", input.Format)

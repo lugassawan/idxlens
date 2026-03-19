@@ -10,4 +10,8 @@ const (
 
 	defaultFormat  = "json"
 	defaultWorkers = 4
+
+	formatXLSX = "xlsx"
+	formatXBRL = "xbrl"
+	formatPDF  = "pdf"
 )
