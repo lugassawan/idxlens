@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/lugassawan/idxlens/internal/xbrl"
 	"github.com/lugassawan/idxlens/internal/xlsx"
 )
 
@@ -61,7 +62,7 @@ func extractFile(w io.Writer, input InputFile, pretty bool) error {
 	case formatXLSX:
 		return extractXLSX(w, input.Path, pretty)
 	case formatXBRL:
-		return errors.New("XBRL extraction not yet implemented")
+		return extractXBRL(w, input.Path, pretty)
 	case formatPDF:
 		return errors.New("PDF extraction not yet implemented")
 	default:
@@ -73,6 +74,15 @@ func extractXLSX(w io.Writer, path string, pretty bool) error {
 	stmt, err := xlsx.Parse(path)
 	if err != nil {
 		return fmt.Errorf("parse xlsx: %w", err)
+	}
+
+	return writeJSON(w, stmt, pretty)
+}
+
+func extractXBRL(w io.Writer, path string, pretty bool) error {
+	stmt, err := xbrl.ParseZip(path)
+	if err != nil {
+		return fmt.Errorf("parse xbrl: %w", err)
 	}
 
 	return writeJSON(w, stmt, pretty)
