@@ -50,6 +50,13 @@ func WithCookies(cookies []*http.Cookie) Option {
 	}
 }
 
+// WithHTTPClient sets a custom HTTP client for requests.
+func WithHTTPClient(hc *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = hc
+	}
+}
+
 // newRequest creates an HTTP request with context and cookies injected.
 func (c *Client) newRequest(ctx context.Context, method, url string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)

@@ -12,8 +12,6 @@ import (
 	"github.com/lugassawan/idxlens/internal/output"
 )
 
-const defaultWorkers = 4
-
 var batchCmd = &cobra.Command{
 	Use:   "batch [glob-pattern]",
 	Short: "Process multiple PDFs in batch",

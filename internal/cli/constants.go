@@ -6,6 +6,10 @@ const (
 	flagOutputDir = "output-dir"
 	flagType      = "type"
 	flagWorkers   = "workers"
+	flagYear      = "year"
+	flagPeriod    = "period"
+	flagFileType  = "file-type"
 
-	defaultFormat = "json"
+	defaultFormat  = "json"
+	defaultWorkers = 4
 )
