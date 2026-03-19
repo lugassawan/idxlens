@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -23,8 +24,9 @@ then extract from the best available format (XLSX > XBRL > PDF for presentations
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
-	analyzeCmd.Flags().IntP(flagYear, "y", 0, "report year")
-	analyzeCmd.Flags().StringP(flagPeriod, "p", "", "report period")
+	analyzeCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
+	analyzeCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
+	_ = analyzeCmd.MarkFlagRequired(flagYear)
 	analyzeCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
 	analyzeCmd.Flags().StringP(flagOutput, "o", "", "output file path")
 	analyzeCmd.Flags().Bool(flagPretty, false, "pretty-print JSON output")
@@ -45,13 +47,15 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	ctx := cmd.Context()
 
+	var errs []error
+
 	for _, ticker := range tickers {
 		if err := analyzeTicker(ctx, w, ticker, year, period, pretty); err != nil {
-			return fmt.Errorf("analyze %s: %w", ticker, err)
+			errs = append(errs, fmt.Errorf("analyze %s: %w", ticker, err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func analyzeTicker(
@@ -66,7 +70,7 @@ func analyzeTicker(
 		}
 
 		if fetchErr := fetchForTicker(ctx, client, ticker, year, period); fetchErr != nil {
-			return fmt.Errorf("fetch: %w", fetchErr)
+			return fetchErr
 		}
 
 		files, err = ResolveInputs(ticker, year, period)
@@ -105,7 +109,11 @@ func bestFormat(files []InputFile) *InputFile {
 func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker string, year int, period string) error {
 	atts, err := client.ListReports(ctx, ticker, year, period)
 	if err != nil {
-		return fmt.Errorf("list reports: %w", err)
+		return err
+	}
+
+	if len(atts) == 0 {
+		return fmt.Errorf("no reports found for %s on IDX", ticker)
 	}
 
 	dataDir, err := idx.DataDir()

@@ -26,7 +26,7 @@ func init() {
 	rootCmd.AddCommand(extractCmd)
 	extractCmd.Flags().String(flagMode, modeFinancial, "extraction mode (financial, presentation)")
 	extractCmd.Flags().IntP(flagYear, "y", 0, "report year")
-	extractCmd.Flags().StringP(flagPeriod, "p", "", "report period")
+	extractCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
 	extractCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
 	extractCmd.Flags().StringP(flagOutput, "o", "", "output file path")
 	extractCmd.Flags().Bool(flagPretty, false, "pretty-print JSON output")

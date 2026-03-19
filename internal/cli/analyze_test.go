@@ -2,10 +2,13 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -48,6 +51,19 @@ func TestAnalyzeCommandFlags(t *testing.T) {
 				t.Errorf("analyze command missing --%s flag", tt.flag)
 			}
 		})
+	}
+}
+
+func TestAnalyzeRequiresYear(t *testing.T) {
+	// Reset flag to ensure no leftover state from other tests
+	_ = analyzeCmd.Flags().Set(flagYear, "0")
+	analyzeCmd.Flags().Lookup(flagYear).Changed = false
+
+	rootCmd.SetArgs([]string{"analyze", "BBCA"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --year is missing")
 	}
 }
 
@@ -131,6 +147,98 @@ func TestRunAnalyzeWithXLSX(t *testing.T) {
 
 	if buf.Len() == 0 {
 		t.Fatal("expected JSON output, got empty")
+	}
+}
+
+func TestFetchForTickerNoReports(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	client := &fakeFetcher{
+		reports: map[string][]idx.Attachment{},
+	}
+
+	err := fetchForTicker(context.Background(), client, "IPCC", 2024, "Q3")
+	if err == nil {
+		t.Fatal("expected error when no reports available")
+	}
+
+	want := "no reports found for IPCC on IDX"
+	if err.Error() != want {
+		t.Errorf("error = %q, want %q", err.Error(), want)
+	}
+}
+
+func TestFetchForTickerSuccess(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	client := &fakeFetcher{
+		reports: map[string][]idx.Attachment{
+			"BBCA": {
+				{FileName: "report.pdf", FileType: "pdf", ReportYear: "2024", ReportPeriod: "Q3"},
+			},
+		},
+	}
+
+	err := fetchForTicker(context.Background(), client, "BBCA", 2024, "Q3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunAnalyzeContinuesOnError(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	// Create XLSX for BBCA so it succeeds
+	tickerDir := filepath.Join(dir, "data", "BBCA", "2024", "Q3")
+	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+
+	xlsxPath := filepath.Join(tickerDir, "FinancialStatement-2024-Q3-BBCA.xlsx")
+	f := excelize.NewFile()
+
+	sheetName := "Balance Sheet"
+	sheetIdx, err := f.NewSheet(sheetName)
+	if err != nil {
+		t.Fatalf("create sheet: %v", err)
+	}
+
+	f.SetActiveSheet(sheetIdx)
+	_ = f.DeleteSheet("Sheet1")
+	_ = f.SetCellValue(sheetName, "A1", "Account")
+	_ = f.SetCellValue(sheetName, "B1", "2024")
+	_ = f.SetCellValue(sheetName, "A2", "Total Assets")
+	_ = f.SetCellValue(sheetName, "B2", 1000000)
+
+	if err := f.SaveAs(xlsxPath); err != nil {
+		t.Fatalf("save fixture: %v", err)
+	}
+
+	f.Close()
+
+	// IPCC has no local files and no cookies, so it will fail
+	// BBCA has local XLSX, so it will succeed
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"analyze", "IPCC,BBCA", "--year", "2024", "--period", "Q3"})
+
+	err = rootCmd.Execute()
+
+	// Should return error for IPCC
+	if err == nil {
+		t.Fatal("expected error for IPCC")
+	}
+
+	if !strings.Contains(err.Error(), "analyze IPCC") {
+		t.Errorf("error should mention IPCC, got: %v", err)
+	}
+
+	// BBCA should have produced output despite IPCC failing
+	if buf.Len() == 0 {
+		t.Error("expected BBCA output even when IPCC fails")
 	}
 }
 
