@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type fetchSummary struct {
+	Downloaded []string `json:"downloaded"`
+	Failed     []string `json:"failed"`
+}
+
 var fetchCmd = &cobra.Command{
 	Use:   "fetch TICKER[,TICKER...]",
 	Short: "Download documents from IDX to local cache",
@@ -29,11 +34,6 @@ func init() {
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
 	rootCmd.AddCommand(fetchCmd)
-}
-
-type fetchSummary struct {
-	Downloaded []string `json:"downloaded"`
-	Failed     []string `json:"failed"`
 }
 
 func runFetch(cmd *cobra.Command, args []string) error {
