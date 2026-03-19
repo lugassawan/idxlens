@@ -81,6 +81,19 @@ func TestFilterAttachments(t *testing.T) {
 	}
 }
 
+type fakeRegistry struct {
+	registry map[string]idx.CompanyRegistry
+	err      error
+}
+
+func (f *fakeRegistry) Registry(_ context.Context) (map[string]idx.CompanyRegistry, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	return f.registry, nil
+}
+
 type fakeFetcher struct {
 	reports map[string][]idx.Attachment
 	listErr error
@@ -220,4 +233,92 @@ func TestFetchIDXDocuments(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFetchPresentations(t *testing.T) {
+	t.Run("successful fetch", func(t *testing.T) {
+		reg := &fakeRegistry{
+			registry: map[string]idx.CompanyRegistry{
+				"IPCM": {
+					Name: "Jasa Armada",
+					Presentations: []idx.PresentationEntry{
+						{URL: "https://example.com/q1.pdf", Year: 2025, Period: "annual"},
+					},
+				},
+			},
+		}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "", &summary)
+
+		if len(summary.Downloaded) != 1 {
+			t.Errorf("downloaded = %d, want 1", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("registry error returns early", func(t *testing.T) {
+		reg := &fakeRegistry{err: errors.New("fetch failed")}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "", &summary)
+
+		if len(summary.Downloaded) != 0 {
+			t.Errorf("downloaded = %d, want 0", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("ticker not in registry", func(t *testing.T) {
+		reg := &fakeRegistry{registry: map[string]idx.CompanyRegistry{}}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"UNKNOWN"}, 0, "", &summary)
+
+		if len(summary.Downloaded) != 0 {
+			t.Errorf("downloaded = %d, want 0", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("year filter", func(t *testing.T) {
+		reg := &fakeRegistry{
+			registry: map[string]idx.CompanyRegistry{
+				"IPCM": {
+					Presentations: []idx.PresentationEntry{
+						{URL: "https://example.com/2024.pdf", Year: 2024, Period: "annual"},
+						{URL: "https://example.com/2025.pdf", Year: 2025, Period: "annual"},
+					},
+				},
+			},
+		}
+		dl := &fakeFetcher{}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 2025, "", &summary)
+
+		if len(summary.Downloaded) != 1 {
+			t.Errorf("downloaded = %d, want 1", len(summary.Downloaded))
+		}
+	})
+
+	t.Run("download error records failure", func(t *testing.T) {
+		reg := &fakeRegistry{
+			registry: map[string]idx.CompanyRegistry{
+				"IPCM": {
+					Presentations: []idx.PresentationEntry{
+						{URL: "https://example.com/q1.pdf", Year: 2025, Period: "annual"},
+					},
+				},
+			},
+		}
+		dl := &fakeFetcher{dlErr: errors.New("download failed")}
+		summary := fetchSummary{}
+
+		fetchPresentations(context.Background(), reg, dl, []string{"IPCM"}, 0, "", &summary)
+
+		if len(summary.Failed) != 1 {
+			t.Errorf("failed = %d, want 1", len(summary.Failed))
+		}
+	})
 }
