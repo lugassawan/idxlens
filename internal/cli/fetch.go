@@ -43,17 +43,11 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	period, _ := cmd.Flags().GetString(flagPeriod)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 
-	cookiePath, err := idx.CookiePath()
+	client, err := idx.NewAuthenticatedClient()
 	if err != nil {
-		return fmt.Errorf("resolve cookie path: %w", err)
+		return err
 	}
 
-	cookies, err := idx.LoadCookies(cookiePath)
-	if err != nil {
-		return fmt.Errorf("load cookies: %w", err)
-	}
-
-	client := idx.New(idx.WithCookies(cookies))
 	ctx := cmd.Context()
 	summary := fetchSummary{}
 

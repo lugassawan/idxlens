@@ -59,6 +59,21 @@ func WithHTTPClient(hc *http.Client) Option {
 	}
 }
 
+// NewAuthenticatedClient creates an IDX API client using stored cookies.
+func NewAuthenticatedClient() (*Client, error) {
+	cookiePath, err := CookiePath()
+	if err != nil {
+		return nil, fmt.Errorf("resolve cookie path: %w", err)
+	}
+
+	cookies, err := LoadCookies(cookiePath)
+	if err != nil {
+		return nil, fmt.Errorf("load cookies: %w", err)
+	}
+
+	return New(WithCookies(cookies)), nil
+}
+
 // newRequest creates an HTTP request with context and cookies injected.
 func (c *Client) newRequest(ctx context.Context, method, url string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
