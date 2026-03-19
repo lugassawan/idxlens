@@ -12,13 +12,13 @@ import (
 
 // Attachment represents a single file attachment from an IDX financial report.
 type Attachment struct {
-	FileName     string `json:"namaFile"`
-	FilePath     string `json:"pathFile"`
-	FileType     string `json:"tipeFile"`
-	FileSize     int64  `json:"fileSize"`
-	EmitenCode   string `json:"kodeEmiten"`
-	ReportPeriod string `json:"periLaporan"`
-	ReportYear   string `json:"tahunLaporan"`
+	FileName     string `json:"File_Name"`
+	FilePath     string `json:"File_Path"`
+	FileType     string `json:"File_Type"`
+	FileSize     int64  `json:"File_Size"`
+	EmitenCode   string `json:"Emiten_Code"`
+	ReportPeriod string `json:"Report_Period"`
+	ReportYear   string `json:"Report_Year"`
 }
 
 type reportResponse struct {

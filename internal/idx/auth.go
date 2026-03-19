@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	authURL     = "https://www.idx.co.id"
-	authTimeout = 60 * time.Second
+	authURL      = "https://www.idx.co.id"
+	authTimeout  = 120 * time.Second
+	pollInterval = 2 * time.Second
+	cfClearance  = "cf_clearance"
 )
 
 // cookieEntry is a serializable representation of an HTTP cookie.
@@ -28,11 +30,12 @@ type cookieEntry struct {
 // Authenticate launches a headless browser to solve the Cloudflare challenge
 // on the IDX website and returns the resulting cookies.
 func Authenticate(ctx context.Context) ([]*http.Cookie, error) {
-	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx,
-		append(chromedp.DefaultExecAllocatorOptions[:],
-			chromedp.Flag("headless", true),
-		)...,
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-blink-features", "AutomationControlled"),
 	)
+
+	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, opts...)
 	defer allocCancel()
 
 	taskCtx, taskCancel := chromedp.NewContext(allocCtx)
@@ -44,34 +47,16 @@ func Authenticate(ctx context.Context) ([]*http.Cookie, error) {
 	if err := chromedp.Run(taskCtx,
 		chromedp.Navigate(authURL),
 		chromedp.WaitVisible(`body`, chromedp.ByQuery),
-		chromedp.Sleep(5*time.Second),
 	); err != nil {
 		return nil, fmt.Errorf("authenticate with IDX: %w", err)
 	}
 
-	var browserCookies []*http.Cookie
-
-	if err := chromedp.Run(taskCtx,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			chromeCookies, err := network.GetCookies().Do(ctx)
-			if err != nil {
-				return fmt.Errorf("retrieve cookies: %w", err)
-			}
-			for _, c := range chromeCookies {
-				browserCookies = append(browserCookies, &http.Cookie{
-					Name:   c.Name,
-					Value:  c.Value,
-					Domain: c.Domain,
-					Path:   c.Path,
-				})
-			}
-			return nil
-		}),
-	); err != nil {
-		return nil, fmt.Errorf("extract cookies: %w", err)
+	cookies, err := waitForClearance(taskCtx)
+	if err != nil {
+		return nil, fmt.Errorf("authenticate with IDX: %w", err)
 	}
 
-	return browserCookies, nil
+	return cookies, nil
 }
 
 // SaveCookies writes cookies to a JSON file at the given path.
@@ -118,6 +103,57 @@ func LoadCookies(path string) ([]*http.Cookie, error) {
 			Domain: e.Domain,
 			Path:   e.Path,
 		}
+	}
+
+	return cookies, nil
+}
+
+// waitForClearance polls browser cookies until cf_clearance appears
+// or the context deadline expires.
+func waitForClearance(ctx context.Context) ([]*http.Cookie, error) {
+	for {
+		cookies, err := extractBrowserCookies(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, c := range cookies {
+			if c.Name == cfClearance {
+				return cookies, nil
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return cookies, nil
+		case <-time.After(pollInterval):
+		}
+	}
+}
+
+func extractBrowserCookies(ctx context.Context) ([]*http.Cookie, error) {
+	var cookies []*http.Cookie
+
+	if err := chromedp.Run(ctx,
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			chromeCookies, err := network.GetCookies().Do(ctx)
+			if err != nil {
+				return fmt.Errorf("retrieve cookies: %w", err)
+			}
+
+			for _, c := range chromeCookies {
+				cookies = append(cookies, &http.Cookie{
+					Name:   c.Name,
+					Value:  c.Value,
+					Domain: c.Domain,
+					Path:   c.Path,
+				})
+			}
+
+			return nil
+		}),
+	); err != nil {
+		return nil, fmt.Errorf("extract cookies: %w", err)
 	}
 
 	return cookies, nil
