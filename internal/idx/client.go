@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://www.idx.co.id"
-	defaultTimeout = 30 * time.Second
+	defaultBaseURL   = "https://www.idx.co.id"
+	defaultTimeout   = 30 * time.Second
+	defaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+		"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
 // Client is an HTTP client for the IDX API with cookie injection support.
@@ -67,6 +69,10 @@ func (c *Client) newRequest(ctx context.Context, method, url string) (*http.Requ
 	for _, cookie := range c.cookies {
 		req.AddCookie(cookie)
 	}
+
+	req.Header.Set("User-Agent", defaultUserAgent)
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Referer", defaultBaseURL+"/")
 
 	return req, nil
 }

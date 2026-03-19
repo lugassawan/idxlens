@@ -54,12 +54,12 @@ func TestListReports(t *testing.T) {
 			want string
 		}{
 			{"first file name", attachments[0].FileName, "Financial Report Q3 2024.pdf"},
-			{"first file type", attachments[0].FileType, "pdf"},
+			{"first file type", attachments[0].FileType, ".pdf"},
 			{"first emiten code", attachments[0].EmitenCode, "BBCA"},
 			{"first report period", attachments[0].ReportPeriod, "Q3"},
 			{"first report year", attachments[0].ReportYear, "2024"},
 			{"second file name", attachments[1].FileName, "Financial Report Q3 2024.xlsx"},
-			{"second file type", attachments[1].FileType, "xlsx"},
+			{"second file type", attachments[1].FileType, ".xlsx"},
 		}
 
 		for _, tt := range tests {
