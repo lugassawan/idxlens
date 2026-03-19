@@ -14,7 +14,7 @@ import (
 
 const (
 	authURL      = "https://www.idx.co.id"
-	authTimeout  = 120 * time.Second
+	authTimeout  = 30 * time.Second
 	pollInterval = 2 * time.Second
 	cfClearance  = "cf_clearance"
 )
@@ -125,7 +125,9 @@ func waitForClearance(ctx context.Context) ([]*http.Cookie, error) {
 
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("timeout waiting for %s cookie", cfClearance)
+			// Cloudflare may not issue cf_clearance if no challenge was triggered.
+			// Return whatever cookies we have — the API may still work.
+			return cookies, nil
 		case <-time.After(pollInterval):
 		}
 	}

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -27,6 +28,10 @@ func runAuth(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("authentication failed: %w", err)
 	}
 
+	if len(cookies) == 0 {
+		return errors.New("authentication failed: no cookies received")
+	}
+
 	cookiePath, err := idx.CookiePath()
 	if err != nil {
 		return fmt.Errorf("resolve cookie path: %w", err)
@@ -36,7 +41,7 @@ func runAuth(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("save cookies: %w", err)
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Authentication successful. Cookies saved to %s\n", cookiePath)
+	fmt.Fprintf(cmd.OutOrStdout(), "Authentication successful. %d cookies saved to %s\n", len(cookies), cookiePath)
 
 	return nil
 }
