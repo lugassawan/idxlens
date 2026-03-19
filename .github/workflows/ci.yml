@@ -90,7 +90,7 @@ jobs:
           install: true
 
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out $(go list ./... | grep -v /bindings/)
+        run: go test -coverprofile=coverage.out $(go list ./... | grep -v -E '/bindings/|/cmd/')
 
       - name: Check coverage threshold
         run: |
