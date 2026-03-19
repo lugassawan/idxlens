@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lugassawan/idxlens/internal/idx"
+	"github.com/lugassawan/idxlens/internal/upgrade"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintln(w, "Checking for updates...")
 
-	release, err := idx.LatestRelease(ctx)
+	release, err := upgrade.LatestRelease(ctx)
 	if err != nil {
 		return fmt.Errorf("check for updates: %w", err)
 	}
@@ -42,19 +42,19 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	asset, err := idx.FindAsset(release)
+	asset, err := upgrade.FindAsset(release)
 	if err != nil {
 		return fmt.Errorf("find platform asset: %w", err)
 	}
 
-	binPath, err := idx.CurrentBinaryPath()
+	binPath, err := upgrade.CurrentBinaryPath()
 	if err != nil {
 		return fmt.Errorf("resolve binary path: %w", err)
 	}
 
 	fmt.Fprintf(w, "Upgrading from v%s to v%s...\n", current, latest)
 
-	if err := idx.DownloadAsset(ctx, asset.DownloadURL, binPath); err != nil {
+	if err := upgrade.DownloadAsset(ctx, asset.DownloadURL, binPath); err != nil {
 		return fmt.Errorf("upgrade: %w", err)
 	}
 
