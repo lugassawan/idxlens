@@ -1,12 +1,14 @@
 # IDXLens
 
-CLI tool for extracting structured financial data from Indonesia Stock Exchange (IDX) PDF reports.
+CLI tool for extracting structured financial data from Indonesia Stock Exchange (IDX) reports (XLSX, XBRL, PDF).
 
 ## Tech Stack
 
 - **Language**: Go 1.26 (pure Go, single static binary, no CGO)
 - **CLI**: Cobra
 - **PDF**: pdfcpu
+- **XLSX**: excelize
+- **Browser automation**: chromedp (headless Chrome for IDX portal)
 - **Linting**: golangci-lint v2 with custom plugin (tidygo)
 - **Git hooks**: `.githooks/` with `core.hooksPath`
 - **Tool versioning**: mise (Go, golangci-lint, golines)
@@ -18,15 +20,15 @@ CLI tool for extracting structured financial data from Indonesia Stock Exchange 
 idxlens/
 ├── cmd/idxlens/        # Entry point (main.go calls cli.Execute())
 ├── internal/
-│   ├── cli/            # L5: Cobra CLI commands (classify, extract financial/text/esg, batch)
-│   ├── output/         # L4: Output Formatter (JSON, CSV)
-│   ├── domain/         # L3: IDX Domain Engine (classifier, mapper, ESG extractor, noise filter, batch)
-│   ├── table/          # L2: Table Detector
-│   ├── layout/         # L1: Text & Layout Engine
-│   ├── pdf/            # L0: PDF Parser (pdfcpu)
-│   └── testutil/       # Shared test utilities
-├── bindings/           # Python bindings via CGo
-├── lambda/             # AWS Lambda handler
+│   ├── cli/            # Cobra CLI commands (auth, list, fetch, extract, analyze, version)
+│   ├── service/        # Orchestration service (registry, pipeline coordination)
+│   ├── idx/            # IDX API client (auth, listing, fetching, downloading)
+│   ├── xlsx/           # XLSX parser (excelize-based financial statement extraction)
+│   ├── xbrl/           # XBRL parser (ZIP-based taxonomy extraction)
+│   ├── domain/         # Presentation KV extractor (PDF key-value pair extraction)
+│   ├── layout/         # Text & Layout Engine (PDF text block analysis)
+│   └── pdf/            # PDF Parser (pdfcpu)
+├── registry/           # Report registry data (presentations.json)
 ├── docs/               # Documentation site
 ├── testdata/           # Sample PDFs for testing
 ├── .github/workflows/  # CI/CD pipelines
@@ -36,9 +38,11 @@ idxlens/
 ### Architecture
 
 - All logic in `internal/` — no public API surface
-- Dependencies flow strictly downward: `cli/` -> `output/` -> `domain/` -> `table/` -> `layout/` -> `pdf/`
+- New extraction pipeline: `cli/` -> `service/` -> `idx/`/`xlsx/`/`xbrl/` -> (IDX API or local files)
+- Presentation extraction: `cli/` -> `domain/kvextractor` -> `layout/` -> `pdf/`
 - Each layer defines interfaces at its boundary; implementations live in the layer below
 - `cmd/idxlens/main.go` is Framework layer — it only calls `cli.Execute()`
+- `IDXLENS_HOME` env var controls local cache directory (default: `~/.idxlens`)
 
 ## Commands
 
@@ -50,6 +54,17 @@ make fmt        # Auto-format Go code (gofmt + golines)
 make test       # Run all tests
 make coverage   # Generate coverage report -> coverage/
 make clean      # Remove build artifacts
+```
+
+### CLI Commands
+
+```sh
+idxlens auth              # Authenticate with IDX portal (headless Chrome)
+idxlens list TICKER       # List available reports for a ticker
+idxlens fetch TICKER      # Download reports to local cache
+idxlens extract FILE      # Extract financial data from XLSX/XBRL/PDF
+idxlens analyze TICKER    # Full pipeline: fetch + extract (best format)
+idxlens version           # Print version information
 ```
 
 ## Conventions
@@ -66,7 +81,7 @@ make clean      # Remove build artifacts
 - **Internal only**: All packages live under `internal/` — no public API surface
 - **Error wrapping**: Use `fmt.Errorf("context: %w", err)` for error chains
 - **Tests**: Table-driven tests with `t.Run()` subtests, standard `testing` package only (no testify)
-- **No network calls**: All processing is local, PDF-in data-out
+- **IDXLENS_HOME**: Controls local cache directory (default: `~/.idxlens`); used by auth, fetch, and analyze commands
 - **Naming**: Standard Go naming conventions (MixedCaps, no underscores in names)
 
 ## Custom Linter (tidygo)
