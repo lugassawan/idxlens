@@ -18,11 +18,6 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 }
 
-func isDevBuild(v string) bool {
-	v = strings.TrimPrefix(v, "v")
-	return v == "dev" || strings.Contains(v, "-")
-}
-
 func runUpgrade(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 	w := cmd.OutOrStdout()
@@ -66,4 +61,9 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(w, "Successfully upgraded to v%s\n", latest)
 
 	return nil
+}
+
+func isDevBuild(v string) bool {
+	v = strings.TrimPrefix(v, "v")
+	return v == "dev" || strings.Contains(v, "-")
 }
