@@ -15,6 +15,10 @@ website and save the resulting cookies for subsequent API requests.`,
 	RunE: runAuth,
 }
 
+func init() {
+	rootCmd.AddCommand(authCmd)
+}
+
 func runAuth(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
@@ -35,8 +39,4 @@ func runAuth(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "Authentication successful. Cookies saved to %s\n", cookiePath)
 
 	return nil
-}
-
-func init() {
-	rootCmd.AddCommand(authCmd)
 }
