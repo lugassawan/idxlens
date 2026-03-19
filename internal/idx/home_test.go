@@ -37,6 +37,7 @@ func TestHome(t *testing.T) {
 
 		t.Setenv(envHome, "")
 		t.Setenv("HOME", tmpHome)
+		t.Setenv("USERPROFILE", tmpHome) // Windows support
 
 		got, err := Home()
 		if err != nil {
