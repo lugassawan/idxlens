@@ -75,9 +75,9 @@ func analyzeTicker(
 		return fmt.Errorf("no extractable files for %s", ticker)
 	}
 
-	mode := "financial"
+	mode := modeFinancial
 	if best.Format == formatPDF {
-		mode = "presentation"
+		mode = modePresentation
 	}
 
 	return extractFile(w, *best, mode, pretty)

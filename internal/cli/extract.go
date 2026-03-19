@@ -25,7 +25,7 @@ var extractCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(extractCmd)
-	extractCmd.Flags().String(flagMode, "financial", "extraction mode (financial, presentation)")
+	extractCmd.Flags().String(flagMode, modeFinancial, "extraction mode (financial, presentation)")
 	extractCmd.Flags().IntP(flagYear, "y", 0, "report year")
 	extractCmd.Flags().StringP(flagPeriod, "p", "", "report period")
 	extractCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
@@ -69,7 +69,7 @@ func extractFile(w io.Writer, input InputFile, mode string, pretty bool) error {
 	case formatXBRL:
 		return extractXBRL(w, input.Path, pretty)
 	case formatPDF:
-		if mode == "presentation" {
+		if mode == modePresentation {
 			return extractPresentation(w, input.Path, pretty)
 		}
 
