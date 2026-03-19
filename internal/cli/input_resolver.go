@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -92,7 +93,7 @@ func resolveTicker(ticker string, year int, period string) ([]InputFile, error) 
 func buildGlobPattern(dataDir, ticker string, year int, period string) string {
 	yearPart := "*"
 	if year != 0 {
-		yearPart = fmt.Sprintf("%d", year)
+		yearPart = strconv.Itoa(year)
 	}
 
 	periodPart := "*"

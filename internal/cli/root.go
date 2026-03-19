@@ -4,10 +4,9 @@ import "github.com/spf13/cobra"
 
 var rootCmd = &cobra.Command{
 	Use:   "idxlens",
-	Short: "Extract structured financial data from IDX PDF reports",
-	Long: `IDXLens is a CLI tool for extracting structured financial data
-from Indonesia Stock Exchange (IDX) PDF reports. It converts
-unstructured PDF tables into clean, machine-readable formats.`,
+	Short: "Extract structured financial data from IDX reports",
+	Long: `IDXLens extracts structured financial data from Indonesia Stock Exchange
+(IDX) reports. Supports XLSX, XBRL, and PDF presentation formats.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
