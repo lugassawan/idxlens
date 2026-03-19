@@ -3,6 +3,7 @@ package domain
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/lugassawan/idxlens/internal/pdf"
 	"github.com/lugassawan/idxlens/internal/table"
@@ -1863,6 +1864,114 @@ func TestParseCurrencyUnit(t *testing.T) {
 			if unit != tt.wantUnit {
 				t.Errorf("parseCurrencyUnit(%q) unit = %q, want %q",
 					tt.text, unit, tt.wantUnit)
+			}
+		})
+	}
+}
+
+func TestIsFutureDate(t *testing.T) {
+	// Fix time to 2026-03-19 for deterministic tests.
+	original := timeNow
+	timeNow = func() time.Time {
+		return time.Date(2026, 3, 19, 0, 0, 0, 0, time.UTC)
+	}
+	t.Cleanup(func() { timeNow = original })
+
+	tests := []struct {
+		name  string
+		year  int
+		month int
+		want  bool
+	}{
+		{"current year same month", 2026, 3, false},
+		{"current year dec", 2026, 12, false},
+		{"one year ahead mar", 2027, 3, false},
+		{"one year ahead jun", 2027, 6, true},
+		{"one year ahead dec", 2027, 12, true},
+		{"two years ahead", 2028, 1, true},
+		{"past year", 2025, 12, false},
+		{"far past", 2020, 6, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isFutureDate(tt.year, tt.month); got != tt.want {
+				t.Errorf("isFutureDate(%d, %d) = %v, want %v",
+					tt.year, tt.month, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAddPeriodRejectsFutureDates(t *testing.T) {
+	original := timeNow
+	timeNow = func() time.Time {
+		return time.Date(2026, 3, 19, 0, 0, 0, 0, time.UTC)
+	}
+	t.Cleanup(func() { timeNow = original })
+
+	stmt := &FinancialStatement{}
+
+	// 2027-06-30 is more than 1 year in the future — should be rejected.
+	addPeriod(stmt, "30", "Juni", "2027", monthsID, "id")
+	if len(stmt.Periods) != 0 {
+		t.Errorf("expected future date 2027-06-30 to be rejected, got periods: %v",
+			stmt.Periods)
+	}
+
+	// 2025-12-31 is in the past — should be accepted.
+	addPeriod(stmt, "31", "Desember", "2025", monthsID, "id")
+	if len(stmt.Periods) != 1 || stmt.Periods[0] != "2025-12-31" {
+		t.Errorf("expected 2025-12-31 to be accepted, got periods: %v",
+			stmt.Periods)
+	}
+}
+
+func TestAddAbbrevPeriodRejectsFutureDates(t *testing.T) {
+	original := timeNow
+	timeNow = func() time.Time {
+		return time.Date(2026, 3, 19, 0, 0, 0, 0, time.UTC)
+	}
+	t.Cleanup(func() { timeNow = original })
+
+	stmt := &FinancialStatement{}
+
+	// Jun-27 = 2027-06-30, more than 1 year ahead — should be rejected.
+	addAbbrevPeriod(stmt, "Jun", "27")
+	if len(stmt.Periods) != 0 {
+		t.Errorf("expected future date Jun-27 to be rejected, got periods: %v",
+			stmt.Periods)
+	}
+
+	// Dec-25 = 2025-12-31, in the past — should be accepted.
+	addAbbrevPeriod(stmt, "Dec", "25")
+	if len(stmt.Periods) != 1 || stmt.Periods[0] != "2025-12-31" {
+		t.Errorf("expected Dec-25 to be accepted, got periods: %v",
+			stmt.Periods)
+	}
+}
+
+func TestAbbrevMonth(t *testing.T) {
+	tests := []struct {
+		label string
+		want  int
+	}{
+		{"FY", 12},
+		{"1Q", 3},
+		{"2Q", 6},
+		{"3Q", 9},
+		{"4Q", 12},
+		{"Dec", 12},
+		{"Jun", 6},
+		{"Mar", 3},
+		{"Sep", 9},
+		{"unknown", 12},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			if got := abbrevMonth(tt.label); got != tt.want {
+				t.Errorf("abbrevMonth(%q) = %d, want %d", tt.label, got, tt.want)
 			}
 		})
 	}

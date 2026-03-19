@@ -883,6 +883,96 @@
       },
       "section": "cost_of_revenue",
       "level": 2
+    },
+    {
+      "key": "net_interest_income",
+      "labels": {
+        "id": ["Pendapatan Bunga Bersih", "Pendapatan Bunga - Bersih"],
+        "en": ["Net Interest Income", "NET INTEREST INCOME", "Net interest income"]
+      },
+      "section": "revenue",
+      "level": 1
+    },
+    {
+      "key": "non_interest_income",
+      "labels": {
+        "id": ["Pendapatan Non-Bunga", "Pendapatan Operasional Selain Bunga", "Pendapatan Non Bunga"],
+        "en": ["Non Interest Income", "Non-Interest Income", "NON INTEREST INCOME"]
+      },
+      "section": "revenue",
+      "level": 1
+    },
+    {
+      "key": "ppop",
+      "labels": {
+        "id": ["Laba Operasional Sebelum Provisi", "PPOP", "Laba Operasional Sebelum Pencadangan"],
+        "en": ["Pre-Provision Operating Profit", "PPOP", "Pre Provision Operating Profit"]
+      },
+      "section": "operating_expenses",
+      "level": 0
+    },
+    {
+      "key": "net_profit",
+      "labels": {
+        "id": ["Laba Bersih", "Laba Bersih Konsolidasian", "LABA BERSIH"],
+        "en": ["Net Profit", "NET PROFIT", "Net profit"]
+      },
+      "section": "tax",
+      "level": 0
+    },
+    {
+      "key": "casa",
+      "labels": {
+        "id": ["CASA", "Giro dan Tabungan"],
+        "en": ["CASA", "Current Account Savings Account"]
+      },
+      "section": "other_income_expense",
+      "level": 2
+    },
+    {
+      "key": "manpower_expenses",
+      "labels": {
+        "id": ["Tenaga Kerja", "Beban Tenaga Kerja"],
+        "en": ["Manpower", "Manpower Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "general_admin_expenses_ampersand",
+      "labels": {
+        "id": ["Beban Umum & Administrasi"],
+        "en": ["General & Administrative", "General & Admin", "General & Administrative Expenses"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "provision_expense",
+      "labels": {
+        "id": ["Provisi", "Beban Provisi", "Pencadangan"],
+        "en": ["Provision", "Provision Expense", "Provisions"]
+      },
+      "section": "operating_expenses",
+      "level": 2
+    },
+    {
+      "key": "trading_income",
+      "labels": {
+        "id": ["Pendapatan Trading", "Pendapatan Perdagangan"],
+        "en": ["Trading Income", "Trading income"]
+      },
+      "section": "revenue",
+      "level": 2
+    },
+    {
+      "key": "fees_and_commissions",
+      "labels": {
+        "id": ["Provisi dan Komisi", "Pendapatan Provisi dan Komisi"],
+        "en": ["Fees and Commissions", "Fees & Commissions", "Fee and Commission"]
+      },
+      "section": "revenue",
+      "level": 2
     }
   ]
 }
