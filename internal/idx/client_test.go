@@ -104,6 +104,20 @@ func TestNewAuthenticatedClient(t *testing.T) {
 		},
 	}
 
+	t.Run("cookie path error", func(t *testing.T) {
+		blocker := filepath.Join(t.TempDir(), "blocker")
+		if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+
+		t.Setenv("IDXLENS_HOME", filepath.Join(blocker, "sub"))
+
+		_, err := NewAuthenticatedClient()
+		if err == nil {
+			t.Fatal("expected error when cookie path fails")
+		}
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()

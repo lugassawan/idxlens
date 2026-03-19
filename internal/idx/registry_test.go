@@ -90,6 +90,13 @@ func TestFetchRegistryCancelled(t *testing.T) {
 	}
 }
 
+func TestFetchRegistryFromInvalidURL(t *testing.T) {
+	_, err := fetchRegistryFrom(context.Background(), "://bad-url")
+	if err == nil {
+		t.Fatal("fetchRegistryFrom() expected error for invalid URL")
+	}
+}
+
 func TestFetchRegistryFromConnectionRefused(t *testing.T) {
 	// Use a URL with a port that refuses connections
 	_, err := fetchRegistryFrom(context.Background(), "http://127.0.0.1:1/invalid")
@@ -99,18 +106,34 @@ func TestFetchRegistryFromConnectionRefused(t *testing.T) {
 }
 
 func TestRegistryPath(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("IDXLENS_HOME", dir)
+	t.Run("success", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Setenv("IDXLENS_HOME", dir)
 
-	path, err := RegistryPath()
-	if err != nil {
-		t.Fatalf("RegistryPath() error: %v", err)
-	}
+		path, err := RegistryPath()
+		if err != nil {
+			t.Fatalf("RegistryPath() error: %v", err)
+		}
 
-	want := filepath.Join(dir, "registry.json")
-	if path != want {
-		t.Errorf("RegistryPath() = %q, want %q", path, want)
-	}
+		want := filepath.Join(dir, "registry.json")
+		if path != want {
+			t.Errorf("RegistryPath() = %q, want %q", path, want)
+		}
+	})
+
+	t.Run("home error", func(t *testing.T) {
+		blocker := filepath.Join(t.TempDir(), "blocker")
+		if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+
+		t.Setenv("IDXLENS_HOME", filepath.Join(blocker, "sub"))
+
+		_, err := RegistryPath()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
 }
 
 func TestCachedRegistry(t *testing.T) {
@@ -173,6 +196,20 @@ func TestCachedRegistry(t *testing.T) {
 		_, err := LoadCachedRegistry(path)
 		if err == nil {
 			t.Fatal("LoadCachedRegistry() expected error for invalid JSON")
+		}
+	})
+
+	t.Run("save to invalid path returns error", func(t *testing.T) {
+		// Path that can't be created (file exists where directory needed)
+		tmpFile := filepath.Join(t.TempDir(), "blocker")
+		if err := os.WriteFile(tmpFile, []byte("x"), 0o600); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+
+		reg := map[string]CompanyRegistry{}
+		err := SaveCachedRegistry(filepath.Join(tmpFile, "sub", "registry.json"), reg)
+		if err == nil {
+			t.Fatal("expected error for invalid path")
 		}
 	})
 

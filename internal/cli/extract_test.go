@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
+
+// errWriter is an io.Writer that always returns an error.
+type errWriter struct{}
+
+func (errWriter) Write([]byte) (int, error) {
+	return 0, errors.New("write error")
+}
 
 func TestExtractCommandRegistration(t *testing.T) {
 	found := false
@@ -245,6 +253,23 @@ func TestWriteJSON(t *testing.T) {
 				t.Errorf("writeJSON() = %q, want %q", buf.String(), tt.want)
 			}
 		})
+	}
+}
+
+func TestWriteJSONMarshalError(t *testing.T) {
+	// Channels cannot be marshalled to JSON
+	var buf bytes.Buffer
+	err := writeJSON(&buf, make(chan int), false)
+	if err == nil {
+		t.Fatal("expected error for unmarshalable value")
+	}
+}
+
+func TestWriteJSONWriteError(t *testing.T) {
+	w := &errWriter{}
+	err := writeJSON(w, map[string]int{"a": 1}, false)
+	if err == nil {
+		t.Fatal("expected error for write failure")
 	}
 }
 

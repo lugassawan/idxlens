@@ -75,32 +75,75 @@ func TestDataDir(t *testing.T) {
 	}
 }
 
-func TestCookiePath(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv(envHome, dir)
-
-	got, err := CookiePath()
-	if err != nil {
-		t.Fatalf("CookiePath() error: %v", err)
+func TestHomeMkdirAllError(t *testing.T) {
+	// Set IDXLENS_HOME to a path where mkdir will fail (file exists as non-dir)
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
 
-	expected := filepath.Join(dir, cookieFile)
-	if got != expected {
-		t.Errorf("CookiePath() = %q, want %q", got, expected)
+	t.Setenv(envHome, filepath.Join(blocker, "sub"))
+
+	_, err := Home()
+	if err == nil {
+		t.Fatal("expected error when MkdirAll fails")
 	}
 }
 
-func TestCompaniesPath(t *testing.T) {
+func TestDataDirMkdirAllError(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(envHome, dir)
 
-	got, err := CompaniesPath()
-	if err != nil {
-		t.Fatalf("CompaniesPath() error: %v", err)
+	// Create a file where the data directory should be
+	blocker := filepath.Join(dir, dataSubdir)
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
 
-	expected := filepath.Join(dir, companyFile)
-	if got != expected {
-		t.Errorf("CompaniesPath() = %q, want %q", got, expected)
+	_, err := DataDir()
+	if err == nil {
+		t.Fatal("expected error when data MkdirAll fails")
+	}
+}
+
+func TestHomeDerivedPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		fn       func() (string, error)
+		wantFile string
+	}{
+		{"CookiePath", CookiePath, cookieFile},
+		{"CompaniesPath", CompaniesPath, companyFile},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name+" success", func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv(envHome, dir)
+
+			got, err := tt.fn()
+			if err != nil {
+				t.Fatalf("%s() error: %v", tt.name, err)
+			}
+
+			expected := filepath.Join(dir, tt.wantFile)
+			if got != expected {
+				t.Errorf("%s() = %q, want %q", tt.name, got, expected)
+			}
+		})
+
+		t.Run(tt.name+" home error", func(t *testing.T) {
+			blocker := filepath.Join(t.TempDir(), "blocker")
+			if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+
+			t.Setenv(envHome, filepath.Join(blocker, "sub"))
+
+			_, err := tt.fn()
+			if err == nil {
+				t.Fatalf("%s() expected error", tt.name)
+			}
+		})
 	}
 }
