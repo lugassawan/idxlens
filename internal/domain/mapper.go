@@ -87,9 +87,14 @@ var (
 			`mn|juta(?:an)?|millions?|ribu(?:an)?|thousands?)\s*\)?`,
 	)
 	// periodAbbrev matches abbreviated period headers like "Dec-25",
-	// "Sep-24", "FY-25", "3Q-25", "4Q24".
+	// "Sep-24", "FY-25", "3Q-25", "4Q24". Month abbreviations allow
+	// optional hyphen, but FY requires a hyphen to avoid matching
+	// footer noise like "FY25" in "Analyst Meeting FY25".
 	periodAbbrev = regexp.MustCompile(
-		`(?i)\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|FY|[1-4]Q)-?(\d{2})\b`,
+		`(?i)\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[1-4]Q)-?(\d{2})\b`,
+	)
+	periodAbbrevFY = regexp.MustCompile(
+		`(?i)\bFY-(\d{2})\b`,
 	)
 	// growthRateHeader matches column headers that represent growth rates
 	// rather than financial amounts: "YoY", "QoQ", "%", "Growth".
@@ -261,16 +266,20 @@ func (m *mapper) extractMetadata(tbl table.Table, stmt *FinancialStatement) {
 
 	scanRows := min(metadataScanRows, len(tbl.Rows))
 
+	// Rows and PageText may contain chart data and noise. Only detect
+	// full-form periods (e.g., "31 Desember 2025") from them —
+	// abbreviated periods (e.g., "Oct-25", "FY25") are only reliable
+	// in table headers.
 	for i := range scanRows {
 		for _, cell := range tbl.Rows[i].Cells {
-			m.detectPeriod(cell.Text, stmt)
+			m.detectFullFormPeriod(cell.Text, stmt)
 			m.detectCurrencyUnit(cell.Text, stmt)
 			m.detectCompany(cell.Text, stmt)
 		}
 	}
 
 	for _, text := range tbl.PageText {
-		m.detectPeriod(text, stmt)
+		m.detectFullFormPeriod(text, stmt)
 		m.detectCurrencyUnit(text, stmt)
 		m.detectCompany(text, stmt)
 	}
@@ -395,6 +404,37 @@ func (m *mapper) detectPeriod(text string, stmt *FinancialStatement) {
 	}
 }
 
+// detectFullFormPeriod detects only full-form period patterns (e.g.,
+// "31 Desember 2025") without abbreviated patterns. This is used for
+// PageText where abbreviated patterns would match noise.
+func (m *mapper) detectFullFormPeriod(text string, stmt *FinancialStatement) {
+	m.detectFullFormPeriodFromText(text, stmt)
+
+	normalized := collapseKernedDigits(text)
+	if normalized != text {
+		m.detectFullFormPeriodFromText(normalized, stmt)
+	}
+}
+
+func (m *mapper) detectFullFormPeriodFromText(text string, stmt *FinancialStatement) {
+	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsID, "id")
+	}
+
+	for _, groups := range periodPatternEN.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[2], groups[1], groups[3], monthsEN, "en")
+	}
+
+	for _, groups := range periodPatternENDayFirst.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
+	}
+
+	for _, groups := range periodWithAndEN.FindAllStringSubmatch(text, -1) {
+		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
+		addPeriod(stmt, groups[1], groups[2], groups[4], monthsEN, "en")
+	}
+}
+
 func (m *mapper) detectPeriodFromText(text string, stmt *FinancialStatement) {
 	// Indonesian: "31 Desember 2025" (DD Month YYYY)
 	for _, groups := range periodPatternID.FindAllStringSubmatch(text, -1) {
@@ -417,9 +457,14 @@ func (m *mapper) detectPeriodFromText(text string, stmt *FinancialStatement) {
 		addPeriod(stmt, groups[1], groups[2], groups[4], monthsEN, "en")
 	}
 
-	// Abbreviated: "Dec-25", "Sep-24", "FY-25", "3Q-25"
+	// Abbreviated: "Dec-25", "Sep-24", "3Q-25"
 	for _, groups := range periodAbbrev.FindAllStringSubmatch(text, -1) {
 		addAbbrevPeriod(stmt, groups[1], groups[2])
+	}
+
+	// Fiscal year with required hyphen: "FY-25" (not "FY25")
+	for _, groups := range periodAbbrevFY.FindAllStringSubmatch(text, -1) {
+		addAbbrevPeriod(stmt, "FY", groups[1])
 	}
 }
 
@@ -586,35 +631,46 @@ func formatDateISO(dayStr, monthStr, yearStr string, months map[string]int) stri
 }
 
 func (m *mapper) detectCurrencyUnit(text string, stmt *FinancialStatement) {
-	if stmt.Currency != "" && stmt.Unit != "" {
+	// Skip if already detected as IDR — IDR is the primary currency
+	// for IDX reports and should not be overridden by USD found in
+	// charts or secondary data.
+	if stmt.Currency == currencyIDR && stmt.Unit != "" {
 		return
 	}
 
-	if matches := currencyUnitID.FindStringSubmatch(text); len(matches) == 3 {
-		stmt.Unit = normalizeUnit(matches[1])
-		stmt.Currency = normalizeCurrency(matches[2])
-
+	currency, unit := parseCurrencyUnit(text)
+	if currency == "" || unit == "" {
 		return
+	}
+
+	// If we already have a non-IDR currency, only override with IDR.
+	if stmt.Currency != "" && stmt.Unit != "" && currency != currencyIDR {
+		return
+	}
+
+	stmt.Currency = currency
+	stmt.Unit = unit
+}
+
+// parseCurrencyUnit extracts currency and unit from a single text fragment.
+func parseCurrencyUnit(text string) (currency, unit string) {
+	if matches := currencyUnitID.FindStringSubmatch(text); len(matches) == 3 {
+		return normalizeCurrency(matches[2]), normalizeUnit(matches[1])
 	}
 
 	if matches := currencyUnitEN.FindStringSubmatch(text); len(matches) == 3 {
-		stmt.Unit = normalizeUnit(matches[1])
-		stmt.Currency = normalizeCurrency(matches[2])
-
-		return
+		return normalizeCurrency(matches[2]), normalizeUnit(matches[1])
 	}
 
 	if matches := currencyUnitSlash.FindStringSubmatch(text); len(matches) == 3 {
-		stmt.Unit = normalizeUnit(matches[1])
-		stmt.Currency = inferCurrencyFromContext(text)
-
-		return
+		return inferCurrencyFromContext(text), normalizeUnit(matches[1])
 	}
 
 	if matches := currencyUnitShort.FindStringSubmatch(text); len(matches) == 3 {
-		stmt.Currency = normalizeShortCurrency(matches[1])
-		stmt.Unit = normalizeUnit(matches[2])
+		return normalizeShortCurrency(matches[1]), normalizeUnit(matches[2])
 	}
+
+	return "", ""
 }
 
 func inferCurrencyFromContext(text string) string {
@@ -965,7 +1021,8 @@ func containsPeriodDate(text string) bool {
 	if periodPatternID.MatchString(text) ||
 		periodPatternEN.MatchString(text) ||
 		periodPatternENDayFirst.MatchString(text) ||
-		periodAbbrev.MatchString(text) {
+		periodAbbrev.MatchString(text) ||
+		periodAbbrevFY.MatchString(text) {
 		return true
 	}
 

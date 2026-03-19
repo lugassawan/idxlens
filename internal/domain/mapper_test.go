@@ -1700,3 +1700,170 @@ func TestPresentationStyleFullExtraction(t *testing.T) {
 		}
 	}
 }
+
+func TestPageTextAbbrevPeriodsIgnored(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name        string
+		headers     []string
+		pageText    []string
+		wantPeriods []string
+	}{
+		{
+			name:    "FY25 in footer ignored",
+			headers: []string{"Consolidated (Rp tn)", "Dec-23", "Dec-24", "Dec-25"},
+			pageText: []string{
+				"Analyst Meeting FY25",
+				"2021	2022	2023	2024",
+			},
+			wantPeriods: []string{"2023-12-31", "2024-12-31", "2025-12-31"},
+		},
+		{
+			name:    "bare years in chart axis ignored",
+			headers: []string{"", "Dec-25"},
+			pageText: []string{
+				"2021 2022 2023 2024 Oct-25",
+			},
+			wantPeriods: []string{"2025-12-31"},
+		},
+		{
+			name:    "full form period in page text still detected",
+			headers: []string{"", "Dec-25"},
+			pageText: []string{
+				"31 Desember 2024",
+			},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, "Total Assets", "100")},
+			)
+			tbl.PageText = tt.pageText
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Periods) != len(tt.wantPeriods) {
+				t.Fatalf("periods count = %d (%v), want %d (%v)",
+					len(stmt.Periods), stmt.Periods,
+					len(tt.wantPeriods), tt.wantPeriods)
+			}
+
+			for i, want := range tt.wantPeriods {
+				if stmt.Periods[i] != want {
+					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+				}
+			}
+		})
+	}
+}
+
+func TestFYRequiresHyphen(t *testing.T) {
+	m := &mapper{}
+	stmt := &FinancialStatement{}
+
+	// "FY25" without hyphen should NOT be detected
+	m.detectPeriod("Analyst Meeting FY25", stmt)
+
+	if len(stmt.Periods) != 0 {
+		t.Errorf("FY25 without hyphen should not match, got periods: %v", stmt.Periods)
+	}
+
+	// "FY-25" with hyphen SHOULD be detected
+	m.detectPeriod("FY-25", stmt)
+
+	if len(stmt.Periods) != 1 || stmt.Periods[0] != "2025-12-31" {
+		t.Errorf("FY-25 with hyphen should match, got periods: %v", stmt.Periods)
+	}
+}
+
+func TestCurrencyIDRPriority(t *testing.T) {
+	m := &mapper{}
+
+	tests := []struct {
+		name         string
+		texts        []string
+		wantCurrency string
+		wantUnit     string
+	}{
+		{
+			name:         "IDR from Rp tn",
+			texts:        []string{"Consolidated (Rp tn)"},
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+		{
+			name:         "USD found first then Rp overrides",
+			texts:        []string{"USD Bn", "Rp tn"},
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+		{
+			name:         "Rp found first USD ignored",
+			texts:        []string{"Rp tn", "USD Bn"},
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+		{
+			name:         "only USD when no IDR present",
+			texts:        []string{"USD Bn"},
+			wantCurrency: "USD",
+			wantUnit:     "billions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmt := &FinancialStatement{}
+			for _, text := range tt.texts {
+				m.detectCurrencyUnit(text, stmt)
+			}
+
+			if stmt.Currency != tt.wantCurrency {
+				t.Errorf("currency = %q, want %q", stmt.Currency, tt.wantCurrency)
+			}
+
+			if stmt.Unit != tt.wantUnit {
+				t.Errorf("unit = %q, want %q", stmt.Unit, tt.wantUnit)
+			}
+		})
+	}
+}
+
+func TestParseCurrencyUnit(t *testing.T) {
+	tests := []struct {
+		name         string
+		text         string
+		wantCurrency string
+		wantUnit     string
+	}{
+		{"Rp tn", "Consolidated (Rp tn)", "IDR", "trillions"},
+		{"USD Bn", "Revenue (USD Bn)", "USD", "billions"},
+		{"Rp miliar", "(Rp miliar)", "IDR", "billions"},
+		{"dalam jutaan rupiah", "dalam jutaan rupiah", "IDR", "millions"},
+		{"in millions of rupiah", "in millions of rupiah", "IDR", "millions"},
+		{"no match", "plain text", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			currency, unit := parseCurrencyUnit(tt.text)
+			if currency != tt.wantCurrency {
+				t.Errorf("parseCurrencyUnit(%q) currency = %q, want %q",
+					tt.text, currency, tt.wantCurrency)
+			}
+
+			if unit != tt.wantUnit {
+				t.Errorf("parseCurrencyUnit(%q) unit = %q, want %q",
+					tt.text, unit, tt.wantUnit)
+			}
+		})
+	}
+}
