@@ -42,10 +42,21 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	period, _ := cmd.Flags().GetString(flagPeriod)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 
+	cookiePath, err := idx.CookiePath()
+	if err != nil {
+		return fmt.Errorf("resolve cookie path: %w", err)
+	}
+
+	cookies, err := idx.LoadCookies(cookiePath)
+	if err != nil {
+		return fmt.Errorf("load cookies: %w", err)
+	}
+
+	client := idx.New(idx.WithCookies(cookies))
 	ctx := cmd.Context()
 	summary := fetchSummary{}
 
-	if err := fetchIDXDocuments(ctx, tickers, year, period, fileType, &summary); err != nil {
+	if err := fetchIDXDocuments(ctx, client, tickers, year, period, fileType, &summary); err != nil {
 		return err
 	}
 
@@ -62,21 +73,9 @@ func runFetch(cmd *cobra.Command, args []string) error {
 }
 
 func fetchIDXDocuments(
-	ctx context.Context, tickers []string,
+	ctx context.Context, client idxFetcher, tickers []string,
 	year int, period, fileType string, summary *fetchSummary,
 ) error {
-	cookiePath, err := idx.CookiePath()
-	if err != nil {
-		return fmt.Errorf("resolve cookie path: %w", err)
-	}
-
-	cookies, err := idx.LoadCookies(cookiePath)
-	if err != nil {
-		return fmt.Errorf("load cookies: %w", err)
-	}
-
-	client := idx.New(idx.WithCookies(cookies))
-
 	for _, ticker := range tickers {
 		atts, err := client.ListReports(ctx, ticker, year, period)
 		if err != nil {

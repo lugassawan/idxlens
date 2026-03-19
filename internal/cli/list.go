@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -39,23 +41,34 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	client := idx.New(idx.WithCookies(cookies))
-	ctx := cmd.Context()
 
-	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "TICKER\tFILENAME\tTYPE\tSIZE\tPERIOD\tYEAR")
+	return listReports(cmd.Context(), cmd.OutOrStdout(), client, tickers, year, period)
+}
+
+// listReports is the testable core: accepts interfaces, no infrastructure construction.
+func listReports(
+	ctx context.Context,
+	w io.Writer,
+	lister ReportLister,
+	tickers []string,
+	year int,
+	period string,
+) error {
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "TICKER\tFILENAME\tTYPE\tSIZE\tPERIOD\tYEAR")
 
 	for _, ticker := range tickers {
-		attachments, err := client.ListReports(ctx, ticker, year, period)
+		attachments, err := lister.ListReports(ctx, ticker, year, period)
 		if err != nil {
 			return fmt.Errorf("list reports for %s: %w", ticker, err)
 		}
 
 		for _, att := range attachments {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\n",
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t%s\n",
 				att.EmitenCode, att.FileName, att.FileType, att.FileSize,
 				att.ReportPeriod, att.ReportYear)
 		}
 	}
 
-	return w.Flush()
+	return tw.Flush()
 }
