@@ -10,8 +10,6 @@ const (
 	flagFileType = "file-type"
 	flagWorkers  = "workers"
 	flagMode     = "mode"
-	flagOutput   = "output"
-	flagPretty   = "pretty"
 
 	defaultFormat  = "json"
 	defaultWorkers = 4
