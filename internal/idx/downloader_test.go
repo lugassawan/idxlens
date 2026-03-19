@@ -114,6 +114,27 @@ func TestDownload(t *testing.T) {
 	})
 }
 
+func TestDownloadWriteError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("data"))
+	}))
+	defer srv.Close()
+
+	c := New(WithBaseURL(srv.URL))
+	att := Attachment{FileName: "test.pdf", FilePath: "/files/test.pdf"}
+
+	// destDir is a file, not a directory — MkdirAll will fail
+	tmpFile := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(tmpFile, []byte("blocker"), 0o644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	_, err := c.Download(context.Background(), att, filepath.Join(tmpFile, "sub"))
+	if err == nil {
+		t.Fatal("expected error for invalid dest directory")
+	}
+}
+
 func TestDownloadCancelledContext(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("data"))

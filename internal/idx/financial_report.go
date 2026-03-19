@@ -33,17 +33,9 @@ const reportEndpoint = "/primary/ListedCompany/GetFinancialReport"
 
 // ListReports fetches financial report attachments for the given ticker, year, and period.
 func (c *Client) ListReports(ctx context.Context, ticker string, year int, period string) ([]Attachment, error) {
-	endpoint := c.baseURL + reportEndpoint
-	params := url.Values{
-		"periode":    {period},
-		"year":       {strconv.Itoa(year)},
-		"kodeEmiten": {ticker},
-		"reportType": {"rdf"},
-		"indexFrom":  {"0"},
-		"pageSize":   {"1000"},
-	}
+	reqURL := buildReportURL(c.baseURL, ticker, year, period)
 
-	req, err := c.newRequest(ctx, http.MethodGet, endpoint+"?"+params.Encode())
+	req, err := c.newRequest(ctx, http.MethodGet, reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
@@ -64,9 +56,31 @@ func (c *Client) ListReports(ctx context.Context, ticker string, year int, perio
 		return nil, fmt.Errorf("list reports: read body: %w", err)
 	}
 
+	atts, err := parseReportResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("list reports: %w", err)
+	}
+
+	return atts, nil
+}
+
+func buildReportURL(baseURL, ticker string, year int, period string) string {
+	params := url.Values{
+		"periode":    {period},
+		"year":       {strconv.Itoa(year)},
+		"kodeEmiten": {ticker},
+		"reportType": {"rdf"},
+		"indexFrom":  {"0"},
+		"pageSize":   {"1000"},
+	}
+
+	return baseURL + reportEndpoint + "?" + params.Encode()
+}
+
+func parseReportResponse(body []byte) ([]Attachment, error) {
 	var response reportResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("list reports: unmarshal response: %w", err)
+		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
 	var attachments []Attachment

@@ -210,6 +210,33 @@ func TestResolveInputsTicker(t *testing.T) {
 	}
 }
 
+func TestResolveInputsTickerMixedFormats(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	tickerDir := filepath.Join(dir, "data", "TLKM", "2024", "Q1")
+	if err := os.MkdirAll(tickerDir, 0o755); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+
+	// Create both recognized and unrecognized files
+	for _, name := range []string{"report.xlsx", "report.zip", "notes.txt", "readme.md"} {
+		if err := os.WriteFile(filepath.Join(tickerDir, name), []byte("test"), 0o644); err != nil {
+			t.Fatalf("create file: %v", err)
+		}
+	}
+
+	files, err := ResolveInputs("TLKM", 2024, "Q1")
+	if err != nil {
+		t.Fatalf("ResolveInputs() error: %v", err)
+	}
+
+	// Only xlsx and zip should be returned (not txt or md)
+	if len(files) != 2 {
+		t.Fatalf("files count = %d, want 2", len(files))
+	}
+}
+
 func TestResolveInputsTickerNoFiles(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
