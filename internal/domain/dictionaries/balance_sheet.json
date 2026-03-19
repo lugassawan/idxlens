@@ -768,10 +768,19 @@
       "level": 3
     },
     {
+      "key": "casa",
+      "labels": {
+        "id": ["CASA", "Giro dan Tabungan"],
+        "en": ["CASA", "Current Account Savings Account"]
+      },
+      "section": "liabilities",
+      "level": 3
+    },
+    {
       "key": "savings_deposits",
       "labels": {
         "id": ["Tabungan"],
-        "en": ["Savings Deposits"]
+        "en": ["Savings Deposits", "Savings Accounts", "Savings"]
       },
       "section": "liabilities",
       "level": 3
@@ -1053,6 +1062,15 @@
         "en": ["Financial Liabilities at Fair Value through Profit or Loss", "Financial Liabilities at FVTPL"]
       },
       "section": "liabilities",
+      "level": 2
+    },
+    {
+      "key": "secondary_reserves",
+      "labels": {
+        "id": ["Cadangan Sekunder"],
+        "en": ["Secondary Reserves"]
+      },
+      "section": "assets",
       "level": 2
     },
     {
