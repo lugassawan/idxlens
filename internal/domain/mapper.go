@@ -17,7 +17,9 @@ const (
 	metadataScanRows = 5
 	unitMillions     = "millions"
 	unitBillions     = "billions"
+	unitTrillions    = "trillions"
 	unitThousands    = "thousands"
+	fmtAnnualEnd     = "%04d-12-31"
 )
 
 // Mapper maps raw table data into a standardized FinancialStatement.
@@ -77,6 +79,28 @@ var (
 	leadingNumberRegex = regexp.MustCompile(
 		`^(\(?\s*-?\s*[\d][,.\d]*\s*\)?)`,
 	)
+	// currencyUnitShort matches compact presentation-style formats like
+	// "Rp tn", "(Rp bn)", "Rp miliar", "USD mn", "Rp triliun".
+	currencyUnitShort = regexp.MustCompile(
+		`(?i)\(?\s*(Rp|USD|IDR)\s+` +
+			`(tn|triliun|trillions?|bn|miliar(?:an)?|billions?|` +
+			`mn|juta(?:an)?|millions?|ribu(?:an)?|thousands?)\s*\)?`,
+	)
+	// periodAbbrev matches abbreviated period headers like "Dec-25",
+	// "Sep-24", "FY-25", "3Q-25", "4Q24".
+	periodAbbrev = regexp.MustCompile(
+		`(?i)\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|FY|[1-4]Q)-?(\d{2})\b`,
+	)
+	// growthRateHeader matches column headers that represent growth rates
+	// rather than financial amounts: "YoY", "QoQ", "%", "Growth".
+	growthRateHeader = regexp.MustCompile(
+		`(?i)^(YoY|QoQ|[Gg]rowth|%|vs)$`,
+	)
+	monthAbbrevEN = map[string]int{
+		"jan": 1, "feb": 2, "mar": 3, "apr": 4,
+		"may": 5, "jun": 6, "jul": 7, "aug": 8,
+		"sep": 9, "oct": 10, "nov": 11, "dec": 12,
+	}
 )
 
 // xbrlPageRange represents a contiguous page range for one XBRL section.
@@ -257,6 +281,7 @@ func (m *mapper) mapTableRows(
 ) []LineItem {
 	var items []LineItem
 
+	skipCols := growthRateColumns(tbl.Headers)
 	startRow := headerRowOffset(tbl)
 
 	for i := startRow; i < len(tbl.Rows); i++ {
@@ -282,7 +307,7 @@ func (m *mapper) mapTableRows(
 			continue
 		}
 
-		item := m.mapRow(row, label, dict, stmt)
+		item := m.mapRow(row, label, dict, stmt, skipCols)
 		items = append(items, item)
 	}
 
@@ -290,7 +315,8 @@ func (m *mapper) mapTableRows(
 }
 
 func (m *mapper) mapRow(
-	row table.Row, label string, dict *Dictionary, stmt *FinancialStatement,
+	row table.Row, label string, dict *Dictionary,
+	stmt *FinancialStatement, skipCols map[int]bool,
 ) LineItem {
 	item := LineItem{
 		Label:      label,
@@ -309,17 +335,22 @@ func (m *mapper) mapRow(
 		item.Level = detectIndentLevel(row.Cells[0])
 	}
 
-	m.parseRowValues(row, stmt.Periods, item.Values)
+	m.parseRowValues(row, stmt.Periods, item.Values, skipCols)
 
 	return item
 }
 
 func (m *mapper) parseRowValues(
 	row table.Row, periods []string, values map[string]float64,
+	skipCols map[int]bool,
 ) {
 	for i := 1; i < len(row.Cells); i++ {
+		if skipCols[i] {
+			continue
+		}
+
 		text := strings.TrimSpace(row.Cells[i].Text)
-		if text == "" {
+		if text == "" || isPercentageValue(text) {
 			continue
 		}
 
@@ -385,6 +416,11 @@ func (m *mapper) detectPeriodFromText(text string, stmt *FinancialStatement) {
 		addPeriod(stmt, groups[1], groups[2], groups[3], monthsEN, "en")
 		addPeriod(stmt, groups[1], groups[2], groups[4], monthsEN, "en")
 	}
+
+	// Abbreviated: "Dec-25", "Sep-24", "FY-25", "3Q-25"
+	for _, groups := range periodAbbrev.FindAllStringSubmatch(text, -1) {
+		addAbbrevPeriod(stmt, groups[1], groups[2])
+	}
 }
 
 // collapseKernedDigits removes spaces within digit sequences caused by PDF
@@ -417,6 +453,99 @@ func addPeriod(stmt *FinancialStatement, day, month, year string, months map[str
 
 	if stmt.Language == "" {
 		stmt.Language = lang
+	}
+}
+
+// addAbbrevPeriod converts abbreviated period labels like "Dec-25" or
+// "FY-25" into ISO dates and adds them to the statement.
+func addAbbrevPeriod(stmt *FinancialStatement, label, yearShort string) {
+	if len(stmt.Periods) >= maxPeriods {
+		return
+	}
+
+	year, err := strconv.Atoi(yearShort)
+	if err != nil {
+		return
+	}
+
+	year += 2000
+
+	iso := abbrevToISO(label, year)
+	if iso == "" || slices.Contains(stmt.Periods, iso) {
+		return
+	}
+
+	stmt.Periods = append(stmt.Periods, iso)
+
+	if stmt.Language == "" {
+		stmt.Language = "en"
+	}
+}
+
+func abbrevToISO(label string, year int) string {
+	lower := strings.ToLower(label)
+
+	// Fiscal year: "FY" -> December 31
+	if lower == "fy" {
+		return fmt.Sprintf(fmtAnnualEnd, year)
+	}
+
+	// Quarterly: "1Q" -> Mar 31, "2Q" -> Jun 30, "3Q" -> Sep 30, "4Q" -> Dec 31
+	if len(lower) == 2 && lower[1] == 'q' {
+		return quarterEndISO(lower[0]-'0', year)
+	}
+
+	// Month abbreviation: "Dec" -> last day of month
+	if month, ok := monthAbbrevEN[lower]; ok {
+		return fiscalPeriodISO(month, year)
+	}
+
+	return ""
+}
+
+func quarterEndISO(quarter byte, year int) string {
+	switch quarter {
+	case 1:
+		return fmt.Sprintf("%04d-03-31", year)
+	case 2:
+		return fmt.Sprintf("%04d-06-30", year)
+	case 3:
+		return fmt.Sprintf("%04d-09-30", year)
+	case 4:
+		return fmt.Sprintf(fmtAnnualEnd, year)
+	default:
+		return ""
+	}
+}
+
+func fiscalPeriodISO(month, year int) string {
+	switch month {
+	case 3:
+		return fmt.Sprintf("%04d-03-31", year)
+	case 6:
+		return fmt.Sprintf("%04d-06-30", year)
+	case 9:
+		return fmt.Sprintf("%04d-09-30", year)
+	case 12:
+		return fmt.Sprintf(fmtAnnualEnd, year)
+	default:
+		// Non-quarter-end months: use last day of month.
+		lastDay := lastDayOfMonth(month, year)
+		return fmt.Sprintf("%04d-%02d-%02d", year, month, lastDay)
+	}
+}
+
+func lastDayOfMonth(month, year int) int {
+	switch month {
+	case 2:
+		if year%4 == 0 && (year%100 != 0 || year%400 == 0) {
+			return 29
+		}
+		return 28
+	case 4, 6, 9, 11:
+		return 30
+	default:
+		return 31
 	}
 }
 
@@ -478,6 +607,13 @@ func (m *mapper) detectCurrencyUnit(text string, stmt *FinancialStatement) {
 	if matches := currencyUnitSlash.FindStringSubmatch(text); len(matches) == 3 {
 		stmt.Unit = normalizeUnit(matches[1])
 		stmt.Currency = inferCurrencyFromContext(text)
+
+		return
+	}
+
+	if matches := currencyUnitShort.FindStringSubmatch(text); len(matches) == 3 {
+		stmt.Currency = normalizeShortCurrency(matches[1])
+		stmt.Unit = normalizeUnit(matches[2])
 	}
 }
 
@@ -828,7 +964,8 @@ func isNoiseLabel(label string) bool {
 func containsPeriodDate(text string) bool {
 	if periodPatternID.MatchString(text) ||
 		periodPatternEN.MatchString(text) ||
-		periodPatternENDayFirst.MatchString(text) {
+		periodPatternENDayFirst.MatchString(text) ||
+		periodAbbrev.MatchString(text) {
 		return true
 	}
 
@@ -902,15 +1039,40 @@ func detectIndentLevel(cell table.Cell) int {
 	}
 }
 
+// growthRateColumns returns the set of column indices whose headers
+// indicate growth rates (YoY, QoQ, %) rather than financial amounts.
+func growthRateColumns(headers []string) map[int]bool {
+	skip := make(map[int]bool)
+
+	for i, h := range headers {
+		trimmed := strings.TrimSpace(h)
+		if growthRateHeader.MatchString(trimmed) {
+			skip[i] = true
+		}
+	}
+
+	return skip
+}
+
+func isPercentageValue(text string) bool {
+	return strings.HasSuffix(text, "%")
+}
+
 func normalizeUnit(raw string) string {
 	lower := strings.ToLower(raw)
 	switch {
 	case strings.HasPrefix(lower, "juta"),
-		strings.HasPrefix(lower, "million"):
+		strings.HasPrefix(lower, "million"),
+		lower == "mn":
 		return unitMillions
 	case strings.HasPrefix(lower, "miliar"),
-		strings.HasPrefix(lower, "billion"):
+		strings.HasPrefix(lower, "billion"),
+		lower == "bn":
 		return unitBillions
+	case strings.HasPrefix(lower, "triliun"),
+		strings.HasPrefix(lower, "trillion"),
+		lower == "tn":
+		return unitTrillions
 	case strings.HasPrefix(lower, "ribu"),
 		strings.HasPrefix(lower, "thousand"):
 		return unitThousands
@@ -929,5 +1091,17 @@ func normalizeCurrency(raw string) string {
 		return currencyUSD
 	default:
 		return strings.ToUpper(raw)
+	}
+}
+
+func normalizeShortCurrency(raw string) string {
+	upper := strings.ToUpper(raw)
+	switch upper {
+	case "RP", currencyIDR:
+		return currencyIDR
+	case currencyUSD:
+		return currencyUSD
+	default:
+		return upper
 	}
 }
