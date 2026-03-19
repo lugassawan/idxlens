@@ -111,7 +111,7 @@ The `analyze` command combines fetch and extract into a single step:
 idxlens analyze BBCA -y 2024 -p Q3 --pretty
 ```
 
-This fetches reports (if not cached) and extracts from the best available format (XLSX > XBRL > PDF).
+This fetches reports (if not cached) and extracts from the best available format (XBRL > XLSX > PDF).
 
 Analyze multiple tickers at once:
 

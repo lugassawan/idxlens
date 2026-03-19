@@ -91,7 +91,7 @@ idxlens analyze BBCA -y 2024 -p Q3
 cli/analyze.go  →  idx.Client.Fetch() (if not cached)
   │
   ▼
-service layer  →  Try XLSX → XBRL → PDF (best available format)
+service layer  →  Try XBRL → XLSX → PDF (best available format)
   │
   ▼
 JSON output

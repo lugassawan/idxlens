@@ -61,7 +61,7 @@ idxlens analyze BBCA,BMRI,BBRI -y 2024 -p Q3
 idxlens analyze BBCA -y 2024 --output bbca.json
 ```
 
-The format priority is XLSX > XBRL > PDF. If XLSX is available, it will be used first.
+The format priority is XBRL > XLSX > PDF. If XBRL is available, it will be used first.
 
 ## Pipe to jq
 

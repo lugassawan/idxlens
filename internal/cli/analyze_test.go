@@ -255,28 +255,28 @@ func TestBestFormat(t *testing.T) {
 			wantNl: true,
 		},
 		{
-			name: "prefers xlsx over pdf",
-			files: []InputFile{
-				{Path: "a.pdf", Format: "pdf"},
-				{Path: "b.xlsx", Format: "xlsx"},
-			},
-			want: "xlsx",
-		},
-		{
-			name: "prefers xlsx over xbrl",
-			files: []InputFile{
-				{Path: "a.zip", Format: "xbrl"},
-				{Path: "b.xlsx", Format: "xlsx"},
-			},
-			want: "xlsx",
-		},
-		{
 			name: "prefers xbrl over pdf",
 			files: []InputFile{
 				{Path: "a.pdf", Format: "pdf"},
 				{Path: "b.zip", Format: "xbrl"},
 			},
 			want: "xbrl",
+		},
+		{
+			name: "prefers xbrl over xlsx",
+			files: []InputFile{
+				{Path: "a.xlsx", Format: "xlsx"},
+				{Path: "b.zip", Format: "xbrl"},
+			},
+			want: "xbrl",
+		},
+		{
+			name: "prefers xlsx over pdf",
+			files: []InputFile{
+				{Path: "a.pdf", Format: "pdf"},
+				{Path: "b.xlsx", Format: "xlsx"},
+			},
+			want: "xlsx",
 		},
 		{
 			name: "single pdf",

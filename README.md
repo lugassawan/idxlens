@@ -21,7 +21,7 @@ IDXLens is a CLI tool that fetches and extracts structured financial data from I
 - **Authenticate** with IDX portal via headless Chrome
 - **List and fetch** available financial reports for any ticker
 - **Extract financial data** from XLSX (excelize), XBRL (ZIP archives), and PDF presentations
-- **Full pipeline** (`analyze`): fetch if needed, then extract from the best available format (XLSX > XBRL > PDF)
+- **Full pipeline** (`analyze`): fetch if needed, then extract from the best available format (XBRL > XLSX > PDF)
 - **Presentation KV extraction** for corporate presentations (key-value pair detection from PDF layout)
 - **Local caching** via `IDXLENS_HOME` (default: `~/.idxlens`)
 - **JSON output** with optional pretty-print

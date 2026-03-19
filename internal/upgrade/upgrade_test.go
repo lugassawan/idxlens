@@ -74,7 +74,10 @@ func TestFindAsset(t *testing.T) {
 			name: "matching asset found",
 			release: &Release{
 				Assets: []Asset{
-					{Name: "idxlens_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz", DownloadURL: "https://example.com/download"},
+					{
+						Name:        "idxlens_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz",
+						DownloadURL: "https://example.com/download",
+					},
 				},
 			},
 		},

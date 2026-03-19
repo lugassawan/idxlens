@@ -17,7 +17,7 @@ var analyzeCmd = &cobra.Command{
 	Use:   "analyze TICKER[,TICKER...]",
 	Short: "Fetch (if needed) and extract financial data",
 	Long: `Full pipeline: check local cache for files, fetch from IDX if missing,
-then extract from the best available format (XLSX > XBRL > PDF for presentations).`,
+then extract from the best available format (XBRL > XLSX > PDF for presentations).`,
 	Args: cobra.ExactArgs(1),
 	RunE: runAnalyze,
 }
@@ -93,7 +93,7 @@ func analyzeTicker(
 }
 
 func bestFormat(files []InputFile) *InputFile {
-	priority := map[string]int{formatXLSX: 3, formatXBRL: 2, formatPDF: 1}
+	priority := map[string]int{formatXBRL: 3, formatXLSX: 2, formatPDF: 1}
 
 	var best *InputFile
 

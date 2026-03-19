@@ -151,7 +151,7 @@ idxlens extract report.xlsx --output result.json
 
 ### `analyze`
 
-Full pipeline: fetch reports if not cached, then extract from the best available format (XLSX > XBRL > PDF).
+Full pipeline: fetch reports if not cached, then extract from the best available format (XBRL > XLSX > PDF).
 
 ```sh
 idxlens analyze TICKER[,TICKER...]
