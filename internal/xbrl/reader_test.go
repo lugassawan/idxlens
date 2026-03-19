@@ -20,6 +20,17 @@ const inlineXBRLHTML = `<html
 </body>
 </html>`
 
+const inlineXBRLHTML2 = `<html
+  xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
+  xmlns:ifrs="http://xbrl.ifrs.org/taxonomy/2023">
+<body>
+<ix:nonFraction name="ifrs-full:Assets" unitRef="IDR"
+  contextRef="FY2024" decimals="-6">9000000</ix:nonFraction>
+<ix:nonFraction name="ifrs-full:Liabilities" unitRef="IDR"
+  contextRef="FY2024" decimals="-6">3000000</ix:nonFraction>
+</body>
+</html>`
+
 const standardXBRL = `<?xml version="1.0" encoding="UTF-8"?>
 <xbrl xmlns="http://www.xbrl.org/2003/instance"
   xmlns:ifrs="http://xbrl.ifrs.org/taxonomy/2023">
@@ -88,6 +99,14 @@ func TestParseZip(t *testing.T) {
 			name:    "empty zip",
 			files:   map[string]string{},
 			wantErr: true,
+		},
+		{
+			name: "multiple inline XBRL HTML files",
+			files: map[string]string{
+				"1000000.html": inlineXBRLHTML,
+				"1210000.html": inlineXBRLHTML2,
+			},
+			wantFacts: 5,
 		},
 		{
 			name:    "no XBRL files",
@@ -191,5 +210,34 @@ func TestParseZipFactValues(t *testing.T) {
 
 	if !found {
 		t.Error("ifrs-full:Revenue fact not found")
+	}
+}
+
+func TestParseZipRealData(t *testing.T) {
+	paths := []struct {
+		path   string
+		ticker string
+	}{
+		{"../../tmp/testdata/ADRO/inlineXBRL.zip", "ADRO"},
+		{"../../tmp/testdata/IPCM/inlineXBRL.zip", "IPCM"},
+	}
+
+	for _, p := range paths {
+		t.Run(p.ticker, func(t *testing.T) {
+			if _, err := os.Stat(p.path); os.IsNotExist(err) {
+				t.Skip("test data not available")
+			}
+
+			stmt, err := ParseZip(p.path)
+			if err != nil {
+				t.Fatalf("ParseZip() error: %v", err)
+			}
+
+			if len(stmt.Facts) <= 41 {
+				t.Errorf("expected more than 41 facts (metadata only), got %d", len(stmt.Facts))
+			}
+
+			t.Logf("%s: %d facts extracted", p.ticker, len(stmt.Facts))
+		})
 	}
 }
