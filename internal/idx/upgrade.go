@@ -72,6 +72,7 @@ func latestReleaseFrom(ctx context.Context, url string, hc *http.Client) (*Relea
 
 	req.Header.Set("Accept", "application/vnd.github+json")
 
+	//nolint:gosec // URL is either the hardcoded GitHub API endpoint or a test server
 	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch latest release: %w", err)
@@ -96,6 +97,7 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 		return fmt.Errorf("create request: %w", err)
 	}
 
+	//nolint:gosec // URL comes from GitHub API response or test server
 	resp, err := hc.Do(req)
 	if err != nil {
 		return fmt.Errorf("download asset: %w", err)
@@ -113,7 +115,7 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 		return fmt.Errorf("write asset: %w", err)
 	}
 
-	if err := os.Chmod(tmpPath, 0o755); err != nil {
+	if err := os.Chmod(tmpPath, 0o755); err != nil { //nolint:gosec // binary must be executable
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("chmod asset: %w", err)
 	}

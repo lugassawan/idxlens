@@ -22,7 +22,7 @@ func TestLatestRelease(t *testing.T) {
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(release)
+		_ = json.NewEncoder(w).Encode(release)
 	}))
 	defer srv.Close()
 
@@ -117,7 +117,7 @@ func TestDownloadAsset(t *testing.T) {
 	content := "binary content"
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(content))
+		_, _ = w.Write([]byte(content))
 	}))
 	defer srv.Close()
 
