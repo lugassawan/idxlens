@@ -32,5 +32,8 @@ coverage/
 .claude/.worktrees
 .claude/worktrees/
 
+# IDXLens home directory
+.idxlens/
+
 # Local scratch
 /tmp/
