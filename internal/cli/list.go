@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	year, _ := cmd.Flags().GetInt(flagYear)
 	period, _ := cmd.Flags().GetString(flagPeriod)
 
-	client, err := newIDXClient()
+	client, err := idx.NewAuthenticatedClient()
 	if err != nil {
 		return err
 	}

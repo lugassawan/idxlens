@@ -60,7 +60,7 @@ func analyzeTicker(
 ) error {
 	files, err := ResolveInputs(ticker, year, period)
 	if err != nil {
-		client, clientErr := newIDXClient()
+		client, clientErr := idx.NewAuthenticatedClient()
 		if clientErr != nil {
 			return fmt.Errorf("create client: %w", clientErr)
 		}

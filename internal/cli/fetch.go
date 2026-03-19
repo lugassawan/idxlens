@@ -43,7 +43,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	period, _ := cmd.Flags().GetString(flagPeriod)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 
-	client, err := newIDXClient()
+	client, err := idx.NewAuthenticatedClient()
 	if err != nil {
 		return err
 	}
