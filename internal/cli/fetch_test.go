@@ -56,7 +56,7 @@ func TestRunFetchNoCookies(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)
 
-	rootCmd.SetArgs([]string{"fetch", "BBCA"})
+	rootCmd.SetArgs([]string{"fetch", "BBCA", "--year", "2025"})
 
 	err := rootCmd.Execute()
 	if err == nil {
@@ -76,12 +76,25 @@ func TestRunFetchWithCookiesServerDown(t *testing.T) {
 
 	var buf bytes.Buffer
 	rootCmd.SetOut(&buf)
-	rootCmd.SetArgs([]string{"fetch", "BBCA"})
+	rootCmd.SetArgs([]string{"fetch", "BBCA", "--year", "2025"})
 
 	// Will try to contact real IDX API and fail - exercises runFetch wiring
 	err := rootCmd.Execute()
 	// We don't care if it succeeds or fails - we're testing the wiring path
 	_ = err
+}
+
+func TestFetchRequiresYear(t *testing.T) {
+	// Reset flag to ensure no leftover state from other tests
+	_ = fetchCmd.Flags().Set(flagYear, "0")
+	fetchCmd.Flags().Lookup(flagYear).Changed = false
+
+	rootCmd.SetArgs([]string{"fetch", "BBCA"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --year is missing")
+	}
 }
 
 func TestFilterAttachments(t *testing.T) {

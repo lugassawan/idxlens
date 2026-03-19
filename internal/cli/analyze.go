@@ -24,8 +24,9 @@ then extract from the best available format (XLSX > XBRL > PDF for presentations
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
-	analyzeCmd.Flags().IntP(flagYear, "y", 0, "report year")
+	analyzeCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
 	analyzeCmd.Flags().StringP(flagPeriod, "p", "", "report period")
+	_ = analyzeCmd.MarkFlagRequired(flagYear)
 	analyzeCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
 	analyzeCmd.Flags().StringP(flagOutput, "o", "", "output file path")
 	analyzeCmd.Flags().Bool(flagPretty, false, "pretty-print JSON output")

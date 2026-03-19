@@ -154,7 +154,7 @@ func TestRunListNoCookies(t *testing.T) {
 
 	var buf bytes.Buffer
 	rootCmd.SetOut(&buf)
-	rootCmd.SetArgs([]string{"list", "BBCA"})
+	rootCmd.SetArgs([]string{"list", "BBCA", "--year", "2025"})
 
 	// Should fail because there's no cookies.json file
 	err := rootCmd.Execute()
@@ -174,7 +174,7 @@ func TestRunListWithCookiesServerDown(t *testing.T) {
 
 	var buf bytes.Buffer
 	rootCmd.SetOut(&buf)
-	rootCmd.SetArgs([]string{"list", "BBCA"})
+	rootCmd.SetArgs([]string{"list", "BBCA", "--year", "2025"})
 
 	// Will try to contact real IDX API - exercises runList wiring
 	err := rootCmd.Execute()
@@ -210,6 +210,19 @@ func TestListReportsConcurrency(t *testing.T) {
 
 	if bbcaIdx > bbriIdx || bbriIdx > bmriIdx {
 		t.Errorf("results not in ticker order\ngot: %s", output)
+	}
+}
+
+func TestListRequiresYear(t *testing.T) {
+	// Reset flag to ensure no leftover state from other tests
+	_ = listCmd.Flags().Set(flagYear, "0")
+	listCmd.Flags().Lookup(flagYear).Changed = false
+
+	rootCmd.SetArgs([]string{"list", "BBCA"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --year is missing")
 	}
 }
 

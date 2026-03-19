@@ -54,6 +54,19 @@ func TestAnalyzeCommandFlags(t *testing.T) {
 	}
 }
 
+func TestAnalyzeRequiresYear(t *testing.T) {
+	// Reset flag to ensure no leftover state from other tests
+	_ = analyzeCmd.Flags().Set(flagYear, "0")
+	analyzeCmd.Flags().Lookup(flagYear).Changed = false
+
+	rootCmd.SetArgs([]string{"analyze", "BBCA"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --year is missing")
+	}
+}
+
 func TestRunAnalyzeNoCookies(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("IDXLENS_HOME", dir)

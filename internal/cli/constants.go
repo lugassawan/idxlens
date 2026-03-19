@@ -14,6 +14,8 @@ const (
 	defaultFormat  = "json"
 	defaultWorkers = 4
 
+	descYearRequired = "Report year (required)"
+
 	formatXLSX = "xlsx"
 	formatXBRL = "xbrl"
 	formatPDF  = "pdf"
