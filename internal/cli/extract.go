@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -137,9 +138,12 @@ func openWriter(cmd *cobra.Command, path string) (io.Writer, func(), error) {
 		return nil, nil, fmt.Errorf("create output file: %w", err)
 	}
 
+	bw := bufio.NewWriter(f)
+
 	cleanup := func() {
+		_ = bw.Flush()
 		_ = f.Close()
 	}
 
-	return f, cleanup, nil
+	return bw, cleanup, nil
 }

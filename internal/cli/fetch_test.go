@@ -269,6 +269,107 @@ func TestFetchIDXDocuments(t *testing.T) {
 	}
 }
 
+func TestFetchTickerDocuments(t *testing.T) {
+	tests := []struct {
+		name           string
+		client         *fakeFetcher
+		ticker         string
+		fileType       string
+		wantErr        bool
+		wantDownloaded int
+		wantFailed     int
+	}{
+		{
+			name: "successful fetch",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {
+						{FileName: "report.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"},
+					},
+				},
+			},
+			ticker:         "BBCA",
+			wantDownloaded: 1,
+		},
+		{
+			name:    "list error",
+			client:  &fakeFetcher{listErr: errors.New("server error")},
+			ticker:  "BBCA",
+			wantErr: true,
+		},
+		{
+			name: "empty after filter",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {{FileName: "data.xlsx", FileType: "xlsx", ReportYear: "2025", ReportPeriod: "Q1"}},
+				},
+			},
+			ticker:   "BBCA",
+			fileType: "pdf",
+		},
+		{
+			name: "download error records failure",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {{FileName: "report.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+				},
+				dlErr: errors.New("download failed"),
+			},
+			ticker:     "BBCA",
+			wantFailed: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			downloaded, failed, err := fetchTickerDocuments(
+				context.Background(), tt.client, tt.ticker, t.TempDir(), 0, "", tt.fileType,
+			)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(downloaded) != tt.wantDownloaded {
+				t.Errorf("downloaded = %d, want %d", len(downloaded), tt.wantDownloaded)
+			}
+
+			if len(failed) != tt.wantFailed {
+				t.Errorf("failed = %d, want %d", len(failed), tt.wantFailed)
+			}
+		})
+	}
+}
+
+func TestFetchIDXDocumentsConcurrency(t *testing.T) {
+	client := &fakeFetcher{
+		reports: map[string][]idx.Attachment{
+			"BBCA": {{FileName: "bbca.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+			"BBRI": {{FileName: "bbri.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+			"BMRI": {{FileName: "bmri.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+		},
+	}
+
+	summary := fetchSummary{}
+
+	err := fetchIDXDocuments(context.Background(), client, []string{"BBCA", "BBRI", "BMRI"}, 0, "", "", &summary)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(summary.Downloaded) != 3 {
+		t.Errorf("downloaded = %d, want 3", len(summary.Downloaded))
+	}
+}
+
 func TestFetchPresentations(t *testing.T) {
 	t.Run("successful fetch", func(t *testing.T) {
 		reg := &fakeRegistry{

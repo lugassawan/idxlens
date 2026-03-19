@@ -2,9 +2,11 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -51,17 +53,43 @@ func listReports(
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "TICKER\tFILENAME\tTYPE\tSIZE\tPERIOD\tYEAR")
 
-	for _, ticker := range tickers {
-		attachments, err := lister.ListReports(ctx, ticker, year, period)
-		if err != nil {
-			return fmt.Errorf("list reports for %s: %w", ticker, err)
+	attResults := make([][]idx.Attachment, len(tickers))
+	errResults := make([]error, len(tickers))
+
+	var wg sync.WaitGroup
+
+	for i, ticker := range tickers {
+		wg.Add(1)
+
+		go func(index int, t string) {
+			defer wg.Done()
+
+			atts, err := lister.ListReports(ctx, t, year, period)
+			attResults[index] = atts
+			errResults[index] = err
+		}(i, ticker)
+	}
+
+	wg.Wait()
+
+	var errs []error
+
+	for i := range errResults {
+		if errResults[i] != nil {
+			errs = append(errs, fmt.Errorf("list reports for %s: %w", tickers[i], errResults[i]))
+
+			continue
 		}
 
-		for _, att := range attachments {
+		for _, att := range attResults[i] {
 			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t%s\n",
 				att.EmitenCode, att.FileName, att.FileType, att.FileSize,
 				att.ReportPeriod, att.ReportYear)
 		}
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return err
 	}
 
 	return tw.Flush()

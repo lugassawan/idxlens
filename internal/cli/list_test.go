@@ -181,6 +181,38 @@ func TestRunListWithCookiesServerDown(t *testing.T) {
 	_ = err
 }
 
+func TestListReportsConcurrency(t *testing.T) {
+	lister := &fakeReportLister{
+		reports: map[string][]idx.Attachment{
+			"BBCA": {{EmitenCode: "BBCA", FileName: "bbca.pdf", FileType: "pdf"}},
+			"BBRI": {{EmitenCode: "BBRI", FileName: "bbri.xlsx", FileType: "xlsx"}},
+			"BMRI": {{EmitenCode: "BMRI", FileName: "bmri.pdf", FileType: "pdf"}},
+		},
+	}
+
+	var buf bytes.Buffer
+
+	err := listReports(context.Background(), &buf, lister, []string{"BBCA", "BBRI", "BMRI"}, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := buf.String()
+
+	// Results should be in ticker order (BBCA, BBRI, BMRI) regardless of goroutine scheduling
+	bbcaIdx := strings.Index(output, "BBCA")
+	bbriIdx := strings.Index(output, "BBRI")
+	bmriIdx := strings.Index(output, "BMRI")
+
+	if bbcaIdx < 0 || bbriIdx < 0 || bmriIdx < 0 {
+		t.Fatalf("output missing tickers\ngot: %s", output)
+	}
+
+	if bbcaIdx > bbriIdx || bbriIdx > bmriIdx {
+		t.Errorf("results not in ticker order\ngot: %s", output)
+	}
+}
+
 func TestListReportsHeader(t *testing.T) {
 	lister := &fakeReportLister{reports: map[string][]idx.Attachment{}}
 	var buf bytes.Buffer
