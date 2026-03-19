@@ -3,12 +3,14 @@ package cli
 import "github.com/spf13/cobra"
 
 var rootCmd = &cobra.Command{
-	Use:   "idxlens",
-	Short: "Extract structured financial data from IDX reports",
-	Long: `IDXLens extracts structured financial data from Indonesia Stock Exchange
-(IDX) reports. Supports XLSX, XBRL, and PDF presentation formats.`,
+	Use:           "idxlens",
+	Short:         "Extract structured financial data from IDX reports",
 	SilenceUsage:  true,
 	SilenceErrors: true,
+	Run: func(cmd *cobra.Command, _ []string) {
+		printBanner(cmd)
+		_ = cmd.Help()
+	},
 }
 
 func Execute() error {
