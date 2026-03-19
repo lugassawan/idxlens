@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -48,25 +49,31 @@ func ParseZip(zipPath string) (*Statement, error) {
 	stmt := &Statement{}
 	parseMeta(stmt, filepath.Base(zipPath))
 
-	xbrlFile, err := findXBRLFile(r.File)
-	if err != nil {
-		return nil, err
+	xbrlFiles := findXBRLFiles(r.File)
+	if len(xbrlFiles) == 0 {
+		return nil, errors.New("no XBRL files found in zip")
 	}
 
-	rc, err := xbrlFile.Open()
+	for _, xf := range xbrlFiles {
+		facts, err := parseZipEntry(xf)
+		if err != nil {
+			continue
+		}
+
+		stmt.Facts = append(stmt.Facts, facts...)
+	}
+
+	return stmt, nil
+}
+
+func parseZipEntry(f *zip.File) ([]Fact, error) {
+	rc, err := f.Open()
 	if err != nil {
-		return nil, fmt.Errorf("open xbrl entry: %w", err)
+		return nil, fmt.Errorf("open entry: %w", err)
 	}
 	defer rc.Close()
 
-	facts, err := parseFacts(rc)
-	if err != nil {
-		return nil, fmt.Errorf("parse facts: %w", err)
-	}
-
-	stmt.Facts = facts
-
-	return stmt, nil
+	return parseFacts(rc)
 }
 
 func parseMeta(stmt *Statement, filename string) {
@@ -80,16 +87,21 @@ func parseMeta(stmt *Statement, filename string) {
 	stmt.Ticker = m[3]
 }
 
-func findXBRLFile(files []*zip.File) (*zip.File, error) {
-	for _, wantExt := range xbrlExtPriority {
-		for _, f := range files {
-			if strings.EqualFold(filepath.Ext(f.Name), wantExt) {
-				return f, nil
-			}
+func findXBRLFiles(files []*zip.File) []*zip.File {
+	var matched []*zip.File
+
+	for _, f := range files {
+		ext := strings.ToLower(filepath.Ext(f.Name))
+		if isXBRLExt(ext) {
+			matched = append(matched, f)
 		}
 	}
 
-	return nil, errors.New("no XBRL file found in zip")
+	return matched
+}
+
+func isXBRLExt(ext string) bool {
+	return slices.Contains(xbrlExtPriority, ext)
 }
 
 func parseFacts(r io.Reader) ([]Fact, error) {
