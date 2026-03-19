@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
@@ -73,36 +74,71 @@ func fetchIDXDocuments(
 	ctx context.Context, client service.IDXFetcher, tickers []string,
 	year int, period, fileType string, summary *fetchSummary,
 ) error {
-	for _, ticker := range tickers {
-		atts, err := client.ListReports(ctx, ticker, year, period)
+	downloadedSlices := make([][]string, len(tickers))
+	failedSlices := make([][]string, len(tickers))
+	errSlices := make([]error, len(tickers))
+
+	var wg sync.WaitGroup
+
+	for i, ticker := range tickers {
+		wg.Add(1)
+
+		go func(index int, t string) {
+			defer wg.Done()
+
+			dl, fl, err := fetchTickerDocuments(ctx, client, t, year, period, fileType)
+			downloadedSlices[index] = dl
+			failedSlices[index] = fl
+			errSlices[index] = err
+		}(i, ticker)
+	}
+
+	wg.Wait()
+
+	for i, err := range errSlices {
 		if err != nil {
-			return fmt.Errorf("list reports for %s: %w", ticker, err)
+			return fmt.Errorf("list reports for %s: %w", tickers[i], err)
 		}
 
-		filtered := filterAttachments(atts, fileType)
-		if len(filtered) == 0 {
-			continue
-		}
-
-		dataDir, err := idx.DataDir()
-		if err != nil {
-			return fmt.Errorf("resolve data directory: %w", err)
-		}
-
-		for _, att := range filtered {
-			destDir := filepath.Join(dataDir, ticker, att.ReportYear, att.ReportPeriod)
-
-			result, err := client.Download(ctx, att, destDir)
-			if err != nil {
-				summary.Failed = append(summary.Failed, att.FileName)
-				continue
-			}
-
-			summary.Downloaded = append(summary.Downloaded, result.LocalPath)
-		}
+		summary.Downloaded = append(summary.Downloaded, downloadedSlices[i]...)
+		summary.Failed = append(summary.Failed, failedSlices[i]...)
 	}
 
 	return nil
+}
+
+func fetchTickerDocuments(
+	ctx context.Context, client service.IDXFetcher, ticker string,
+	year int, period, fileType string,
+) (downloaded, failed []string, err error) {
+	atts, err := client.ListReports(ctx, ticker, year, period)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	filtered := filterAttachments(atts, fileType)
+	if len(filtered) == 0 {
+		return nil, nil, nil
+	}
+
+	dataDir, err := idx.DataDir()
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolve data directory: %w", err)
+	}
+
+	for _, att := range filtered {
+		destDir := filepath.Join(dataDir, ticker, att.ReportYear, att.ReportPeriod)
+
+		result, dlErr := client.Download(ctx, att, destDir)
+		if dlErr != nil {
+			failed = append(failed, att.FileName)
+			continue
+		}
+
+		downloaded = append(downloaded, result.LocalPath)
+	}
+
+	return downloaded, failed, nil
 }
 
 func fetchPresentations(
