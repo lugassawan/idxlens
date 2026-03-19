@@ -10,7 +10,10 @@ import (
 	"path/filepath"
 )
 
-const registryURL = "https://raw.githubusercontent.com/lugassawan/idxlens/main/registry/presentations.json"
+const (
+	registryURL  = "https://raw.githubusercontent.com/lugassawan/idxlens/main/registry/presentations.json"
+	registryFile = "registry.json"
+)
 
 // PresentationEntry represents a single company presentation document.
 type PresentationEntry struct {
@@ -39,7 +42,7 @@ func RegistryPath() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(home, "registry.json"), nil
+	return filepath.Join(home, registryFile), nil
 }
 
 // LoadCachedRegistry reads a presentation registry from a local JSON file.
