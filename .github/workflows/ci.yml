@@ -33,7 +33,6 @@ jobs:
               - 'Makefile'
               - '.custom-gcl.yml'
               - '.golangci.yml'
-              - 'dictionaries/**'
               - '.github/workflows/ci.yml'
 
   lint:
@@ -103,12 +102,6 @@ jobs:
           fi
           echo "Coverage OK: ${total}% >= ${threshold}%"
 
-      - name: Upload coverage to Codecov
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.out
-          fail_ci_if_error: false
 
   build:
     name: Build
