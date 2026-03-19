@@ -1332,3 +1332,371 @@ func TestFilterCompositeFinancialTables(t *testing.T) {
 		})
 	}
 }
+
+func TestCurrencyUnitShortFormat(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name         string
+		header       string
+		wantCurrency string
+		wantUnit     string
+	}{
+		{
+			name:         "Rp tn trillions",
+			header:       "Consolidated (Rp tn)",
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+		{
+			name:         "Rp bn billions",
+			header:       "(Rp bn)",
+			wantCurrency: "IDR",
+			wantUnit:     "billions",
+		},
+		{
+			name:         "Rp mn millions",
+			header:       "Rp mn",
+			wantCurrency: "IDR",
+			wantUnit:     "millions",
+		},
+		{
+			name:         "Rp triliun",
+			header:       "(Rp triliun)",
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+		{
+			name:         "Rp miliar",
+			header:       "Rp miliar",
+			wantCurrency: "IDR",
+			wantUnit:     "billions",
+		},
+		{
+			name:         "USD bn",
+			header:       "(USD bn)",
+			wantCurrency: "USD",
+			wantUnit:     "billions",
+		},
+		{
+			name:         "IDR tn",
+			header:       "IDR tn",
+			wantCurrency: "IDR",
+			wantUnit:     "trillions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				[]string{tt.header, "Dec-23"},
+				[]table.Row{makeRow(0, "Cash and Equivalents", "100")},
+			)
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if stmt.Currency != tt.wantCurrency {
+				t.Errorf("currency = %q, want %q", stmt.Currency, tt.wantCurrency)
+			}
+
+			if stmt.Unit != tt.wantUnit {
+				t.Errorf("unit = %q, want %q", stmt.Unit, tt.wantUnit)
+			}
+		})
+	}
+}
+
+func TestAbbreviatedPeriodDetection(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name        string
+		headers     []string
+		wantPeriods []string
+	}{
+		{
+			name:        "Dec-25 and Dec-24",
+			headers:     []string{"", "Dec-25", "Dec-24"},
+			wantPeriods: []string{"2025-12-31", "2024-12-31"},
+		},
+		{
+			name:        "Sep-25",
+			headers:     []string{"", "Sep-25"},
+			wantPeriods: []string{"2025-09-30"},
+		},
+		{
+			name:        "Mar-24",
+			headers:     []string{"", "Mar-24"},
+			wantPeriods: []string{"2024-03-31"},
+		},
+		{
+			name:        "Jun-25",
+			headers:     []string{"", "Jun-25"},
+			wantPeriods: []string{"2025-06-30"},
+		},
+		{
+			name:        "FY-25 fiscal year",
+			headers:     []string{"", "FY-25"},
+			wantPeriods: []string{"2025-12-31"},
+		},
+		{
+			name:        "3Q-25 quarter",
+			headers:     []string{"", "3Q-25"},
+			wantPeriods: []string{"2025-09-30"},
+		},
+		{
+			name:        "4Q-24 quarter",
+			headers:     []string{"", "4Q-24"},
+			wantPeriods: []string{"2024-12-31"},
+		},
+		{
+			name:        "1Q-25 quarter",
+			headers:     []string{"", "1Q-25"},
+			wantPeriods: []string{"2025-03-31"},
+		},
+		{
+			name:        "2Q-25 quarter",
+			headers:     []string{"", "2Q-25"},
+			wantPeriods: []string{"2025-06-30"},
+		},
+		{
+			name:        "multiple abbreviated periods",
+			headers:     []string{"Consolidated (Rp tn)", "Dec-23", "Dec-24", "Dec-25"},
+			wantPeriods: []string{"2023-12-31", "2024-12-31", "2025-12-31"},
+		},
+		{
+			name:        "non quarter end month",
+			headers:     []string{"", "Feb-25"},
+			wantPeriods: []string{"2025-02-28"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, "Total Assets", "100")},
+			)
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Periods) != len(tt.wantPeriods) {
+				t.Fatalf("periods count = %d (%v), want %d (%v)",
+					len(stmt.Periods), stmt.Periods,
+					len(tt.wantPeriods), tt.wantPeriods)
+			}
+
+			for i, want := range tt.wantPeriods {
+				if stmt.Periods[i] != want {
+					t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+				}
+			}
+		})
+	}
+}
+
+func TestGrowthRateColumnFiltering(t *testing.T) {
+	m := NewMapper()
+
+	tests := []struct {
+		name       string
+		headers    []string
+		rowTexts   []string
+		wantValues int
+	}{
+		{
+			name:       "filters YoY and QoQ columns",
+			headers:    []string{"", "Dec-24", "Dec-25", "YoY", "QoQ"},
+			rowTexts:   []string{"Total Assets", "1,449", "1,587", "9.5%", "3.1%"},
+			wantValues: 2,
+		},
+		{
+			name:       "keeps all columns when no growth headers",
+			headers:    []string{"", "Dec-24", "Dec-25"},
+			rowTexts:   []string{"Total Assets", "1,449", "1,587"},
+			wantValues: 2,
+		},
+		{
+			name:       "filters percentage values even without growth headers",
+			headers:    []string{"", "Dec-24", "Dec-25", "Change"},
+			rowTexts:   []string{"Total Assets", "1,449", "1,587", "9.5%"},
+			wantValues: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tbl := makeTable(
+				tt.headers,
+				[]table.Row{makeRow(0, tt.rowTexts...)},
+			)
+
+			stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+			if err != nil {
+				t.Fatalf("Map() unexpected error: %v", err)
+			}
+
+			if len(stmt.Items) == 0 {
+				t.Fatal("expected at least 1 item")
+			}
+
+			gotValues := len(stmt.Items[0].Values)
+			if gotValues != tt.wantValues {
+				t.Errorf("values count = %d, want %d (values: %v)",
+					gotValues, tt.wantValues, stmt.Items[0].Values)
+			}
+		})
+	}
+}
+
+func TestAbbrevToISO(t *testing.T) {
+	tests := []struct {
+		name  string
+		label string
+		year  int
+		want  string
+	}{
+		{"december", "Dec", 2025, "2025-12-31"},
+		{"september", "Sep", 2025, "2025-09-30"},
+		{"march", "Mar", 2024, "2024-03-31"},
+		{"june", "Jun", 2025, "2025-06-30"},
+		{"fiscal year", "FY", 2025, "2025-12-31"},
+		{"Q1", "1Q", 2025, "2025-03-31"},
+		{"Q2", "2Q", 2025, "2025-06-30"},
+		{"Q3", "3Q", 2025, "2025-09-30"},
+		{"Q4", "4Q", 2025, "2025-12-31"},
+		{"february non quarter end", "Feb", 2024, "2024-02-29"},
+		{"february non leap year", "Feb", 2025, "2025-02-28"},
+		{"unknown", "XY", 2025, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := abbrevToISO(tt.label, tt.year)
+			if got != tt.want {
+				t.Errorf("abbrevToISO(%q, %d) = %q, want %q", tt.label, tt.year, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGrowthRateColumns(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers []string
+		want    map[int]bool
+	}{
+		{
+			name:    "detects YoY and QoQ",
+			headers: []string{"", "Dec-24", "Dec-25", "YoY", "QoQ"},
+			want:    map[int]bool{3: true, 4: true},
+		},
+		{
+			name:    "no growth headers",
+			headers: []string{"", "Dec-24", "Dec-25"},
+			want:    map[int]bool{},
+		},
+		{
+			name:    "percent sign header",
+			headers: []string{"", "Dec-24", "%"},
+			want:    map[int]bool{2: true},
+		},
+		{
+			name:    "growth header",
+			headers: []string{"", "Dec-24", "Growth"},
+			want:    map[int]bool{2: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := growthRateColumns(tt.headers)
+			if len(got) != len(tt.want) {
+				t.Fatalf("growthRateColumns() = %v, want %v", got, tt.want)
+			}
+
+			for k, v := range tt.want {
+				if got[k] != v {
+					t.Errorf("growthRateColumns()[%d] = %v, want %v", k, got[k], v)
+				}
+			}
+		})
+	}
+}
+
+func TestIsPercentageValue(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{"9.5%", true},
+		{"-3.1%", true},
+		{"100", false},
+		{"1,234", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := isPercentageValue(tt.input); got != tt.want {
+				t.Errorf("isPercentageValue(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPresentationStyleFullExtraction(t *testing.T) {
+	m := NewMapper()
+
+	headers := []string{"Consolidated (Rp tn)", "Dec-23", "Dec-24", "Dec-25", "YoY", "Sep-25", "QoQ"}
+	rows := []table.Row{
+		makeRow(0, "Total Assets", "1,408", "1,449", "1,587", "9.5%", "1,539", "3.1%"),
+		makeRow(1, "Loans", "810", "922", "993", "7.7%", "944", "5.2%"),
+	}
+
+	tbl := makeTable(headers, rows)
+	stmt, err := m.Map(DocTypeBalanceSheet, []table.Table{tbl})
+
+	if err != nil {
+		t.Fatalf("Map() unexpected error: %v", err)
+	}
+
+	if stmt.Currency != "IDR" {
+		t.Errorf("currency = %q, want %q", stmt.Currency, "IDR")
+	}
+
+	if stmt.Unit != "trillions" {
+		t.Errorf("unit = %q, want %q", stmt.Unit, "trillions")
+	}
+
+	wantPeriods := []string{"2023-12-31", "2024-12-31", "2025-12-31"}
+	if len(stmt.Periods) != len(wantPeriods) {
+		t.Fatalf("periods = %v, want %v", stmt.Periods, wantPeriods)
+	}
+
+	for i, want := range wantPeriods {
+		if stmt.Periods[i] != want {
+			t.Errorf("periods[%d] = %q, want %q", i, stmt.Periods[i], want)
+		}
+	}
+
+	if len(stmt.Items) < 2 {
+		t.Fatalf("items count = %d, want >= 2", len(stmt.Items))
+	}
+
+	// Verify YoY and QoQ values are filtered out — only period values remain.
+	for _, item := range stmt.Items {
+		for key := range item.Values {
+			if key == "YoY" || key == "QoQ" {
+				t.Errorf("item %q has growth rate key %q, should be filtered",
+					item.Label, key)
+			}
+		}
+	}
+}
