@@ -74,12 +74,17 @@ Language:   id
 
 **Supported report types:**
 
-| Type                | Description                      |
-|---------------------|----------------------------------|
-| `balance-sheet`     | Statement of Financial Position  |
-| `income-statement`  | Statement of Profit or Loss      |
-| `cash-flow`         | Statement of Cash Flows          |
-| `equity-changes`    | Statement of Changes in Equity   |
+| Type                       | Description                      |
+|----------------------------|----------------------------------|
+| `balance-sheet`            | Statement of Financial Position  |
+| `income-statement`         | Statement of Profit or Loss      |
+| `cash-flow`                | Statement of Cash Flows          |
+| `equity-changes`           | Statement of Changes in Equity   |
+| `sustainability-report`    | ESG/Sustainability Report        |
+| `annual-report`            | Annual Report                    |
+| `corporate-presentation`   | Corporate Presentation           |
+| `auditor-report`           | Independent Auditor's Report     |
+| `notes`                    | Notes to Financial Statements    |
 
 ---
 
@@ -96,6 +101,8 @@ idxlens extract [subcommand]
 ### `extract financial`
 
 Extract structured financial data from an IDX PDF report. Runs the full L0-L4 pipeline: PDF parsing, layout analysis, document classification, table detection, financial statement mapping, and output formatting.
+
+Supports banking-specific line items (NIM, NPL, CASA, DPK, etc.), bilingual tab-separated column detection for side-by-side Indonesian/English layouts, presentation-style "Rp tn" unit detection, and abbreviated period parsing (e.g., "Dec-25", "FY-25", "3Q-25").
 
 ```sh
 idxlens extract financial [pdf-path]
@@ -161,6 +168,46 @@ idxlens extract text report.pdf
 
 # Extract specific pages
 idxlens extract text report.pdf --pages "1-3,5"
+```
+
+---
+
+### `extract esg`
+
+Extract ESG/GRI content index data from a sustainability report. Scans tables for GRI disclosure numbers and extracts structured data including disclosure number, title, description, page references, and reporting status.
+
+```sh
+idxlens extract esg [pdf-path]
+```
+
+**Arguments:**
+
+| Argument   | Description              |
+|-----------|--------------------------|
+| `pdf-path` | Path to the PDF file     |
+
+**Examples:**
+
+```sh
+# Extract GRI disclosures from a sustainability report
+idxlens extract esg sustainability-report.pdf
+```
+
+**Output (JSON):**
+
+```json
+{
+  "disclosures": [
+    {
+      "number": "201-1",
+      "title": "Direct economic value generated and distributed",
+      "description": "",
+      "page_ref": "45",
+      "status": "reported"
+    }
+  ],
+  "framework": "GRI"
+}
 ```
 
 ---

@@ -18,11 +18,14 @@ IDXLens is a CLI tool that parses IDX financial report PDFs and outputs structur
 
 ## Features
 
-- **Classify** IDX PDF reports by type (balance sheet, income statement, cash flow, equity changes)
-- **Extract financial data** with auto-classification and dictionary-based label matching
+- **Classify** IDX PDF reports across 9 document types (financial statements, annual reports, sustainability reports, corporate presentations)
+- **Extract financial data** with auto-classification and dictionary-based label matching (~314 line items across 4 statement types, including banking-specific items)
+- **Extract ESG/GRI data** from sustainability report content index tables
 - **Extract raw text** from PDFs for inspection and debugging
 - **Batch processing** with bounded concurrency for multiple files
-- **Bilingual support** for Indonesian and English report labels (PSAK/IFRS)
+- **Bilingual support** for Indonesian and English report labels (PSAK/IFRS), with tab-separated column detection
+- **Presentation support** for corporate presentations with "Rp tn" unit detection
+- **Noise filtering** to exclude garbled text, governance tables, and page references
 - **Multiple output formats**: JSON (with pretty-print) and CSV
 - **Pure Go** -- single static binary, no runtime dependencies
 
@@ -46,6 +49,9 @@ idxlens classify report.pdf
 
 # Extract financial data (auto-detect type, JSON output)
 idxlens extract financial report.pdf
+
+# Extract ESG/GRI data from sustainability reports
+idxlens extract esg sustainability-report.pdf
 
 # Extract raw text
 idxlens extract text report.pdf --pages "1-3"

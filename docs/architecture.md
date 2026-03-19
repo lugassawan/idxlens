@@ -82,22 +82,28 @@ Identifies tabular structures in layout pages by detecting aligned columns, row 
 
 ### L3: IDX Domain Engine (`internal/domain/`)
 
-Contains all IDX-specific business logic: document classification, financial statement mapping, number parsing, and dictionary-based label matching.
+Contains all IDX-specific business logic: document classification, financial statement mapping, ESG extraction, noise filtering, number parsing, and dictionary-based label matching.
 
 **Key components:**
 
 | Component          | Purpose                                                  |
 |-------------------|----------------------------------------------------------|
-| Classifier         | Heuristic-based report type detection                    |
+| Classifier         | Heuristic-based report type detection (9 document types) |
 | Mapper             | Maps table rows to financial line items using dictionaries|
-| Dictionary         | Bilingual label matching (Indonesian/English)            |
+| ESG Extractor      | Extracts GRI content index disclosures from sustainability reports |
+| Noise Filter       | Removes garbled text, governance tables, page references, and non-financial content |
+| Dictionary         | Bilingual label matching (Indonesian/English), including banking-specific items |
 | Number parser      | Indonesian number format parsing (dot thousands, comma decimal) |
+| Bilingual detector | Tab-separated column detection for side-by-side ID/EN layouts |
 
 **Responsibilities:**
-- Classify documents by type (balance sheet, income statement, etc.)
+- Classify documents by type (balance sheet, income statement, sustainability report, etc.)
 - Map raw table data to structured financial statements
+- Extract GRI disclosures from ESG content index tables
+- Filter noise: garbled PDF text, spaced-out characters, governance/compliance tables, page references
 - Match labels to dictionary items with confidence scores
-- Parse Indonesian-format numbers
+- Parse Indonesian-format numbers and abbreviated periods (Dec-25, FY-25, 3Q-25)
+- Detect "Rp tn" unit formats in corporate presentations
 
 ### L4: Output Formatter (`internal/output/`)
 
@@ -120,7 +126,7 @@ type Formatter interface {
 Cobra-based command definitions. Wires the pipeline together, handles flag parsing, and manages I/O.
 
 **Responsibilities:**
-- Define commands (`classify`, `extract financial`, `extract text`, `version`)
+- Define commands (`classify`, `extract financial`, `extract text`, `extract esg`, `batch`, `version`)
 - Parse and validate flags
 - Orchestrate the pipeline: open PDF, analyze, classify, detect tables, map, format
 - Handle output destination (stdout or file)

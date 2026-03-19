@@ -115,6 +115,16 @@ idxlens extract financial report.pdf --format csv
 idxlens extract financial report.pdf --output result.json
 ```
 
+### Extract ESG/GRI data
+
+Extract GRI content index disclosures from a sustainability report:
+
+```sh
+idxlens extract esg sustainability-report.pdf
+```
+
+This outputs GRI disclosures as JSON, including disclosure numbers, titles, page references, and reporting status.
+
 ### Extract raw text
 
 Extract text lines from a PDF without financial parsing:
