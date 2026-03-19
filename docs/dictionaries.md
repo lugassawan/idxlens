@@ -1,6 +1,6 @@
 # Dictionaries
 
-IDXLens uses JSON dictionary files to map financial line item labels found in PDFs to standardized keys. Dictionaries support bilingual labels (Indonesian and English) to handle both language variants common in IDX reports.
+IDXLens uses JSON dictionary files to map financial line item labels found in PDFs to standardized keys. Dictionaries support bilingual labels (Indonesian and English) to handle both language variants common in IDX reports. The dictionaries contain approximately 314 items across 4 statement types, including banking-specific line items (NIM, NPL, CASA, DPK, etc.).
 
 ## Location
 
@@ -126,6 +126,16 @@ To add a new line item to an existing dictionary:
 | Section        | Description                       |
 |---------------|-----------------------------------|
 | `equity`       | Changes in equity components      |
+
+## Banking-specific items
+
+The dictionaries include banking-specific line items commonly found in IDX reports from financial institutions. These cover:
+
+- **Balance sheet**: Third-party funds (DPK), securities, derivatives, acceptances payable, insurance liabilities
+- **Income statement**: Net Interest Margin (NIM), Non-Performing Loans (NPL), CASA ratio, sharia-based income/expense items
+- **Cash flow**: Placement changes, securities transactions, banking-specific operating items
+
+Banking items use the same bilingual label format. They are included in the standard dictionary files alongside general line items -- no separate configuration is needed.
 
 ## Guidelines for label variants
 
