@@ -1,0 +1,26 @@
+{
+  "Results": [
+    {
+      "Attachments": [
+        {
+          "namaFile": "Financial Report Q3 2024.pdf",
+          "pathFile": "/Portals/0/StaticData/ListedCompanies/Reports/BBCA/2024/Q3/BBCA_Q3_2024.pdf",
+          "tipeFile": "pdf",
+          "fileSize": 1048576,
+          "kodeEmiten": "BBCA",
+          "periLaporan": "Q3",
+          "tahunLaporan": "2024"
+        },
+        {
+          "namaFile": "Financial Report Q3 2024.xlsx",
+          "pathFile": "/Portals/0/StaticData/ListedCompanies/Reports/BBCA/2024/Q3/BBCA_Q3_2024.xlsx",
+          "tipeFile": "xlsx",
+          "fileSize": 524288,
+          "kodeEmiten": "BBCA",
+          "periLaporan": "Q3",
+          "tahunLaporan": "2024"
+        }
+      ]
+    }
+  ]
+}
