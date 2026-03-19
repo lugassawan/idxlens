@@ -1,6 +1,6 @@
 # Getting Started
 
-IDXLens is a CLI tool for extracting structured financial data from Indonesia Stock Exchange (IDX) PDF reports. It converts unstructured PDF tables into clean, machine-readable JSON or CSV.
+IDXLens is a CLI tool for fetching and extracting structured financial data from Indonesia Stock Exchange (IDX) reports. Supports XLSX, XBRL, and PDF formats with automated downloading from the IDX portal.
 
 ## Installation
 
@@ -15,7 +15,7 @@ This downloads the latest release binary for your OS and architecture, installs 
 To install a specific version:
 
 ```sh
-VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
+VERSION=v2.0.0 curl -fsSL https://raw.githubusercontent.com/lugassawan/idxlens/main/scripts/install.sh | bash
 ```
 
 ### Using `go install`
@@ -57,90 +57,78 @@ idxlens version
 Expected output:
 
 ```
-idxlens v0.1.0 (commit: abc1234, built: 2025-01-01T00:00:00Z)
+idxlens v2.0.0 (commit: abc1234, built: 2026-01-01T00:00:00Z)
 ```
 
 ## Quick start
 
-### Classify a report
-
-Identify what type of financial report a PDF contains:
+### 1. Authenticate with IDX portal
 
 ```sh
-idxlens classify report.pdf
+idxlens auth
 ```
 
-Output:
+This launches a headless Chrome session to log in to the IDX portal. Chrome must be installed. The session is stored in `~/.idxlens` (or `IDXLENS_HOME` if set).
 
-```
-Type:       balance-sheet
-Confidence: 95%
-Language:   id
-```
-
-### Extract financial data
-
-Extract structured financial data from a PDF:
+### 2. List available reports
 
 ```sh
-idxlens extract financial report.pdf
+idxlens list BBCA -y 2024
 ```
 
-This runs the full pipeline (PDF parsing, layout analysis, classification, table detection, financial mapping) and outputs JSON to stdout.
-
-### Specify report type
-
-If auto-classification is not needed or gives unexpected results, specify the type explicitly:
+This queries the IDX API for available reports. Filter by year and period:
 
 ```sh
-idxlens extract financial report.pdf --type balance-sheet
+idxlens list BBCA -y 2024 -p Q3
 ```
 
-### Change output format
+### 3. Fetch reports
 
 ```sh
-# JSON (default)
-idxlens extract financial report.pdf --format json
-
-# Pretty-printed JSON
-idxlens extract financial report.pdf --format json --pretty
-
-# CSV
-idxlens extract financial report.pdf --format csv
+idxlens fetch BBCA -y 2024 -p Q3
 ```
 
-### Save to a file
+This downloads reports to the local cache at `~/.idxlens/reports/BBCA/`.
+
+### 4. Extract financial data
 
 ```sh
-idxlens extract financial report.pdf --output result.json
+# From a local XLSX file
+idxlens extract ~/.idxlens/reports/BBCA/2024-Q3.xlsx --pretty
+
+# From a XBRL ZIP archive
+idxlens extract ~/.idxlens/reports/BBCA/2024-Q3.zip
+
+# Presentation KV extraction from PDF
+idxlens extract presentation.pdf --mode presentation
 ```
 
-### Extract ESG/GRI data
+### Or use the full pipeline
 
-Extract GRI content index disclosures from a sustainability report:
+The `analyze` command combines fetch and extract into a single step:
 
 ```sh
-idxlens extract esg sustainability-report.pdf
+idxlens analyze BBCA -y 2024 -p Q3 --pretty
 ```
 
-This outputs GRI disclosures as JSON, including disclosure numbers, titles, page references, and reporting status.
+This fetches reports (if not cached) and extracts from the best available format (XLSX > XBRL > PDF).
 
-### Extract raw text
-
-Extract text lines from a PDF without financial parsing:
+Analyze multiple tickers at once:
 
 ```sh
-idxlens extract text report.pdf
+idxlens analyze BBCA,BMRI,BBRI -y 2024 -p Q3
 ```
 
-Extract specific pages:
+### Keep IDXLens up to date
 
 ```sh
-idxlens extract text report.pdf --pages "1-3,5"
+idxlens upgrade
 ```
+
+This checks for the latest release and updates the binary in place.
 
 ## Next steps
 
 - [CLI Reference](cli-reference.md) -- all commands and flags
-- [Architecture](architecture.md) -- how the processing pipeline works
+- [Architecture](architecture.md) -- pipeline design and package details
 - [Examples](examples/basic-extraction.md) -- detailed usage examples

@@ -25,6 +25,7 @@ IDXLens is a CLI tool that fetches and extracts structured financial data from I
 - **Presentation KV extraction** for corporate presentations (key-value pair detection from PDF layout)
 - **Local caching** via `IDXLENS_HOME` (default: `~/.idxlens`)
 - **JSON output** with optional pretty-print
+- **Self-update** via `idxlens upgrade` from GitHub Releases
 - **Pure Go** -- single static binary, no runtime dependencies
 
 ## Quick Install
@@ -58,6 +59,9 @@ idxlens extract path/to/presentation.pdf --mode presentation
 
 # Full pipeline: fetch (if needed) + extract
 idxlens analyze BBCA -y 2024 -p Q3
+
+# Self-update to latest version
+idxlens upgrade
 ```
 
 ## Documentation

@@ -20,9 +20,11 @@ CLI tool for extracting structured financial data from Indonesia Stock Exchange 
 idxlens/
 ├── cmd/idxlens/        # Entry point (main.go calls cli.Execute())
 ├── internal/
-│   ├── cli/            # Cobra CLI commands (auth, list, fetch, extract, analyze, version)
-│   ├── service/        # Orchestration service (registry, pipeline coordination)
+│   ├── cli/            # Cobra CLI commands (auth, list, fetch, extract, analyze, upgrade, version)
+│   ├── service/        # Orchestration service (registry, presentation extraction)
 │   ├── idx/            # IDX API client (auth, listing, fetching, downloading)
+│   ├── upgrade/        # Self-update from GitHub Releases
+│   ├── safefile/       # Atomic file write utilities
 │   ├── xlsx/           # XLSX parser (excelize-based financial statement extraction)
 │   ├── xbrl/           # XBRL parser (ZIP-based taxonomy extraction)
 │   ├── domain/         # Presentation KV extractor (PDF key-value pair extraction)
@@ -38,8 +40,10 @@ idxlens/
 ### Architecture
 
 - All logic in `internal/` — no public API surface
-- New extraction pipeline: `cli/` -> `service/` -> `idx/`/`xlsx/`/`xbrl/` -> (IDX API or local files)
-- Presentation extraction: `cli/` -> `domain/kvextractor` -> `layout/` -> `pdf/`
+- Extraction pipeline: `cli/` -> `service/` -> `idx/`/`xlsx/`/`xbrl/` -> (IDX API or local files)
+- Presentation extraction: `cli/` -> `service/` -> `domain/kvextractor` -> `layout/` -> `pdf/`
+- Self-update: `cli/` -> `upgrade/` -> GitHub Releases API
+- Atomic file writes: `idx/` and `upgrade/` use `safefile/` for safe downloads
 - Each layer defines interfaces at its boundary; implementations live in the layer below
 - `cmd/idxlens/main.go` is Framework layer — it only calls `cli.Execute()`
 - `IDXLENS_HOME` env var controls local cache directory (default: `~/.idxlens`)
@@ -64,6 +68,7 @@ idxlens list TICKER       # List available reports for a ticker
 idxlens fetch TICKER      # Download reports to local cache
 idxlens extract FILE      # Extract financial data from XLSX/XBRL/PDF
 idxlens analyze TICKER    # Full pipeline: fetch + extract (best format)
+idxlens upgrade           # Self-update from GitHub Releases
 idxlens version           # Print version information
 ```
 
