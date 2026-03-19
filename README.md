@@ -4,7 +4,7 @@
 
 # IDXLens
 
-**Extract structured financial data from Indonesia Stock Exchange (IDX) PDF reports**
+**Extract structured financial data from Indonesia Stock Exchange (IDX) reports (XLSX, XBRL, PDF)**
 
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/lugassawan/idxlens/actions/workflows/ci.yml/badge.svg)](https://github.com/lugassawan/idxlens/actions/workflows/ci.yml)
@@ -14,19 +14,17 @@
 
 </div>
 
-IDXLens is a CLI tool that parses IDX financial report PDFs and outputs structured data in JSON or CSV. No network calls -- everything runs locally.
+IDXLens is a CLI tool that fetches and extracts structured financial data from IDX reports. Supports XLSX, XBRL, and PDF formats with automated downloading from the IDX portal.
 
 ## Features
 
-- **Classify** IDX PDF reports across 9 document types (financial statements, annual reports, sustainability reports, corporate presentations)
-- **Extract financial data** with auto-classification and dictionary-based label matching (~314 line items across 4 statement types, including banking-specific items)
-- **Extract ESG/GRI data** from sustainability report content index tables
-- **Extract raw text** from PDFs for inspection and debugging
-- **Batch processing** with bounded concurrency for multiple files
-- **Bilingual support** for Indonesian and English report labels (PSAK/IFRS), with tab-separated column detection
-- **Presentation support** for corporate presentations with "Rp tn" unit detection
-- **Noise filtering** to exclude garbled text, governance tables, and page references
-- **Multiple output formats**: JSON (with pretty-print) and CSV
+- **Authenticate** with IDX portal via headless Chrome
+- **List and fetch** available financial reports for any ticker
+- **Extract financial data** from XLSX (excelize), XBRL (ZIP archives), and PDF presentations
+- **Full pipeline** (`analyze`): fetch if needed, then extract from the best available format (XLSX > XBRL > PDF)
+- **Presentation KV extraction** for corporate presentations (key-value pair detection from PDF layout)
+- **Local caching** via `IDXLENS_HOME` (default: `~/.idxlens`)
+- **JSON output** with optional pretty-print
 - **Pure Go** -- single static binary, no runtime dependencies
 
 ## Quick Install
@@ -44,20 +42,22 @@ go install github.com/lugassawan/idxlens/cmd/idxlens@latest
 ## Usage
 
 ```sh
-# Classify a report
-idxlens classify report.pdf
+# Authenticate with IDX portal
+idxlens auth
 
-# Extract financial data (auto-detect type, JSON output)
-idxlens extract financial report.pdf
+# List available reports for a ticker
+idxlens list BBCA -y 2024
 
-# Extract ESG/GRI data from sustainability reports
-idxlens extract esg sustainability-report.pdf
+# Fetch reports to local cache
+idxlens fetch BBCA -y 2024 -p Q3
 
-# Extract raw text
-idxlens extract text report.pdf --pages "1-3"
+# Extract financial data from a local file
+idxlens extract path/to/report.xlsx --pretty
+idxlens extract path/to/report.zip   # XBRL ZIP
+idxlens extract path/to/presentation.pdf --mode presentation
 
-# Batch process a directory
-idxlens batch "reports/*.pdf" --workers 8 --output-dir results/
+# Full pipeline: fetch (if needed) + extract
+idxlens analyze BBCA -y 2024 -p Q3
 ```
 
 ## Documentation
@@ -65,9 +65,7 @@ idxlens batch "reports/*.pdf" --workers 8 --output-dir results/
 - [Getting Started](docs/getting-started.md) -- installation and first steps
 - [CLI Reference](docs/cli-reference.md) -- all commands and flags
 - [Architecture](docs/architecture.md) -- pipeline design and layer details
-- [Dictionaries](docs/dictionaries.md) -- financial label mapping
 - [Contributing](docs/contributing.md) -- development setup and guidelines
-- [Examples](docs/examples/basic-extraction.md) -- usage examples
 
 ## Contributing
 
