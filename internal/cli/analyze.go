@@ -69,7 +69,7 @@ func analyzeTicker(
 		}
 
 		if fetchErr := fetchForTicker(ctx, client, ticker, year, period); fetchErr != nil {
-			return fmt.Errorf("fetch: %w", fetchErr)
+			return fetchErr
 		}
 
 		files, err = ResolveInputs(ticker, year, period)
@@ -108,11 +108,11 @@ func bestFormat(files []InputFile) *InputFile {
 func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker string, year int, period string) error {
 	atts, err := client.ListReports(ctx, ticker, year, period)
 	if err != nil {
-		return fmt.Errorf("list reports: %w", err)
+		return err
 	}
 
 	if len(atts) == 0 {
-		return fmt.Errorf("no reports available for %s", ticker)
+		return fmt.Errorf("no reports found for %s on IDX", ticker)
 	}
 
 	dataDir, err := idx.DataDir()

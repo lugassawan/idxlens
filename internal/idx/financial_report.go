@@ -37,28 +37,28 @@ func (c *Client) ListReports(ctx context.Context, ticker string, year int, perio
 
 	req, err := c.newRequest(ctx, http.MethodGet, reqURL)
 	if err != nil {
-		return nil, fmt.Errorf("list reports: %w", err)
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 
 	//nolint:gosec // URL built from trusted baseURL set at client construction
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("list reports request: %w", err)
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("list reports: unexpected status %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("list reports: read body: %w", err)
+		return nil, fmt.Errorf("read response: %w", err)
 	}
 
 	atts, err := parseReportResponse(body)
 	if err != nil {
-		return nil, fmt.Errorf("list reports: %w", err)
+		return nil, fmt.Errorf("parse response: %w", err)
 	}
 
 	return atts, nil

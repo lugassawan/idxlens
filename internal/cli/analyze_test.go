@@ -150,7 +150,7 @@ func TestFetchForTickerNoReports(t *testing.T) {
 		t.Fatal("expected error when no reports available")
 	}
 
-	want := "no reports available for IPCC"
+	want := "no reports found for IPCC on IDX"
 	if err.Error() != want {
 		t.Errorf("error = %q, want %q", err.Error(), want)
 	}
