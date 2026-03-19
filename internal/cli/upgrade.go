@@ -18,9 +18,19 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 }
 
+func isDevBuild(v string) bool {
+	v = strings.TrimPrefix(v, "v")
+	return v == "dev" || strings.Contains(v, "-")
+}
+
 func runUpgrade(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 	w := cmd.OutOrStdout()
+
+	if isDevBuild(version) {
+		fmt.Fprintln(w, "Development build — skipping upgrade")
+		return nil
+	}
 
 	fmt.Fprintln(w, "Checking for updates...")
 
@@ -31,11 +41,6 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 
 	latest := strings.TrimPrefix(release.TagName, "v")
 	current := strings.TrimPrefix(version, "v")
-
-	if current == "dev" {
-		fmt.Fprintln(w, "Development build — skipping upgrade")
-		return nil
-	}
 
 	if latest == current {
 		fmt.Fprintf(w, "Already up to date (v%s)\n", current)
