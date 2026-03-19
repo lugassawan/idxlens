@@ -1,6 +1,9 @@
 package upgrade
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -115,9 +118,10 @@ func TestFindAsset(t *testing.T) {
 
 func TestDownloadAsset(t *testing.T) {
 	content := "binary content"
+	archive := createTestTarGz(t, "idxlens", content)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(content))
+		_, _ = w.Write(archive)
 	}))
 	defer srv.Close()
 
@@ -190,10 +194,10 @@ func TestLatestReleaseInvalidURL(t *testing.T) {
 }
 
 func TestDownloadAssetWriteError(t *testing.T) {
-	content := "binary content"
+	archive := createTestTarGz(t, "idxlens", "binary content")
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(content))
+		_, _ = w.Write(archive)
 	}))
 	defer srv.Close()
 
@@ -252,4 +256,87 @@ func TestCurrentBinaryPath(t *testing.T) {
 	if path == "" {
 		t.Error("path is empty")
 	}
+}
+
+func TestExtractBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    string
+		wantErr string
+	}{
+		{
+			name: "valid archive with idxlens",
+			data: createTestTarGz(t, "idxlens", "hello binary"),
+			want: "hello binary",
+		},
+		{
+			name:    "archive without idxlens",
+			data:    createTestTarGz(t, "other-file", "content"),
+			wantErr: "idxlens binary not found in archive",
+		},
+		{
+			name:    "invalid gzip data",
+			data:    []byte("not gzip at all"),
+			wantErr: "open gzip",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractBinary(bytes.NewReader(tt.data))
+
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("error = %q, want to contain %q", err.Error(), tt.wantErr)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("extractBinary() error: %v", err)
+			}
+
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(got); err != nil {
+				t.Fatalf("read result: %v", err)
+			}
+
+			if buf.String() != tt.want {
+				t.Errorf("content = %q, want %q", buf.String(), tt.want)
+			}
+		})
+	}
+}
+
+func createTestTarGz(t *testing.T, filename, content string) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	hdr := &tar.Header{
+		Name: filename,
+		Mode: 0o755,
+		Size: int64(len(content)),
+	}
+
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("write tar header: %v", err)
+	}
+
+	if _, err := tw.Write([]byte(content)); err != nil {
+		t.Fatalf("write tar content: %v", err)
+	}
+
+	tw.Close()
+	gw.Close()
+
+	return buf.Bytes()
 }
