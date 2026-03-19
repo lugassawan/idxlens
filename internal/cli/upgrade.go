@@ -32,6 +32,11 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 	latest := strings.TrimPrefix(release.TagName, "v")
 	current := strings.TrimPrefix(version, "v")
 
+	if current == "dev" {
+		fmt.Fprintln(w, "Development build — skipping upgrade")
+		return nil
+	}
+
 	if latest == current {
 		fmt.Fprintf(w, "Already up to date (v%s)\n", current)
 		return nil
@@ -39,12 +44,12 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 
 	asset, err := idx.FindAsset(release)
 	if err != nil {
-		return err
+		return fmt.Errorf("find platform asset: %w", err)
 	}
 
 	binPath, err := idx.CurrentBinaryPath()
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve binary path: %w", err)
 	}
 
 	fmt.Fprintf(w, "Upgrading from v%s to v%s...\n", current, latest)

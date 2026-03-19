@@ -117,5 +117,9 @@ func writeFile(path string, r io.Reader) error {
 		return fmt.Errorf("write file: %w", err)
 	}
 
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("sync file: %w", err)
+	}
+
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -61,7 +62,12 @@ func CurrentBinaryPath() (string, error) {
 		return "", fmt.Errorf("resolve executable path: %w", err)
 	}
 
-	return path, nil
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve symlinks: %w", err)
+	}
+
+	return resolved, nil
 }
 
 func latestReleaseFrom(ctx context.Context, url string, hc *http.Client) (*Release, error) {
@@ -108,21 +114,12 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 		return fmt.Errorf("download asset: status %d", resp.StatusCode)
 	}
 
-	tmpPath := destPath + ".tmp"
-
-	if err := writeFile(tmpPath, resp.Body); err != nil {
-		_ = os.Remove(tmpPath)
+	if err := atomicWrite(destPath, resp.Body); err != nil {
 		return fmt.Errorf("write asset: %w", err)
 	}
 
-	if err := os.Chmod(tmpPath, 0o755); err != nil { //nolint:gosec // binary must be executable
-		_ = os.Remove(tmpPath)
+	if err := os.Chmod(destPath, 0o755); err != nil { //nolint:gosec // binary must be executable
 		return fmt.Errorf("chmod asset: %w", err)
-	}
-
-	if err := os.Rename(tmpPath, destPath); err != nil {
-		_ = os.Remove(tmpPath)
-		return fmt.Errorf("rename asset: %w", err)
 	}
 
 	return nil
