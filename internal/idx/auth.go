@@ -31,7 +31,7 @@ type cookieEntry struct {
 // on the IDX website and returns the resulting cookies.
 func Authenticate(ctx context.Context) ([]*http.Cookie, error) {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", "new"),
 		chromedp.Flag("disable-blink-features", "AutomationControlled"),
 	)
 
