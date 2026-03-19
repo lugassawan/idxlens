@@ -13,7 +13,7 @@ func TestDownload(t *testing.T) {
 	t.Run("successful download", func(t *testing.T) {
 		content := "hello world"
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(content))
+			_, _ = w.Write([]byte(content))
 		}))
 		defer srv.Close()
 
@@ -59,7 +59,7 @@ func TestDownload(t *testing.T) {
 	t.Run("atomic write cleans up tmp file", func(t *testing.T) {
 		content := "atomic content"
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(content))
+			_, _ = w.Write([]byte(content))
 		}))
 		defer srv.Close()
 
@@ -85,7 +85,7 @@ func TestDownload(t *testing.T) {
 
 	t.Run("overwrites existing file", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("new content"))
+			_, _ = w.Write([]byte("new content"))
 		}))
 		defer srv.Close()
 
@@ -128,7 +128,7 @@ func TestDownloadAll(t *testing.T) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			w.Write([]byte(content))
+			_, _ = w.Write([]byte(content))
 		}))
 		defer srv.Close()
 
@@ -168,7 +168,7 @@ func TestDownloadAll(t *testing.T) {
 	t.Run("partial failure", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/files/good.pdf" {
-				w.Write([]byte("good"))
+				_, _ = w.Write([]byte("good"))
 				return
 			}
 			w.WriteHeader(http.StatusNotFound)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -40,16 +41,15 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	year, _ := cmd.Flags().GetInt(flagYear)
 	period, _ := cmd.Flags().GetString(flagPeriod)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
-	workers, _ := cmd.Flags().GetInt(flagWorkers)
 
 	ctx := cmd.Context()
 	summary := fetchSummary{}
 
-	if err := fetchIDXDocuments(ctx, tickers, year, period, fileType, workers, &summary); err != nil {
+	if err := fetchIDXDocuments(ctx, tickers, year, period, fileType, &summary); err != nil {
 		return err
 	}
 
-	fetchPresentations(ctx, tickers, year, period, workers, &summary, cmd)
+	fetchPresentations(ctx, tickers, year, period, &summary)
 
 	out, err := json.MarshalIndent(summary, "", "  ")
 	if err != nil {
@@ -63,7 +63,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 
 func fetchIDXDocuments(
 	ctx context.Context, tickers []string,
-	year int, period, fileType string, workers int, summary *fetchSummary,
+	year int, period, fileType string, summary *fetchSummary,
 ) error {
 	cookiePath, err := idx.CookiePath()
 	if err != nil {
@@ -111,24 +111,14 @@ func fetchIDXDocuments(
 
 func fetchPresentations(
 	ctx context.Context, tickers []string,
-	year int, period string, workers int, summary *fetchSummary, cmd *cobra.Command,
+	year int, period string, summary *fetchSummary,
 ) {
-	regPath, err := idx.RegistryPath()
-	if err != nil {
+	registry := loadRegistry(ctx)
+	if registry == nil {
 		return
 	}
 
-	registry, err := idx.LoadCachedRegistry(regPath)
-	if err != nil {
-		registry, err = idx.FetchRegistry(ctx)
-		if err != nil {
-			return
-		}
-
-		_ = idx.SaveCachedRegistry(regPath, registry)
-	}
-
-	client := &http.Client{}
+	presClient := idx.New(idx.WithBaseURL(""), idx.WithHTTPClient(&http.Client{}))
 
 	for _, ticker := range tickers {
 		company, ok := registry[ticker]
@@ -136,35 +126,60 @@ func fetchPresentations(
 			continue
 		}
 
-		for _, pres := range company.Presentations {
-			if year != 0 && pres.Year != year {
-				continue
-			}
+		fetchCompanyPresentations(ctx, presClient, ticker, company, year, period, summary)
+	}
+}
 
-			if period != "" && !strings.EqualFold(pres.Period, period) {
-				continue
-			}
+func loadRegistry(ctx context.Context) map[string]idx.CompanyRegistry {
+	regPath, err := idx.RegistryPath()
+	if err != nil {
+		return nil
+	}
 
-			dataDir, err := idx.DataDir()
-			if err != nil {
-				continue
-			}
-
-			destDir := filepath.Join(dataDir, ticker, fmt.Sprintf("%d", pres.Year), pres.Period)
-			att := idx.Attachment{
-				FileName: filepath.Base(pres.URL),
-				FilePath: pres.URL,
-			}
-
-			presClient := idx.New(idx.WithBaseURL(""), idx.WithHTTPClient(client))
-			result, err := presClient.Download(ctx, att, destDir)
-			if err != nil {
-				summary.Failed = append(summary.Failed, att.FileName)
-				continue
-			}
-
-			summary.Downloaded = append(summary.Downloaded, result.LocalPath)
+	registry, err := idx.LoadCachedRegistry(regPath)
+	if err != nil {
+		registry, err = idx.FetchRegistry(ctx)
+		if err != nil {
+			return nil
 		}
+
+		_ = idx.SaveCachedRegistry(regPath, registry)
+	}
+
+	return registry
+}
+
+func fetchCompanyPresentations(
+	ctx context.Context, client *idx.Client, ticker string,
+	company idx.CompanyRegistry, year int, period string, summary *fetchSummary,
+) {
+	for _, pres := range company.Presentations {
+		if year != 0 && pres.Year != year {
+			continue
+		}
+
+		if period != "" && !strings.EqualFold(pres.Period, period) {
+			continue
+		}
+
+		dataDir, err := idx.DataDir()
+		if err != nil {
+			continue
+		}
+
+		destDir := filepath.Join(dataDir, ticker, strconv.Itoa(pres.Year), pres.Period)
+		att := idx.Attachment{
+			FileName: filepath.Base(pres.URL),
+			FilePath: pres.URL,
+		}
+
+		result, err := client.Download(ctx, att, destDir)
+		if err != nil {
+			summary.Failed = append(summary.Failed, att.FileName)
+			continue
+		}
+
+		summary.Downloaded = append(summary.Downloaded, result.LocalPath)
 	}
 }
 

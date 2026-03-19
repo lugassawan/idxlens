@@ -23,7 +23,7 @@ func TestFetchRegistry(t *testing.T) {
 
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(payload))
+			_, _ = w.Write([]byte(payload))
 		}))
 		defer srv.Close()
 
@@ -69,7 +69,7 @@ func TestFetchRegistry(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("not json"))
+			_, _ = w.Write([]byte("not json"))
 		}))
 		defer srv.Close()
 

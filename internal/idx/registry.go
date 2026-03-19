@@ -68,7 +68,7 @@ func SaveCachedRegistry(path string, reg map[string]CompanyRegistry) error {
 		return fmt.Errorf("save cached registry: create directory: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("save cached registry: write file: %w", err)
 	}
 
@@ -81,6 +81,7 @@ func fetchRegistryFrom(ctx context.Context, url string) (map[string]CompanyRegis
 		return nil, fmt.Errorf("fetch registry: %w", err)
 	}
 
+	//nolint:gosec // URL is the hardcoded GitHub raw registry URL, not user input
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch registry: %w", err)

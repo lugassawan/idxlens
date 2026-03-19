@@ -32,6 +32,7 @@ func (c *Client) Download(ctx context.Context, att Attachment, destDir string) (
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
 	}
 
+	//nolint:gosec // URL built from trusted baseURL set at client construction
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
@@ -46,12 +47,12 @@ func (c *Client) Download(ctx context.Context, att Attachment, destDir string) (
 	tmpPath := finalPath + ".tmp"
 
 	if err := writeFile(tmpPath, resp.Body); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
 	}
 
 	if err := os.Rename(tmpPath, finalPath); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return nil, fmt.Errorf("download %s: rename: %w", att.FileName, err)
 	}
 
