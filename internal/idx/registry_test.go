@@ -80,6 +80,21 @@ func TestFetchRegistry(t *testing.T) {
 	})
 }
 
+func TestRegistryPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	path, err := RegistryPath()
+	if err != nil {
+		t.Fatalf("RegistryPath() error: %v", err)
+	}
+
+	want := filepath.Join(dir, "registry.json")
+	if path != want {
+		t.Errorf("RegistryPath() = %q, want %q", path, want)
+	}
+}
+
 func TestCachedRegistry(t *testing.T) {
 	t.Run("save and load round-trip", func(t *testing.T) {
 		dir := t.TempDir()

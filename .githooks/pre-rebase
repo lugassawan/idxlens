@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-rebase hook: run linter and tests before allowing rebase.
+# Git rebase does not trigger pre-commit hooks, so this hook catches
+# lint and test issues that would otherwise slip through to CI.
+
+set -e
+
+echo "Running pre-rebase checks..."
+
+# Format
+make fmt
+
+# Lint
+make lint
+
+# Test
+make test
+
+echo "Pre-rebase checks passed."
