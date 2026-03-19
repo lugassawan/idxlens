@@ -901,7 +901,11 @@ func TestDeduplicateItems(t *testing.T) {
 			name: "keeps non-zero over zero duplicate",
 			items: []LineItem{
 				{Key: "revenue", Label: "Revenue", Values: map[string]float64{"2025-12-31": 0, "2024-12-31": 0}},
-				{Key: "revenue", Label: "Pendapatan", Values: map[string]float64{"2025-12-31": 1000, "2024-12-31": 800}},
+				{
+					Key:    "revenue",
+					Label:  "Pendapatan",
+					Values: map[string]float64{"2025-12-31": 1000, "2024-12-31": 800},
+				},
 			},
 			wantCount: 1,
 			wantKeys:  []string{"revenue"},

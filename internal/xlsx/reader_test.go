@@ -42,10 +42,10 @@ func TestParse(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		label  string
-		key    string
-		want   float64
+		name  string
+		label string
+		key   string
+		want  float64
 	}{
 		{"first item 2024", "Total Assets", "2024", 1000000},
 		{"first item 2023", "Total Assets", "2023", 900000},
