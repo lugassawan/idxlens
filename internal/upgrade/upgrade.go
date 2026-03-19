@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/lugassawan/idxlens/internal/safefile"
 )
 
 const (
@@ -115,46 +116,12 @@ func downloadAssetFrom(ctx context.Context, url, destPath string, hc *http.Clien
 		return fmt.Errorf("download asset: status %d", resp.StatusCode)
 	}
 
-	if err := atomicWrite(destPath, resp.Body); err != nil {
+	if err := safefile.Write(destPath, resp.Body); err != nil {
 		return fmt.Errorf("write asset: %w", err)
 	}
 
 	if err := os.Chmod(destPath, 0o755); err != nil { //nolint:gosec // binary must be executable
 		return fmt.Errorf("chmod asset: %w", err)
-	}
-
-	return nil
-}
-
-func atomicWrite(destPath string, r io.Reader) error {
-	tmpPath := destPath + ".tmp"
-
-	if err := writeFile(tmpPath, r); err != nil {
-		_ = os.Remove(tmpPath)
-		return err
-	}
-
-	if err := os.Rename(tmpPath, destPath); err != nil {
-		_ = os.Remove(tmpPath)
-		return fmt.Errorf("rename: %w", err)
-	}
-
-	return nil
-}
-
-func writeFile(path string, r io.Reader) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, r); err != nil {
-		return fmt.Errorf("write file: %w", err)
-	}
-
-	if err := f.Sync(); err != nil {
-		return fmt.Errorf("sync file: %w", err)
 	}
 
 	return nil

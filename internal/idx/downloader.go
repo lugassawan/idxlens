@@ -3,11 +3,12 @@ package idx
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/lugassawan/idxlens/internal/safefile"
 )
 
 // DownloadResult holds the outcome of a single file download.
@@ -45,7 +46,7 @@ func (c *Client) Download(ctx context.Context, att Attachment, destDir string) (
 
 	finalPath := filepath.Join(destDir, att.FileName)
 
-	if err := atomicWrite(finalPath, resp.Body); err != nil {
+	if err := safefile.Write(finalPath, resp.Body); err != nil {
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
 	}
 
@@ -87,39 +88,4 @@ func (c *Client) DownloadAll(ctx context.Context, atts []Attachment, destDir str
 	wg.Wait()
 
 	return results
-}
-
-// atomicWrite writes data from r to destPath via a temporary file for crash safety.
-func atomicWrite(destPath string, r io.Reader) error {
-	tmpPath := destPath + ".tmp"
-
-	if err := writeFile(tmpPath, r); err != nil {
-		_ = os.Remove(tmpPath)
-		return err
-	}
-
-	if err := os.Rename(tmpPath, destPath); err != nil {
-		_ = os.Remove(tmpPath)
-		return fmt.Errorf("rename: %w", err)
-	}
-
-	return nil
-}
-
-func writeFile(path string, r io.Reader) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, r); err != nil {
-		return fmt.Errorf("write file: %w", err)
-	}
-
-	if err := f.Sync(); err != nil {
-		return fmt.Errorf("sync file: %w", err)
-	}
-
-	return nil
 }
