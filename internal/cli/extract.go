@@ -9,6 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/lugassawan/idxlens/internal/domain"
+	"github.com/lugassawan/idxlens/internal/layout"
+	"github.com/lugassawan/idxlens/internal/pdf"
 	"github.com/lugassawan/idxlens/internal/xbrl"
 	"github.com/lugassawan/idxlens/internal/xlsx"
 )
@@ -48,8 +51,10 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	}
 	defer cleanup()
 
+	mode, _ := cmd.Flags().GetString("mode")
+
 	for _, input := range inputs {
-		if err := extractFile(w, input, pretty); err != nil {
+		if err := extractFile(w, input, mode, pretty); err != nil {
 			return err
 		}
 	}
@@ -57,14 +62,18 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func extractFile(w io.Writer, input InputFile, pretty bool) error {
+func extractFile(w io.Writer, input InputFile, mode string, pretty bool) error {
 	switch input.Format {
 	case formatXLSX:
 		return extractXLSX(w, input.Path, pretty)
 	case formatXBRL:
 		return extractXBRL(w, input.Path, pretty)
 	case formatPDF:
-		return errors.New("PDF extraction not yet implemented")
+		if mode == "presentation" {
+			return extractPresentation(w, input.Path, pretty)
+		}
+
+		return errors.New("PDF financial extraction not supported in v2 (use XLSX or XBRL)")
 	default:
 		return fmt.Errorf("unsupported format: %s", input.Format)
 	}
@@ -86,6 +95,43 @@ func extractXBRL(w io.Writer, path string, pretty bool) error {
 	}
 
 	return writeJSON(w, stmt, pretty)
+}
+
+func extractPresentation(w io.Writer, pdfPath string, pretty bool) error {
+	f, err := os.Open(pdfPath)
+	if err != nil {
+		return fmt.Errorf("open pdf: %w", err)
+	}
+	defer f.Close()
+
+	reader := pdf.NewReader()
+
+	if err := reader.Open(f); err != nil {
+		return fmt.Errorf("parse pdf: %w", err)
+	}
+	defer reader.Close()
+
+	analyzer := layout.NewAnalyzer()
+	pages := make([]layout.LayoutPage, 0, reader.PageCount())
+
+	for i := 1; i <= reader.PageCount(); i++ {
+		page, err := reader.Page(i)
+		if err != nil {
+			return fmt.Errorf("read page %d: %w", i, err)
+		}
+
+		lp, err := analyzer.Analyze(page)
+		if err != nil {
+			return fmt.Errorf("analyze page %d: %w", i, err)
+		}
+
+		pages = append(pages, lp)
+	}
+
+	extractor := domain.NewKVExtractor()
+	pairs := extractor.Extract(pages)
+
+	return writeJSON(w, pairs, pretty)
 }
 
 func writeJSON(w io.Writer, v any, pretty bool) error {

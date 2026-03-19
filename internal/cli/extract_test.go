@@ -88,7 +88,7 @@ func TestExtractXBRLNotImplemented(t *testing.T) {
 	}
 }
 
-func TestExtractPDFNotImplemented(t *testing.T) {
+func TestExtractPDFFinancialModeError(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "report.pdf")
 
@@ -100,7 +100,31 @@ func TestExtractPDFNotImplemented(t *testing.T) {
 
 	err := rootCmd.Execute()
 	if err == nil {
-		t.Fatal("expected error for PDF extraction")
+		t.Fatal("expected error for PDF financial extraction")
+	}
+}
+
+func TestExtractPDFPresentationModeRouting(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "report.pdf")
+
+	// Write a fake PDF — the presentation pipeline will attempt to parse it
+	// and fail, confirming the routing reached extractPresentation.
+	if err := os.WriteFile(path, []byte("fake"), 0o644); err != nil {
+		t.Fatalf("create file: %v", err)
+	}
+
+	rootCmd.SetArgs([]string{"extract", path, "--mode", "presentation"})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error parsing fake PDF in presentation mode")
+	}
+
+	// The error should come from PDF parsing, not the "not supported" message.
+	got := err.Error()
+	if got == "PDF financial extraction not supported in v2 (use XLSX or XBRL)" {
+		t.Error("presentation mode should not return financial mode error")
 	}
 }
 
