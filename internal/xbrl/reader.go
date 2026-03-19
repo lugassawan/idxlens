@@ -34,6 +34,9 @@ var filenamePattern = regexp.MustCompile(
 	`(?i)FinancialStatement-(\d{4})-([^-]+)-([A-Z]{4})`,
 )
 
+// xbrlExtPriority defines the preference order for XBRL file selection.
+var xbrlExtPriority = []string{".xbrl", ".xml", ".htm", ".html"}
+
 // ParseZip reads a zip file containing inline XBRL and extracts financial facts.
 func ParseZip(zipPath string) (*Statement, error) {
 	r, err := zip.OpenReader(zipPath)
@@ -78,11 +81,11 @@ func parseMeta(stmt *Statement, filename string) {
 }
 
 func findXBRLFile(files []*zip.File) (*zip.File, error) {
-	for _, f := range files {
-		ext := strings.ToLower(filepath.Ext(f.Name))
-		switch ext {
-		case ".xbrl", ".xml", ".htm", ".html":
-			return f, nil
+	for _, wantExt := range xbrlExtPriority {
+		for _, f := range files {
+			if strings.EqualFold(filepath.Ext(f.Name), wantExt) {
+				return f, nil
+			}
 		}
 	}
 

@@ -30,7 +30,13 @@ const standardXBRL = `<?xml version="1.0" encoding="UTF-8"?>
 func createTestZip(t *testing.T, files map[string]string) string {
 	t.Helper()
 
-	path := filepath.Join(t.TempDir(), "test.zip")
+	return createTestZipNamed(t, "test.zip", files)
+}
+
+func createTestZipNamed(t *testing.T, zipName string, files map[string]string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), zipName)
 
 	f, err := os.Create(path)
 	if err != nil {
@@ -134,36 +140,8 @@ func TestParseZipInvalidFile(t *testing.T) {
 }
 
 func TestParseZipMetadata(t *testing.T) {
-	files := map[string]string{"report.htm": inlineXBRLHTML}
-
-	dir := t.TempDir()
-	path := filepath.Join(dir, "FinancialStatement-2024-Q3-BBCA.zip")
-
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatalf("create file: %v", err)
-	}
-
-	w := zip.NewWriter(f)
-
-	for name, content := range files {
-		fw, err := w.Create(name)
-		if err != nil {
-			t.Fatalf("create entry: %v", err)
-		}
-
-		if _, err := fw.Write([]byte(content)); err != nil {
-			t.Fatalf("write entry: %v", err)
-		}
-	}
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("close writer: %v", err)
-	}
-
-	if err := f.Close(); err != nil {
-		t.Fatalf("close file: %v", err)
-	}
+	path := createTestZipNamed(t, "FinancialStatement-2024-Q3-BBCA.zip",
+		map[string]string{"report.htm": inlineXBRLHTML})
 
 	stmt, err := ParseZip(path)
 	if err != nil {
