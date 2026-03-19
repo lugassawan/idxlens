@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/lugassawan/idxlens/internal/idx"
+	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +61,9 @@ func runFetch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fetchPresentations(ctx, tickers, year, period, &summary)
+	presClient := idx.New(idx.WithBaseURL(""), idx.WithHTTPClient(&http.Client{}))
+	regProvider := &service.DefaultRegistryProvider{}
+	fetchPresentations(ctx, regProvider, presClient, tickers, year, period, &summary)
 
 	out, err := json.MarshalIndent(summary, "", "  ")
 	if err != nil {
@@ -73,7 +76,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 }
 
 func fetchIDXDocuments(
-	ctx context.Context, client idxFetcher, tickers []string,
+	ctx context.Context, client service.IDXFetcher, tickers []string,
 	year int, period, fileType string, summary *fetchSummary,
 ) error {
 	for _, ticker := range tickers {
@@ -109,15 +112,13 @@ func fetchIDXDocuments(
 }
 
 func fetchPresentations(
-	ctx context.Context, tickers []string,
-	year int, period string, summary *fetchSummary,
+	ctx context.Context, reg service.RegistryProvider, dl service.FileDownloader,
+	tickers []string, year int, period string, summary *fetchSummary,
 ) {
-	registry := loadRegistry(ctx)
-	if registry == nil {
+	registry, err := reg.Registry(ctx)
+	if err != nil || registry == nil {
 		return
 	}
-
-	presClient := idx.New(idx.WithBaseURL(""), idx.WithHTTPClient(&http.Client{}))
 
 	for _, ticker := range tickers {
 		company, ok := registry[ticker]
@@ -125,31 +126,12 @@ func fetchPresentations(
 			continue
 		}
 
-		fetchCompanyPresentations(ctx, presClient, ticker, company, year, period, summary)
+		fetchCompanyPresentations(ctx, dl, ticker, company, year, period, summary)
 	}
-}
-
-func loadRegistry(ctx context.Context) map[string]idx.CompanyRegistry {
-	regPath, err := idx.RegistryPath()
-	if err != nil {
-		return nil
-	}
-
-	registry, err := idx.LoadCachedRegistry(regPath)
-	if err != nil {
-		registry, err = idx.FetchRegistry(ctx)
-		if err != nil {
-			return nil
-		}
-
-		_ = idx.SaveCachedRegistry(regPath, registry)
-	}
-
-	return registry
 }
 
 func fetchCompanyPresentations(
-	ctx context.Context, client *idx.Client, ticker string,
+	ctx context.Context, dl service.FileDownloader, ticker string,
 	company idx.CompanyRegistry, year int, period string, summary *fetchSummary,
 ) {
 	for _, pres := range company.Presentations {
@@ -172,7 +154,7 @@ func fetchCompanyPresentations(
 			FilePath: pres.URL,
 		}
 
-		result, err := client.Download(ctx, att, destDir)
+		result, err := dl.Download(ctx, att, destDir)
 		if err != nil {
 			summary.Failed = append(summary.Failed, att.FileName)
 			continue

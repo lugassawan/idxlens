@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/lugassawan/idxlens/internal/idx"
+	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +50,7 @@ func runList(cmd *cobra.Command, args []string) error {
 func listReports(
 	ctx context.Context,
 	w io.Writer,
-	lister ReportLister,
+	lister service.ReportLister,
 	tickers []string,
 	year int,
 	period string,
