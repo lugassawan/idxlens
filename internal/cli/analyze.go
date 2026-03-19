@@ -108,6 +108,10 @@ func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker strin
 		return fmt.Errorf("list reports: %w", err)
 	}
 
+	if len(atts) == 0 {
+		return fmt.Errorf("no reports available for %s", ticker)
+	}
+
 	dataDir, err := idx.DataDir()
 	if err != nil {
 		return fmt.Errorf("resolve data directory: %w", err)
