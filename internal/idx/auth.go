@@ -125,12 +125,13 @@ func waitForClearance(ctx context.Context) ([]*http.Cookie, error) {
 
 		select {
 		case <-ctx.Done():
-			return cookies, nil
+			return nil, fmt.Errorf("timeout waiting for %s cookie", cfClearance)
 		case <-time.After(pollInterval):
 		}
 	}
 }
 
+// extractBrowserCookies retrieves all cookies from the browser via CDP.
 func extractBrowserCookies(ctx context.Context) ([]*http.Cookie, error) {
 	var cookies []*http.Cookie
 
