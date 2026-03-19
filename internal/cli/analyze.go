@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/lugassawan/idxlens/internal/idx"
+	"github.com/lugassawan/idxlens/internal/service"
+	"github.com/spf13/cobra"
 )
 
 var analyzeCmd = &cobra.Command{
@@ -60,7 +60,12 @@ func analyzeTicker(
 ) error {
 	files, err := ResolveInputs(ticker, year, period)
 	if err != nil {
-		if fetchErr := fetchForTicker(ctx, ticker, year, period); fetchErr != nil {
+		client, clientErr := newIDXClient()
+		if clientErr != nil {
+			return fmt.Errorf("create client: %w", clientErr)
+		}
+
+		if fetchErr := fetchForTicker(ctx, client, ticker, year, period); fetchErr != nil {
 			return fmt.Errorf("fetch: %w", fetchErr)
 		}
 
@@ -97,19 +102,7 @@ func bestFormat(files []InputFile) *InputFile {
 	return best
 }
 
-func fetchForTicker(ctx context.Context, ticker string, year int, period string) error {
-	cookiePath, err := idx.CookiePath()
-	if err != nil {
-		return fmt.Errorf("resolve cookie path: %w", err)
-	}
-
-	cookies, err := idx.LoadCookies(cookiePath)
-	if err != nil {
-		return fmt.Errorf("load cookies: %w", err)
-	}
-
-	client := idx.New(idx.WithCookies(cookies))
-
+func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker string, year int, period string) error {
 	atts, err := client.ListReports(ctx, ticker, year, period)
 	if err != nil {
 		return fmt.Errorf("list reports: %w", err)

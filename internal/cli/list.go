@@ -7,7 +7,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
@@ -31,17 +30,10 @@ func runList(cmd *cobra.Command, args []string) error {
 	year, _ := cmd.Flags().GetInt(flagYear)
 	period, _ := cmd.Flags().GetString(flagPeriod)
 
-	cookiePath, err := idx.CookiePath()
+	client, err := newIDXClient()
 	if err != nil {
-		return fmt.Errorf("resolve cookie path: %w", err)
+		return err
 	}
-
-	cookies, err := idx.LoadCookies(cookiePath)
-	if err != nil {
-		return fmt.Errorf("load cookies: %w", err)
-	}
-
-	client := idx.New(idx.WithCookies(cookies))
 
 	return listReports(cmd.Context(), cmd.OutOrStdout(), client, tickers, year, period)
 }
