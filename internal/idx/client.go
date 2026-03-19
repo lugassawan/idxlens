@@ -1,6 +1,7 @@
 package idx
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -42,20 +43,16 @@ func WithBaseURL(url string) Option {
 	}
 }
 
-// WithCookieFile loads cookies from the given file path and injects them into requests.
-func WithCookieFile(path string) Option {
+// WithCookies sets the cookies to inject into requests.
+func WithCookies(cookies []*http.Cookie) Option {
 	return func(c *Client) {
-		cookies, err := LoadCookies(path)
-		if err != nil {
-			return
-		}
 		c.cookies = cookies
 	}
 }
 
-// newRequest creates an HTTP request with cookies injected.
-func (c *Client) newRequest(method, url string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
+// newRequest creates an HTTP request with context and cookies injected.
+func (c *Client) newRequest(ctx context.Context, method, url string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

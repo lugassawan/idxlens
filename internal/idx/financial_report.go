@@ -36,12 +36,10 @@ func (c *Client) ListReports(ctx context.Context, ticker string, year int, perio
 		c.baseURL, reportEndpoint, period, year, ticker,
 	)
 
-	req, err := c.newRequest(http.MethodGet, url)
+	req, err := c.newRequest(ctx, http.MethodGet, url)
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
-
-	req = req.WithContext(ctx)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
