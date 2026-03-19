@@ -44,16 +44,9 @@ func (c *Client) Download(ctx context.Context, att Attachment, destDir string) (
 	}
 
 	finalPath := filepath.Join(destDir, att.FileName)
-	tmpPath := finalPath + ".tmp"
 
-	if err := writeFile(tmpPath, resp.Body); err != nil {
-		_ = os.Remove(tmpPath)
+	if err := atomicWrite(finalPath, resp.Body); err != nil {
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
-	}
-
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		_ = os.Remove(tmpPath)
-		return nil, fmt.Errorf("download %s: rename: %w", att.FileName, err)
 	}
 
 	result.LocalPath = finalPath
@@ -94,6 +87,23 @@ func (c *Client) DownloadAll(ctx context.Context, atts []Attachment, destDir str
 	wg.Wait()
 
 	return results
+}
+
+// atomicWrite writes data from r to destPath via a temporary file for crash safety.
+func atomicWrite(destPath string, r io.Reader) error {
+	tmpPath := destPath + ".tmp"
+
+	if err := writeFile(tmpPath, r); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("rename: %w", err)
+	}
+
+	return nil
 }
 
 func writeFile(path string, r io.Reader) error {
