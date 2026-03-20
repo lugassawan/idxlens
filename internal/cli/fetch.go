@@ -42,6 +42,9 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
 	year, period := parseYearPeriodFlags(cmd)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
+	logger := newLogger(cmd)
+
+	logger.Info("starting fetch", "tickers", tickers, flagYear, year, "period", period)
 
 	client, err := idx.NewAuthenticatedClient()
 	if err != nil {
@@ -58,6 +61,8 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	presClient := idx.New(idx.WithBaseURL(""), idx.WithHTTPClient(&http.Client{}))
 	regProvider := &service.DefaultRegistryProvider{}
 	fetchPresentations(ctx, regProvider, presClient, tickers, year, period, &summary)
+
+	logger.Info("fetch complete", "downloaded", len(summary.Downloaded), "failed", len(summary.Failed))
 
 	out, err := json.MarshalIndent(summary, "", "  ")
 	if err != nil {
