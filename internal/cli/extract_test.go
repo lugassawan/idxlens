@@ -209,9 +209,7 @@ func TestExtractNonExistentFile(t *testing.T) {
 }
 
 func TestExtractFileUnsupportedFormat(t *testing.T) {
-	var buf bytes.Buffer
-
-	err := extractFile(&buf, InputFile{Path: "test.dat", Format: "dat"}, "financial", false)
+	_, err := extractFile(InputFile{Path: "test.dat", Format: "dat"}, "financial")
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
 	}
@@ -219,6 +217,106 @@ func TestExtractFileUnsupportedFormat(t *testing.T) {
 	want := "unsupported format: dat"
 	if err.Error() != want {
 		t.Errorf("error = %q, want %q", err.Error(), want)
+	}
+}
+
+func TestExtractFileAppliesMetadata(t *testing.T) {
+	path := createTestXLSX(t)
+
+	// InputFile has metadata but the file is named with standard IDX pattern,
+	// so parseMeta will fill it from filename. Test with a non-matching name.
+	dir := t.TempDir()
+	nonStandardPath := filepath.Join(dir, "report.xlsx")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	if err := os.WriteFile(nonStandardPath, data, 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	input := InputFile{
+		Path:   nonStandardPath,
+		Format: formatXLSX,
+		Ticker: "PGAS",
+		Year:   2025,
+		Period: "Audit",
+	}
+
+	result, err := extractFile(input, modeFinancial)
+	if err != nil {
+		t.Fatalf("extractFile() error: %v", err)
+	}
+
+	// The result should have metadata from InputFile since filename doesn't match
+	var buf bytes.Buffer
+	if err := writeJSON(&buf, result.Value(), false); err != nil {
+		t.Fatalf("writeJSON() error: %v", err)
+	}
+
+	output := buf.String()
+	if !bytes.Contains([]byte(output), []byte(`"ticker":"PGAS"`)) {
+		t.Errorf("expected ticker PGAS in output: %s", output)
+	}
+
+	if !bytes.Contains([]byte(output), []byte(`"year":2025`)) {
+		t.Errorf("expected year 2025 in output: %s", output)
+	}
+
+	if !bytes.Contains([]byte(output), []byte(`"period":"Audit"`)) {
+		t.Errorf("expected period Audit in output: %s", output)
+	}
+}
+
+func TestWriteResultsSingle(t *testing.T) {
+	var buf bytes.Buffer
+
+	results := []any{map[string]int{"a": 1}}
+	if err := writeResults(&buf, results, false); err != nil {
+		t.Fatalf("writeResults() error: %v", err)
+	}
+
+	want := "{\"a\":1}\n"
+	if buf.String() != want {
+		t.Errorf("writeResults() = %q, want %q", buf.String(), want)
+	}
+}
+
+func TestWriteResultsMultiple(t *testing.T) {
+	var buf bytes.Buffer
+
+	results := []any{
+		map[string]int{"a": 1},
+		map[string]int{"b": 2},
+	}
+
+	if err := writeResults(&buf, results, false); err != nil {
+		t.Fatalf("writeResults() error: %v", err)
+	}
+
+	want := "[{\"a\":1},{\"b\":2}]\n"
+	if buf.String() != want {
+		t.Errorf("writeResults() = %q, want %q", buf.String(), want)
+	}
+}
+
+func TestWriteResultsMultiplePretty(t *testing.T) {
+	var buf bytes.Buffer
+
+	results := []any{
+		map[string]int{"a": 1},
+		map[string]int{"b": 2},
+	}
+
+	if err := writeResults(&buf, results, true); err != nil {
+		t.Fatalf("writeResults() error: %v", err)
+	}
+
+	output := buf.String()
+	if output[0] != '[' {
+		t.Errorf("expected JSON array, got: %s", output)
 	}
 }
 

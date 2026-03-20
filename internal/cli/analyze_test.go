@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -220,7 +219,7 @@ func TestAnalyzeTickerPrintsProgress(t *testing.T) {
 	var errBuf bytes.Buffer
 
 	// Will fail (no files), but should still print "Analyzing BBCA..."
-	_ = analyzeTicker(context.Background(), io.Discard, &errBuf, "BBCA", 2024, "Q3", false)
+	_, _ = analyzeTicker(context.Background(), &errBuf, "BBCA", 2024, "Q3")
 
 	if !strings.Contains(errBuf.String(), "Analyzing BBCA...") {
 		t.Errorf("expected progress message, got: %q", errBuf.String())
