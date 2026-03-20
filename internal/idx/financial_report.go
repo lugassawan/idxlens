@@ -35,13 +35,15 @@ const reportEndpoint = "/primary/ListedCompany/GetFinancialReport"
 func (c *Client) ListReports(ctx context.Context, ticker string, year int, period string) ([]Attachment, error) {
 	reqURL := buildReportURL(c.baseURL, ticker, year, period)
 
-	req, err := c.newRequest(ctx, http.MethodGet, reqURL)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
+	resp, err := retryDo(ctx, func() (*http.Response, error) {
+		r, reqErr := c.newRequest(ctx, http.MethodGet, reqURL)
+		if reqErr != nil {
+			return nil, reqErr
+		}
 
-	//nolint:gosec // URL built from trusted baseURL set at client construction
-	resp, err := c.httpClient.Do(req)
+		//nolint:gosec // URL built from trusted baseURL set at client construction
+		return c.httpClient.Do(r)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}

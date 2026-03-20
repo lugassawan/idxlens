@@ -28,13 +28,15 @@ func (c *Client) Download(ctx context.Context, att Attachment, destDir string) (
 	url := c.baseURL + att.FilePath
 	result := &DownloadResult{Attachment: att}
 
-	req, err := c.newRequest(ctx, http.MethodGet, url)
-	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
-	}
+	resp, err := retryDo(ctx, func() (*http.Response, error) {
+		r, reqErr := c.newRequest(ctx, http.MethodGet, url)
+		if reqErr != nil {
+			return nil, reqErr
+		}
 
-	//nolint:gosec // URL built from trusted baseURL set at client construction
-	resp, err := c.httpClient.Do(req)
+		//nolint:gosec // URL built from trusted baseURL set at client construction
+		return c.httpClient.Do(r)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("download %s: %w", att.FileName, err)
 	}
