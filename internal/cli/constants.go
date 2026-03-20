@@ -11,6 +11,7 @@ const (
 	flagVerbose  = "verbose"
 	flagWorkers  = "workers"
 	flagMode     = "mode"
+	flagDryRun   = "dry-run"
 
 	defaultFormat  = "json"
 	defaultWorkers = 4

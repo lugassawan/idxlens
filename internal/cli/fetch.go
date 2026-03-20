@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -35,6 +36,7 @@ func init() {
 	registerYearPeriodFlags(fetchCmd, true)
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
+	fetchCmd.Flags().Bool(flagDryRun, false, "List files to be downloaded without downloading")
 	rootCmd.AddCommand(fetchCmd)
 }
 
@@ -43,6 +45,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	year, period := parseYearPeriodFlags(cmd)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 	logger := newLogger(cmd)
+	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
 
 	logger.Info("starting fetch", "tickers", tickers, flagYear, year, "period", period)
 
@@ -52,6 +55,11 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	}
 
 	ctx := cmd.Context()
+
+	if dryRun {
+		return dryRunFetch(ctx, cmd.OutOrStdout(), client, tickers, year, period, fileType)
+	}
+
 	summary := fetchSummary{}
 
 	if err := fetchIDXDocuments(ctx, client, tickers, year, period, fileType, &summary); err != nil {
@@ -198,6 +206,32 @@ func fetchCompanyPresentations(
 
 		summary.Downloaded = append(summary.Downloaded, result.LocalPath)
 	}
+}
+
+func dryRunFetch(
+	ctx context.Context,
+	w io.Writer,
+	lister service.ReportLister,
+	tickers []string,
+	year int,
+	period, fileType string,
+) error {
+	var errs []error
+
+	for _, ticker := range tickers {
+		atts, err := lister.ListReports(ctx, ticker, year, period)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("list reports for %s: %w", ticker, err))
+			continue
+		}
+
+		filtered := filterAttachments(atts, fileType)
+		for _, att := range filtered {
+			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", att.EmitenCode, att.FileName, att.FileType, att.FileSize)
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func filterAttachments(atts []idx.Attachment, fileType string) []idx.Attachment {
