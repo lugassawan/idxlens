@@ -1,4 +1,4 @@
-package cli
+package service
 
 import "testing"
 
@@ -8,9 +8,9 @@ func TestGetExtractor(t *testing.T) {
 		format  string
 		wantErr bool
 	}{
-		{"xlsx registered", formatXLSX, false},
-		{"xbrl registered", formatXBRL, false},
-		{"pdf registered", formatPDF, false},
+		{"xlsx registered", "xlsx", false},
+		{"xbrl registered", "xbrl", false},
+		{"pdf registered", "pdf", false},
 		{"unknown format", "csv", true},
 		{"empty format", "", true},
 	}
@@ -38,12 +38,24 @@ func TestGetExtractor(t *testing.T) {
 }
 
 func TestExtractorRegistryCompleteness(t *testing.T) {
-	formats := []string{formatXLSX, formatXBRL, formatPDF}
+	formats := []string{"xlsx", "xbrl", "pdf"}
 	for _, f := range formats {
 		t.Run(f, func(t *testing.T) {
 			if _, ok := extractorRegistry[f]; !ok {
 				t.Errorf("format %q not registered", f)
 			}
 		})
+	}
+}
+
+func TestExtractFileUnsupportedFormat(t *testing.T) {
+	_, err := ExtractFile("test.dat", "dat", "financial", "", 0, "")
+	if err == nil {
+		t.Fatal("expected error for unsupported format")
+	}
+
+	want := "unsupported format: dat"
+	if err.Error() != want {
+		t.Errorf("error = %q, want %q", err.Error(), want)
 	}
 }

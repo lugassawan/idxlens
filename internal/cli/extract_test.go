@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
@@ -208,23 +209,10 @@ func TestExtractNonExistentFile(t *testing.T) {
 	}
 }
 
-func TestExtractFileUnsupportedFormat(t *testing.T) {
-	_, err := extractFile(InputFile{Path: "test.dat", Format: "dat"}, "financial")
-	if err == nil {
-		t.Fatal("expected error for unsupported format")
-	}
-
-	want := "unsupported format: dat"
-	if err.Error() != want {
-		t.Errorf("error = %q, want %q", err.Error(), want)
-	}
-}
-
 func TestExtractFileAppliesMetadata(t *testing.T) {
 	path := createTestXLSX(t)
 
-	// InputFile has metadata but the file is named with standard IDX pattern,
-	// so parseMeta will fill it from filename. Test with a non-matching name.
+	// Test with a non-matching filename so parseMeta leaves fields empty.
 	dir := t.TempDir()
 	nonStandardPath := filepath.Join(dir, "report.xlsx")
 
@@ -237,22 +225,14 @@ func TestExtractFileAppliesMetadata(t *testing.T) {
 		t.Fatalf("write fixture: %v", err)
 	}
 
-	input := InputFile{
-		Path:   nonStandardPath,
-		Format: formatXLSX,
-		Ticker: "PGAS",
-		Year:   2025,
-		Period: "Audit",
-	}
-
-	result, err := extractFile(input, modeFinancial)
+	result, err := service.ExtractFile(nonStandardPath, "xlsx", "financial", "PGAS", 2025, "Audit")
 	if err != nil {
-		t.Fatalf("extractFile() error: %v", err)
+		t.Fatalf("ExtractFile() error: %v", err)
 	}
 
-	// The result should have metadata from InputFile since filename doesn't match
+	// The result should have metadata from args since filename doesn't match
 	var buf bytes.Buffer
-	if err := writeJSON(&buf, result.Value(), false); err != nil {
+	if err := writeJSON(&buf, result, false); err != nil {
 		t.Fatalf("writeJSON() error: %v", err)
 	}
 

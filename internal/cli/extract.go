@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -45,12 +46,14 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	var results []any
 
 	for _, input := range inputs {
-		result, err := extractFile(input, mode)
+		result, err := service.ExtractFile(
+			input.Path, input.Format, mode, input.Ticker, input.Year, input.Period,
+		)
 		if err != nil {
 			return err
 		}
 
-		results = append(results, result.Value())
+		results = append(results, result)
 	}
 
 	return writeResults(w, results, pretty)
@@ -67,24 +70,6 @@ func writeResults(w io.Writer, results []any, pretty bool) error {
 	}
 
 	return writeJSON(w, results, pretty)
-}
-
-func extractFile(input InputFile, mode string) (ExtractResult, error) {
-	e, err := getExtractor(input.Format)
-	if err != nil {
-		return ExtractResult{}, err
-	}
-
-	result, err := e.Extract(input.Path, mode)
-	if err != nil {
-		return ExtractResult{}, err
-	}
-
-	if ms, ok := result.Value().(metaSetter); ok {
-		ms.SetMeta(input.Ticker, input.Year, input.Period)
-	}
-
-	return result, nil
 }
 
 func writeJSON(w io.Writer, v any, pretty bool) error {
