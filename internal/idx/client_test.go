@@ -102,6 +102,18 @@ func TestNewAuthenticatedClient(t *testing.T) {
 			},
 			wantClient: true,
 		},
+		{
+			name: "expired cookies",
+			setup: func(t *testing.T, dir string) {
+				t.Helper()
+				data := `[{"name":"cf_clearance","value":"abc","domain":".idx.co.id","path":"/","expires":"2020-01-01T00:00:00Z"}]`
+				err := os.WriteFile(filepath.Join(dir, "cookies.json"), []byte(data), 0o600)
+				if err != nil {
+					t.Fatalf("write cookies.json: %v", err)
+				}
+			},
+			wantErr: true,
+		},
 	}
 
 	t.Run("cookie path error", func(t *testing.T) {

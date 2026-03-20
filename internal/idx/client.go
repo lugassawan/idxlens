@@ -2,6 +2,7 @@ package idx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -69,6 +70,13 @@ func NewAuthenticatedClient() (*Client, error) {
 	cookies, err := LoadCookies(cookiePath)
 	if err != nil {
 		return nil, fmt.Errorf("load cookies: %w", err)
+	}
+
+	now := time.Now()
+	for _, c := range cookies {
+		if !c.Expires.IsZero() && c.Expires.Before(now) {
+			return nil, errors.New("authentication expired, please re-run: idxlens auth")
+		}
 	}
 
 	return New(WithCookies(cookies)), nil
