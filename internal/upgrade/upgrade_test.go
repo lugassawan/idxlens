@@ -121,7 +121,7 @@ func TestFindAsset(t *testing.T) {
 
 func TestDownloadAsset(t *testing.T) {
 	content := "binary content"
-	archive := createTestTarGz(t, "idxlens", content)
+	archive := createTestTarGz(t, binaryName, content)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
@@ -129,7 +129,7 @@ func TestDownloadAsset(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	destPath := filepath.Join(dir, "idxlens")
+	destPath := filepath.Join(dir, binaryName)
 
 	err := downloadAssetFrom(context.Background(), srv.URL, destPath, srv.Client())
 	if err != nil {
@@ -165,7 +165,7 @@ func TestDownloadAssetServerError(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	destPath := filepath.Join(dir, "idxlens")
+	destPath := filepath.Join(dir, binaryName)
 
 	err := downloadAssetFrom(context.Background(), srv.URL, destPath, srv.Client())
 	if err == nil {
@@ -197,7 +197,7 @@ func TestLatestReleaseInvalidURL(t *testing.T) {
 }
 
 func TestDownloadAssetWriteError(t *testing.T) {
-	archive := createTestTarGz(t, "idxlens", "binary content")
+	archive := createTestTarGz(t, binaryName, "binary content")
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
@@ -205,7 +205,7 @@ func TestDownloadAssetWriteError(t *testing.T) {
 	defer srv.Close()
 
 	// Write to a path inside a non-existent directory
-	destPath := filepath.Join(t.TempDir(), "no-such-dir", "nested", "idxlens")
+	destPath := filepath.Join(t.TempDir(), "no-such-dir", "nested", binaryName)
 
 	err := downloadAssetFrom(context.Background(), srv.URL, destPath, srv.Client())
 	if err == nil {
@@ -270,7 +270,7 @@ func TestExtractBinary(t *testing.T) {
 	}{
 		{
 			name: "valid archive with idxlens",
-			data: createTestTarGz(t, "idxlens", "hello binary"),
+			data: createTestTarGz(t, binaryName, "hello binary"),
 			want: "hello binary",
 		},
 		{

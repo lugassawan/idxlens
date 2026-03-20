@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,7 +164,7 @@ func TestFetchForTickerNoReports(t *testing.T) {
 		reports: map[string][]idx.Attachment{},
 	}
 
-	err := fetchForTicker(context.Background(), client, "IPCC", 2024, "Q3")
+	err := fetchForTicker(context.Background(), io.Discard, client, "IPCC", 2024, "Q3")
 	if err == nil {
 		t.Fatal("expected error when no reports available")
 	}
@@ -185,7 +187,7 @@ func TestFetchForTickerSuccess(t *testing.T) {
 		},
 	}
 
-	err := fetchForTicker(context.Background(), client, "BBCA", 2024, "Q3")
+	err := fetchForTicker(context.Background(), io.Discard, client, "BBCA", 2024, "Q3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -254,6 +256,47 @@ func writeFakeCookies(t *testing.T, home string) {
 	cookiePath := filepath.Join(home, "cookies.json")
 	if err := os.WriteFile(cookiePath, []byte("[]"), 0o644); err != nil {
 		t.Fatalf("write fake cookies: %v", err)
+	}
+}
+
+func TestFetchForTickerLogWarningOnDownloadFailure(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	client := &fakeFetcher{
+		reports: map[string][]idx.Attachment{
+			"BBCA": {
+				{FileName: "report.pdf", FileType: "pdf", ReportYear: "2024", ReportPeriod: "Q3"},
+			},
+		},
+		dlErr: errors.New("download failed"),
+	}
+
+	var errBuf bytes.Buffer
+
+	err := fetchForTicker(context.Background(), &errBuf, client, "BBCA", 2024, "Q3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(errBuf.String(), "Warning: failed to download report.pdf") {
+		t.Errorf("expected warning in stderr, got: %q", errBuf.String())
+	}
+}
+
+func TestAnalyzeTickerPrintsProgress(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	writeFakeCookies(t, dir)
+
+	var errBuf bytes.Buffer
+
+	// Will fail (no files), but should still print "Analyzing BBCA..."
+	_ = analyzeTicker(context.Background(), io.Discard, &errBuf, "BBCA", 2024, "Q3", false)
+
+	if !strings.Contains(errBuf.String(), "Analyzing BBCA...") {
+		t.Errorf("expected progress message, got: %q", errBuf.String())
 	}
 }
 

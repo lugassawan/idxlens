@@ -20,6 +20,7 @@ import (
 
 const (
 	releaseEndpoint = "https://api.github.com/repos/lugassawan/idxlens/releases/latest"
+	binaryName      = "idxlens"
 )
 
 // Release represents a GitHub release.
@@ -156,7 +157,7 @@ func extractBinary(r io.Reader) (io.Reader, error) {
 			return nil, fmt.Errorf("read tar: %w", err)
 		}
 
-		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == "idxlens" {
+		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == binaryName {
 			const maxBinarySize = 256 << 20 // 256 MiB
 			var buf bytes.Buffer
 			if _, err := io.Copy(&buf, io.LimitReader(tr, maxBinarySize)); err != nil {
@@ -167,5 +168,5 @@ func extractBinary(r io.Reader) (io.Reader, error) {
 		}
 	}
 
-	return nil, errors.New("idxlens binary not found in archive")
+	return nil, errors.New(binaryName + " binary not found in archive")
 }

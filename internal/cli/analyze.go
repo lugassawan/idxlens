@@ -44,8 +44,10 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	var errs []error
 
+	errW := cmd.ErrOrStderr()
+
 	for _, ticker := range tickers {
-		if err := analyzeTicker(ctx, w, ticker, year, period, pretty); err != nil {
+		if err := analyzeTicker(ctx, w, errW, ticker, year, period, pretty); err != nil {
 			errs = append(errs, fmt.Errorf("analyze %s: %w", ticker, err))
 		}
 	}
@@ -54,9 +56,11 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 }
 
 func analyzeTicker(
-	ctx context.Context, w io.Writer,
+	ctx context.Context, w io.Writer, errW io.Writer,
 	ticker string, year int, period string, pretty bool,
 ) error {
+	fmt.Fprintf(errW, "Analyzing %s...\n", ticker)
+
 	// Always fetch to ensure all formats are available for best selection.
 	// Auth or fetch errors are non-fatal if local files already exist.
 	var fetchErr error
@@ -65,7 +69,7 @@ func analyzeTicker(
 	if err != nil {
 		fetchErr = fmt.Errorf("create client: %w", err)
 	} else {
-		fetchErr = fetchForTicker(ctx, client, ticker, year, period)
+		fetchErr = fetchForTicker(ctx, errW, client, ticker, year, period)
 	}
 
 	files, err := ResolveInputs(ticker, year, period)
@@ -104,7 +108,10 @@ func bestFormat(files []InputFile) *InputFile {
 	return best
 }
 
-func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker string, year int, period string) error {
+func fetchForTicker(
+	ctx context.Context, errW io.Writer, client service.IDXFetcher,
+	ticker string, year int, period string,
+) error {
 	atts, err := client.ListReports(ctx, ticker, year, period)
 	if err != nil {
 		return err
@@ -123,6 +130,7 @@ func fetchForTicker(ctx context.Context, client service.IDXFetcher, ticker strin
 		destDir := filepath.Join(dataDir, ticker, att.ReportYear, att.ReportPeriod)
 
 		if _, dlErr := client.Download(ctx, att, destDir); dlErr != nil {
+			fmt.Fprintf(errW, "Warning: failed to download %s: %v\n", att.FileName, dlErr)
 			continue
 		}
 	}
