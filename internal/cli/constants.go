@@ -25,4 +25,6 @@ const (
 
 	modeFinancial    = "financial"
 	modePresentation = "presentation"
+
+	envNoColor = "NO_COLOR"
 )
