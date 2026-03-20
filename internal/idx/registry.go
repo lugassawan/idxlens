@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
 	registryURL  = "https://raw.githubusercontent.com/lugassawan/idxlens/main/registry/presentations.json"
 	registryFile = "registry.json"
+	etagFile     = "registry.etag"
 )
 
 // PresentationEntry represents a single company presentation document.
@@ -30,9 +32,59 @@ type CompanyRegistry struct {
 	Presentations []PresentationEntry `json:"presentations"`
 }
 
+// fetchResult holds the result of a registry fetch.
+type fetchResult struct {
+	Registry    map[string]CompanyRegistry
+	ETag        string
+	NotModified bool
+}
+
 // FetchRegistry downloads the presentation registry from GitHub.
 func FetchRegistry(ctx context.Context) (map[string]CompanyRegistry, error) {
-	return fetchRegistryFrom(ctx, registryURL)
+	result, err := fetchRegistryFrom(ctx, registryURL, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Registry, nil
+}
+
+// FetchRegistryConditional fetches the registry with ETag caching.
+// If the registry hasn't changed (304), it returns the cached version.
+func FetchRegistryConditional(ctx context.Context) (map[string]CompanyRegistry, error) {
+	etagPath, err := ETagPath()
+	if err != nil {
+		// Fall back to unconditional fetch
+		return FetchRegistry(ctx)
+	}
+
+	etag, _ := LoadETag(etagPath) //nolint:errcheck // missing etag is not an error
+
+	result, err := fetchRegistryFrom(ctx, registryURL, etag)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.NotModified {
+		regPath, err := RegistryPath()
+		if err != nil {
+			return nil, fmt.Errorf("resolve registry path: %w", err)
+		}
+
+		return LoadCachedRegistry(regPath)
+	}
+
+	// Save the new registry and ETag
+	if result.ETag != "" {
+		_ = SaveETag(etagPath, result.ETag) // best-effort
+	}
+
+	regPath, err := RegistryPath()
+	if err == nil {
+		_ = SaveCachedRegistry(regPath, result.Registry) // best-effort
+	}
+
+	return result.Registry, nil
 }
 
 // RegistryPath returns the path to the cached registry file within IDXLENS_HOME.
@@ -43,6 +95,16 @@ func RegistryPath() (string, error) {
 	}
 
 	return filepath.Join(home, registryFile), nil
+}
+
+// ETagPath returns the path to the cached ETag file.
+func ETagPath() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, etagFile), nil
 }
 
 // LoadCachedRegistry reads a presentation registry from a local JSON file.
@@ -78,10 +140,33 @@ func SaveCachedRegistry(path string, reg map[string]CompanyRegistry) error {
 	return nil
 }
 
-func fetchRegistryFrom(ctx context.Context, url string) (map[string]CompanyRegistry, error) {
+// LoadETag reads the stored ETag from the given path.
+func LoadETag(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
+
+// SaveETag writes the ETag to the given path.
+func SaveETag(path, etag string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return fmt.Errorf("save etag: create directory: %w", err)
+	}
+
+	return os.WriteFile(path, []byte(etag), 0o600)
+}
+
+func fetchRegistryFrom(ctx context.Context, url, etag string) (*fetchResult, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("fetch registry: %w", err)
+	}
+
+	if etag != "" {
+		req.Header.Set("If-None-Match", etag)
 	}
 
 	//nolint:gosec // URL is the hardcoded GitHub raw registry URL, not user input
@@ -90,6 +175,10 @@ func fetchRegistryFrom(ctx context.Context, url string) (map[string]CompanyRegis
 		return nil, fmt.Errorf("fetch registry: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotModified {
+		return &fetchResult{NotModified: true}, nil
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("fetch registry: unexpected status %d", resp.StatusCode)
@@ -105,5 +194,8 @@ func fetchRegistryFrom(ctx context.Context, url string) (map[string]CompanyRegis
 		return nil, fmt.Errorf("fetch registry: unmarshal: %w", err)
 	}
 
-	return registry, nil
+	return &fetchResult{
+		Registry: registry,
+		ETag:     resp.Header.Get("ETag"),
+	}, nil
 }
