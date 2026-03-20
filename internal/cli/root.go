@@ -13,6 +13,10 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func init() {
+	rootCmd.PersistentFlags().Bool(flagVerbose, false, "enable verbose output")
+}
+
 func Execute() error {
 	return rootCmd.Execute()
 }

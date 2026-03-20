@@ -30,6 +30,9 @@ func init() {
 func runList(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
 	year, period := parseYearPeriodFlags(cmd)
+	logger := newLogger(cmd)
+
+	logger.Info("listing reports", "tickers", tickers, flagYear, year)
 
 	client, err := idx.NewAuthenticatedClient()
 	if err != nil {

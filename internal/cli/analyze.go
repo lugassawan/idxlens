@@ -32,6 +32,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
 	year, period := parseYearPeriodFlags(cmd)
 	outputPath, pretty := parseOutputFlags(cmd)
+	logger := newLogger(cmd)
 
 	w, cleanup, err := openWriter(cmd, outputPath)
 	if err != nil {
@@ -46,6 +47,8 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	errW := cmd.ErrOrStderr()
 
 	for _, ticker := range tickers {
+		logger.Info("analyzing ticker", "ticker", ticker, flagYear, year, "period", period)
+
 		if err := analyzeTicker(ctx, w, errW, ticker, year, period, pretty); err != nil {
 			errs = append(errs, fmt.Errorf("analyze %s: %w", ticker, err))
 		}
