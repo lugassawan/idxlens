@@ -580,8 +580,24 @@ func TestDryRunFetch(t *testing.T) {
 			name: "multiple tickers",
 			client: &fakeFetcher{
 				reports: map[string][]idx.Attachment{
-					"BBCA": {{EmitenCode: "BBCA", FileName: "bbca.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
-					"BBRI": {{EmitenCode: "BBRI", FileName: "bbri.xlsx", FileType: "xlsx", ReportYear: "2025", ReportPeriod: "Q1"}},
+					"BBCA": {
+						{
+							EmitenCode:   "BBCA",
+							FileName:     "bbca.pdf",
+							FileType:     "pdf",
+							ReportYear:   "2025",
+							ReportPeriod: "Q1",
+						},
+					},
+					"BBRI": {
+						{
+							EmitenCode:   "BBRI",
+							FileName:     "bbri.xlsx",
+							FileType:     "xlsx",
+							ReportYear:   "2025",
+							ReportPeriod: "Q1",
+						},
+					},
 				},
 			},
 			tickers: []string{"BBCA", "BBRI"},
