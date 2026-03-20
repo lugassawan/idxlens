@@ -32,18 +32,15 @@ Presentations are fetched from the registry (company IR pages, no Cloudflare).`,
 }
 
 func init() {
-	fetchCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
-	fetchCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
+	registerYearPeriodFlags(fetchCmd, true)
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
-	_ = fetchCmd.MarkFlagRequired(flagYear)
 	rootCmd.AddCommand(fetchCmd)
 }
 
 func runFetch(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
-	year, _ := cmd.Flags().GetInt(flagYear)
-	period, _ := cmd.Flags().GetString(flagPeriod)
+	year, period := parseYearPeriodFlags(cmd)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 
 	client, err := idx.NewAuthenticatedClient()

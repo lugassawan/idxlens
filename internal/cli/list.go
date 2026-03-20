@@ -23,16 +23,13 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	listCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
-	listCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
-	_ = listCmd.MarkFlagRequired(flagYear)
+	registerYearPeriodFlags(listCmd, true)
 	rootCmd.AddCommand(listCmd)
 }
 
 func runList(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
-	year, _ := cmd.Flags().GetInt(flagYear)
-	period, _ := cmd.Flags().GetString(flagPeriod)
+	year, period := parseYearPeriodFlags(cmd)
 
 	client, err := idx.NewAuthenticatedClient()
 	if err != nil {
