@@ -15,7 +15,7 @@ const (
 )
 
 func printBanner(cmd *cobra.Command) {
-	noColor := os.Getenv("NO_COLOR") != ""
+	noColor := os.Getenv(envNoColor) != ""
 
 	lines := []string{
 		`  ___ ____  __  __ _`,

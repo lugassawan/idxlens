@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	authURL      = "https://www.idx.co.id"
-	authTimeout  = 30 * time.Second
-	pollInterval = 2 * time.Second
-	cfClearance  = "cf_clearance"
+	authURL        = "https://www.idx.co.id"
+	authTimeout    = 30 * time.Second
+	pollInterval   = 2 * time.Second
+	cfClearance    = "cf_clearance"
+	envAuthTimeout = "IDXLENS_AUTH_TIMEOUT"
 )
 
 // cookieEntry is a serializable representation of an HTTP cookie.
@@ -133,7 +134,7 @@ func CookiesValid(path string) bool {
 // authTimeoutDuration returns the authentication timeout.
 // Defaults to 30s, configurable via IDXLENS_AUTH_TIMEOUT env var.
 func authTimeoutDuration() time.Duration {
-	if v := os.Getenv("IDXLENS_AUTH_TIMEOUT"); v != "" {
+	if v := os.Getenv(envAuthTimeout); v != "" {
 		if d, err := time.ParseDuration(v); err == nil && d > 0 {
 			return d
 		}
