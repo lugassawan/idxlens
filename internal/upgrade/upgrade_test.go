@@ -57,7 +57,7 @@ func TestLatestReleaseServerError(t *testing.T) {
 
 func TestAssetName(t *testing.T) {
 	name := AssetName()
-	want := "idxlens_" + runtime.GOOS + "_" + runtime.GOARCH
+	want := runtime.GOOS + "_" + runtime.GOARCH
 
 	if name != want {
 		t.Errorf("AssetName() = %q, want %q", name, want)
@@ -75,7 +75,7 @@ func TestFindAsset(t *testing.T) {
 			release: &Release{
 				Assets: []Asset{
 					{
-						Name:        "idxlens_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz",
+						Name:        "idxlens_1.2.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz",
 						DownloadURL: "https://example.com/download",
 					},
 				},

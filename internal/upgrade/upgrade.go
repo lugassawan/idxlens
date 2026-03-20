@@ -39,9 +39,9 @@ func LatestRelease(ctx context.Context) (*Release, error) {
 	return latestReleaseFrom(ctx, releaseEndpoint, &http.Client{})
 }
 
-// AssetName returns the expected asset filename for the current OS/architecture.
+// AssetName returns the OS/architecture suffix used to match release assets.
 func AssetName() string {
-	return fmt.Sprintf("idxlens_%s_%s", runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 }
 
 // FindAsset finds the matching asset for the current platform in a release.
