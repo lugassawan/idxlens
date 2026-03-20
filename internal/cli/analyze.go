@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -69,7 +68,7 @@ func analyzeTicker(
 	if err != nil {
 		fetchErr = fmt.Errorf("create client: %w", err)
 	} else {
-		fetchErr = fetchForTicker(ctx, errW, client, ticker, year, period)
+		fetchErr = service.FetchForAnalyze(ctx, errW, client, ticker, year, period)
 	}
 
 	files, err := ResolveInputs(ticker, year, period)
@@ -106,34 +105,4 @@ func bestFormat(files []InputFile) *InputFile {
 	}
 
 	return best
-}
-
-func fetchForTicker(
-	ctx context.Context, errW io.Writer, client service.IDXFetcher,
-	ticker string, year int, period string,
-) error {
-	atts, err := client.ListReports(ctx, ticker, year, period)
-	if err != nil {
-		return err
-	}
-
-	if len(atts) == 0 {
-		return fmt.Errorf("no reports found for %s on IDX", ticker)
-	}
-
-	dataDir, err := idx.DataDir()
-	if err != nil {
-		return fmt.Errorf("resolve data directory: %w", err)
-	}
-
-	for _, att := range atts {
-		destDir := filepath.Join(dataDir, ticker, att.ReportYear, att.ReportPeriod)
-
-		if _, dlErr := client.Download(ctx, att, destDir); dlErr != nil {
-			fmt.Fprintf(errW, "Warning: failed to download %s: %v\n", att.FileName, dlErr)
-			continue
-		}
-	}
-
-	return nil
 }
