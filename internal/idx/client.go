@@ -2,6 +2,7 @@ package idx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -64,6 +65,10 @@ func NewAuthenticatedClient() (*Client, error) {
 	cookiePath, err := CookiePath()
 	if err != nil {
 		return nil, fmt.Errorf("resolve cookie path: %w", err)
+	}
+
+	if !CookiesValid(cookiePath) {
+		return nil, errors.New("authentication expired or missing, please run: idxlens auth")
 	}
 
 	cookies, err := LoadCookies(cookiePath)
