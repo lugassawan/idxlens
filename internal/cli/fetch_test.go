@@ -536,21 +536,33 @@ func TestDryRunFetch(t *testing.T) {
 			client: &fakeFetcher{
 				reports: map[string][]idx.Attachment{
 					"BBCA": {
-						{EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf", FileSize: 1024},
-						{EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx", FileSize: 2048},
+						{
+							EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf",
+							FileSize: 1024, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+						{
+							EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx",
+							FileSize: 2048, ReportYear: "2025", ReportPeriod: "Q1",
+						},
 					},
 				},
 			},
 			tickers: []string{"BBCA"},
-			wantOut: []string{"report.pdf", "data.xlsx"},
+			wantOut: []string{"TICKER", "report.pdf", "data.xlsx"},
 		},
 		{
 			name: "filters by file type",
 			client: &fakeFetcher{
 				reports: map[string][]idx.Attachment{
 					"BBCA": {
-						{EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf", FileSize: 1024},
-						{EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx", FileSize: 2048},
+						{
+							EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf",
+							FileSize: 1024, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+						{
+							EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx",
+							FileSize: 2048, ReportYear: "2025", ReportPeriod: "Q1",
+						},
 					},
 				},
 			},
@@ -568,12 +580,20 @@ func TestDryRunFetch(t *testing.T) {
 			name: "multiple tickers",
 			client: &fakeFetcher{
 				reports: map[string][]idx.Attachment{
-					"BBCA": {{EmitenCode: "BBCA", FileName: "bbca.pdf", FileType: "pdf"}},
-					"BBRI": {{EmitenCode: "BBRI", FileName: "bbri.xlsx", FileType: "xlsx"}},
+					"BBCA": {{EmitenCode: "BBCA", FileName: "bbca.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+					"BBRI": {{EmitenCode: "BBRI", FileName: "bbri.xlsx", FileType: "xlsx", ReportYear: "2025", ReportPeriod: "Q1"}},
 				},
 			},
 			tickers: []string{"BBCA", "BBRI"},
 			wantOut: []string{"bbca.pdf", "bbri.xlsx"},
+		},
+		{
+			name: "empty results",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{"BBCA": {}},
+			},
+			tickers: []string{"BBCA"},
+			wantOut: []string{"TICKER"},
 		},
 	}
 

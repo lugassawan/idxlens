@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
@@ -36,7 +37,7 @@ func init() {
 	registerYearPeriodFlags(fetchCmd, true)
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
-	fetchCmd.Flags().Bool(flagDryRun, false, "List files to be downloaded without downloading")
+	fetchCmd.Flags().Bool(flagDryRun, false, "List files that would be downloaded without downloading")
 	rootCmd.AddCommand(fetchCmd)
 }
 
@@ -216,6 +217,9 @@ func dryRunFetch(
 	year int,
 	period, fileType string,
 ) error {
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "TICKER\tFILENAME\tTYPE\tSIZE\tPERIOD\tYEAR")
+
 	var errs []error
 
 	for _, ticker := range tickers {
@@ -227,11 +231,17 @@ func dryRunFetch(
 
 		filtered := filterAttachments(atts, fileType)
 		for _, att := range filtered {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", att.EmitenCode, att.FileName, att.FileType, att.FileSize)
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t%s\n",
+				att.EmitenCode, att.FileName, att.FileType, att.FileSize,
+				att.ReportPeriod, att.ReportYear)
 		}
 	}
 
-	return errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return tw.Flush()
 }
 
 func filterAttachments(atts []idx.Attachment, fileType string) []idx.Attachment {
