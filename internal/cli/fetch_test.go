@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/lugassawan/idxlens/internal/idx"
@@ -40,6 +41,7 @@ func TestFetchCommandFlags(t *testing.T) {
 		{"period flag", "period"},
 		{"file-type flag", "file-type"},
 		{"workers flag", "workers"},
+		{"dry-run flag", "dry-run"},
 	}
 
 	for _, tt := range tests {
@@ -518,4 +520,110 @@ func TestFetchPresentations(t *testing.T) {
 			t.Errorf("failed = %d, want 1", len(summary.Failed))
 		}
 	})
+}
+
+func TestDryRunFetch(t *testing.T) {
+	tests := []struct {
+		name     string
+		client   *fakeFetcher
+		tickers  []string
+		fileType string
+		wantErr  string
+		wantOut  []string
+	}{
+		{
+			name: "lists files without downloading",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {
+						{
+							EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf",
+							FileSize: 1024, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+						{
+							EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx",
+							FileSize: 2048, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+					},
+				},
+			},
+			tickers: []string{"BBCA"},
+			wantOut: []string{"TICKER", "report.pdf", "data.xlsx"},
+		},
+		{
+			name: "filters by file type",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {
+						{
+							EmitenCode: "BBCA", FileName: "report.pdf", FileType: "pdf",
+							FileSize: 1024, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+						{
+							EmitenCode: "BBCA", FileName: "data.xlsx", FileType: "xlsx",
+							FileSize: 2048, ReportYear: "2025", ReportPeriod: "Q1",
+						},
+					},
+				},
+			},
+			tickers:  []string{"BBCA"},
+			fileType: "pdf",
+			wantOut:  []string{"report.pdf"},
+		},
+		{
+			name:    "list error",
+			client:  &fakeFetcher{listErr: errors.New("connection refused")},
+			tickers: []string{"BBCA"},
+			wantErr: "list reports for BBCA",
+		},
+		{
+			name: "multiple tickers",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{
+					"BBCA": {{EmitenCode: "BBCA", FileName: "bbca.pdf", FileType: "pdf", ReportYear: "2025", ReportPeriod: "Q1"}},
+					"BBRI": {{EmitenCode: "BBRI", FileName: "bbri.xlsx", FileType: "xlsx", ReportYear: "2025", ReportPeriod: "Q1"}},
+				},
+			},
+			tickers: []string{"BBCA", "BBRI"},
+			wantOut: []string{"bbca.pdf", "bbri.xlsx"},
+		},
+		{
+			name: "empty results",
+			client: &fakeFetcher{
+				reports: map[string][]idx.Attachment{"BBCA": {}},
+			},
+			tickers: []string{"BBCA"},
+			wantOut: []string{"TICKER"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := dryRunFetch(context.Background(), &buf, tt.client, tt.tickers, 0, "", tt.fileType)
+
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.wantErr)
+				}
+
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %q, want containing %q", err.Error(), tt.wantErr)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			output := buf.String()
+			for _, want := range tt.wantOut {
+				if !strings.Contains(output, want) {
+					t.Errorf("output missing %q\ngot: %s", want, output)
+				}
+			}
+		})
+	}
 }

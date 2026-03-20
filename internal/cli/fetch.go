@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
@@ -35,6 +37,7 @@ func init() {
 	registerYearPeriodFlags(fetchCmd, true)
 	fetchCmd.Flags().String(flagFileType, "", "Filter by file type (e.g. pdf, xlsx, zip)")
 	fetchCmd.Flags().Int(flagWorkers, defaultWorkers, "Number of concurrent downloads")
+	fetchCmd.Flags().Bool(flagDryRun, false, "List files that would be downloaded without downloading")
 	rootCmd.AddCommand(fetchCmd)
 }
 
@@ -43,6 +46,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	year, period := parseYearPeriodFlags(cmd)
 	fileType, _ := cmd.Flags().GetString(flagFileType)
 	logger := newLogger(cmd)
+	dryRun, _ := cmd.Flags().GetBool(flagDryRun)
 
 	logger.Info("starting fetch", "tickers", tickers, flagYear, year, "period", period)
 
@@ -52,6 +56,11 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	}
 
 	ctx := cmd.Context()
+
+	if dryRun {
+		return dryRunFetch(ctx, cmd.OutOrStdout(), client, tickers, year, period, fileType)
+	}
+
 	summary := fetchSummary{}
 
 	if err := fetchIDXDocuments(ctx, client, tickers, year, period, fileType, &summary); err != nil {
@@ -198,6 +207,41 @@ func fetchCompanyPresentations(
 
 		summary.Downloaded = append(summary.Downloaded, result.LocalPath)
 	}
+}
+
+func dryRunFetch(
+	ctx context.Context,
+	w io.Writer,
+	lister service.ReportLister,
+	tickers []string,
+	year int,
+	period, fileType string,
+) error {
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "TICKER\tFILENAME\tTYPE\tSIZE\tPERIOD\tYEAR")
+
+	var errs []error
+
+	for _, ticker := range tickers {
+		atts, err := lister.ListReports(ctx, ticker, year, period)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("list reports for %s: %w", ticker, err))
+			continue
+		}
+
+		filtered := filterAttachments(atts, fileType)
+		for _, att := range filtered {
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t%s\n",
+				att.EmitenCode, att.FileName, att.FileType, att.FileSize,
+				att.ReportPeriod, att.ReportYear)
+		}
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return tw.Flush()
 }
 
 func filterAttachments(atts []idx.Attachment, fileType string) []idx.Attachment {
