@@ -25,20 +25,14 @@ cached files if fetch fails.`,
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
-	analyzeCmd.Flags().IntP(flagYear, "y", 0, descYearRequired)
-	analyzeCmd.Flags().StringP(flagPeriod, "p", "", descPeriod)
-	_ = analyzeCmd.MarkFlagRequired(flagYear)
-	analyzeCmd.Flags().StringP(flagFormat, "f", defaultFormat, "output format (json, csv)")
-	analyzeCmd.Flags().StringP(flagOutput, "o", "", "output file path")
-	analyzeCmd.Flags().Bool(flagPretty, false, "pretty-print JSON output")
+	registerYearPeriodFlags(analyzeCmd, true)
+	registerOutputFlags(analyzeCmd)
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
 	tickers := strings.Split(strings.ToUpper(args[0]), ",")
-	year, _ := cmd.Flags().GetInt(flagYear)
-	period, _ := cmd.Flags().GetString(flagPeriod)
-	pretty, _ := cmd.Flags().GetBool(flagPretty)
-	outputPath, _ := cmd.Flags().GetString(flagOutput)
+	year, period := parseYearPeriodFlags(cmd)
+	outputPath, pretty := parseOutputFlags(cmd)
 
 	w, cleanup, err := openWriter(cmd, outputPath)
 	if err != nil {
