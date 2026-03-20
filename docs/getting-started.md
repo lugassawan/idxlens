@@ -88,16 +88,22 @@ idxlens list BBCA -y 2024 -p Q3
 idxlens fetch BBCA -y 2024 -p Q3
 ```
 
-This downloads reports to the local cache at `~/.idxlens/reports/BBCA/`.
+This downloads reports to the local cache at `~/.idxlens/data/BBCA/2024/Q3/`.
+
+Preview files before downloading:
+
+```sh
+idxlens fetch BBCA -y 2024 --dry-run
+```
 
 ### 4. Extract financial data
 
 ```sh
 # From a local XLSX file
-idxlens extract ~/.idxlens/reports/BBCA/2024-Q3.xlsx --pretty
+idxlens extract ~/.idxlens/data/BBCA/2024/Q3/FinancialStatement-2024-III-BBCA.xlsx --pretty
 
 # From a XBRL ZIP archive
-idxlens extract ~/.idxlens/reports/BBCA/2024-Q3.zip
+idxlens extract ~/.idxlens/data/BBCA/2024/Q3/inlineXBRL.zip
 
 # Presentation KV extraction from PDF
 idxlens extract presentation.pdf --mode presentation
@@ -117,6 +123,12 @@ Analyze multiple tickers at once:
 
 ```sh
 idxlens analyze BBCA,BMRI,BBRI -y 2024 -p Q3
+```
+
+Enable verbose output for debugging:
+
+```sh
+idxlens analyze BBCA -y 2024 --verbose
 ```
 
 ### Keep IDXLens up to date

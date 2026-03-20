@@ -10,11 +10,19 @@ idxlens [command]
 
 IDXLens is a CLI tool that fetches and extracts structured financial data from Indonesia Stock Exchange (IDX) reports. Supports XLSX, XBRL, and PDF formats.
 
+## Global Flags
+
+| Flag        | Default | Description                                      |
+|------------|---------|--------------------------------------------------|
+| `--verbose` | `false` | Enable verbose output (structured logging to stderr) |
+
 ## Environment
 
-| Variable       | Default       | Description                    |
-|---------------|---------------|--------------------------------|
-| `IDXLENS_HOME` | `~/.idxlens` | Local cache and session directory |
+| Variable              | Default       | Description                              |
+|----------------------|---------------|------------------------------------------|
+| `IDXLENS_HOME`        | `~/.idxlens` | Local cache and session directory        |
+| `IDXLENS_AUTH_TIMEOUT` | `30s`        | Authentication timeout (e.g. `60s`, `2m`) |
+| `NO_COLOR`            |               | Disable colored output when set          |
 
 ## Commands
 
@@ -26,7 +34,9 @@ Authenticate with the IDX portal via headless Chrome. Stores the session locally
 idxlens auth
 ```
 
-Chrome must be installed. The command launches a headless browser session, navigates to the IDX portal, and stores authentication cookies in `IDXLENS_HOME`.
+Chrome must be installed. The command launches a headless browser session, navigates to the IDX portal, and stores authentication cookies (with expiry timestamps) in `IDXLENS_HOME`. The timeout can be configured via `IDXLENS_AUTH_TIMEOUT` (default: `30s`).
+
+If cookies have expired, commands that require authentication will return a clear error message prompting you to re-authenticate.
 
 ---
 
@@ -88,21 +98,28 @@ idxlens fetch TICKER[,TICKER...]
 | `--period`    | `-p`  |         | Filter by period (`Q1`, `Q2`, `Q3`, `FY`)          |
 | `--file-type` |       |         | Filter by file type (`xlsx`, `xbrl`, `pdf`)        |
 | `--workers`   | `-w`  | `4`     | Number of concurrent download workers              |
+| `--dry-run`   |       | `false` | List files that would be downloaded without downloading |
 
 **Examples:**
 
 ```sh
 # Fetch all reports for BBCA
-idxlens fetch BBCA
+idxlens fetch BBCA -y 2025
 
 # Fetch specific year and period
 idxlens fetch BBCA -y 2024 -p Q3
+
+# Preview files without downloading
+idxlens fetch BBCA -y 2025 --dry-run
+
+# Preview with file type filter
+idxlens fetch BBCA -y 2025 --dry-run --file-type xlsx
 
 # Fetch only XLSX files with 8 workers
 idxlens fetch BBCA,BMRI -y 2024 --file-type xlsx -w 8
 ```
 
-Reports are saved to `IDXLENS_HOME/reports/<ticker>/`.
+Reports are saved to `IDXLENS_HOME/data/<ticker>/<year>/<period>/`.
 
 ---
 
