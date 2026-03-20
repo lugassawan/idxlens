@@ -138,6 +138,42 @@ func TestParseZip(t *testing.T) {
 	}
 }
 
+func TestSetMeta(t *testing.T) {
+	t.Run("fills empty fields", func(t *testing.T) {
+		stmt := &Statement{}
+		stmt.SetMeta("BBCA", 2024, "Q3")
+
+		if stmt.Ticker != "BBCA" {
+			t.Errorf("Ticker = %q, want %q", stmt.Ticker, "BBCA")
+		}
+
+		if stmt.Year != 2024 {
+			t.Errorf("Year = %d, want %d", stmt.Year, 2024)
+		}
+
+		if stmt.Period != "Q3" {
+			t.Errorf("Period = %q, want %q", stmt.Period, "Q3")
+		}
+	})
+
+	t.Run("preserves existing fields", func(t *testing.T) {
+		stmt := &Statement{Ticker: "TLKM", Year: 2023, Period: "Audit"}
+		stmt.SetMeta("BBCA", 2024, "Q3")
+
+		if stmt.Ticker != "TLKM" {
+			t.Errorf("Ticker = %q, want %q", stmt.Ticker, "TLKM")
+		}
+
+		if stmt.Year != 2023 {
+			t.Errorf("Year = %d, want %d", stmt.Year, 2023)
+		}
+
+		if stmt.Period != "Audit" {
+			t.Errorf("Period = %q, want %q", stmt.Period, "Audit")
+		}
+	})
+}
+
 func TestParseZipNonExistentFile(t *testing.T) {
 	_, err := ParseZip("/nonexistent/path/test.zip")
 	if err == nil {

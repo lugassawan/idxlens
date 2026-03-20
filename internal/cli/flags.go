@@ -1,6 +1,10 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"strings"
+
+	"github.com/spf13/cobra"
+)
 
 // registerYearPeriodFlags adds --year/-y and --period/-p flags.
 func registerYearPeriodFlags(cmd *cobra.Command, yearRequired bool) {
@@ -20,9 +24,15 @@ func registerOutputFlags(cmd *cobra.Command) {
 }
 
 // parseYearPeriodFlags reads year and period flag values from the command.
+// It normalizes the period value, mapping user-facing "FY" to the
+// IDX API value "Audit".
 func parseYearPeriodFlags(cmd *cobra.Command) (int, string) {
 	year, _ := cmd.Flags().GetInt(flagYear)
 	period, _ := cmd.Flags().GetString(flagPeriod)
+
+	if strings.EqualFold(period, "FY") {
+		period = "Audit"
+	}
 
 	return year, period
 }
