@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/xuri/excelize/v2"
+	"github.com/lugassawan/idxlens/internal/xbrl"
+	"github.com/lugassawan/idxlens/internal/xlsx"
+	excelize "github.com/xuri/excelize/v2"
 )
 
 func TestGetExtractor(t *testing.T) {
@@ -101,12 +103,25 @@ func TestExtractFileXLSXAppliesMeta(t *testing.T) {
 		t.Fatalf("ExtractFile() error: %v", err)
 	}
 
-	if result == nil {
-		t.Fatal("expected non-nil result")
+	stmt, ok := result.(*xlsx.Statement)
+	if !ok {
+		t.Fatal("expected *xlsx.Statement")
+	}
+
+	if stmt.Ticker != "PGAS" {
+		t.Errorf("Ticker = %q, want %q", stmt.Ticker, "PGAS")
+	}
+
+	if stmt.Year != 2025 {
+		t.Errorf("Year = %d, want %d", stmt.Year, 2025)
+	}
+
+	if stmt.Period != "Audit" {
+		t.Errorf("Period = %q, want %q", stmt.Period, "Audit")
 	}
 }
 
-func TestExtractFileXBRL(t *testing.T) {
+func TestExtractFileXBRLAppliesMeta(t *testing.T) {
 	path := createTestXBRLZip(t)
 
 	result, err := ExtractFile(path, "xbrl", "financial", "BBCA", 2025, "Q1")
@@ -114,8 +129,21 @@ func TestExtractFileXBRL(t *testing.T) {
 		t.Fatalf("ExtractFile() error: %v", err)
 	}
 
-	if result == nil {
-		t.Fatal("expected non-nil result")
+	stmt, ok := result.(*xbrl.Statement)
+	if !ok {
+		t.Fatal("expected *xbrl.Statement")
+	}
+
+	if stmt.Ticker != "BBCA" {
+		t.Errorf("Ticker = %q, want %q", stmt.Ticker, "BBCA")
+	}
+
+	if stmt.Year != 2025 {
+		t.Errorf("Year = %d, want %d", stmt.Year, 2025)
+	}
+
+	if stmt.Period != "Q1" {
+		t.Errorf("Period = %q, want %q", stmt.Period, "Q1")
 	}
 }
 

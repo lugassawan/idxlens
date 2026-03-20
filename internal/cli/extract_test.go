@@ -250,6 +250,18 @@ func TestExtractFileAppliesMetadata(t *testing.T) {
 	}
 }
 
+func TestWriteResultsEmpty(t *testing.T) {
+	var buf bytes.Buffer
+
+	if err := writeResults(&buf, nil, false); err != nil {
+		t.Fatalf("writeResults() error: %v", err)
+	}
+
+	if buf.Len() != 0 {
+		t.Errorf("expected no output for empty results, got %q", buf.String())
+	}
+}
+
 func TestWriteResultsSingle(t *testing.T) {
 	var buf bytes.Buffer
 
