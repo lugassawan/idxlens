@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	registryURL  = "https://raw.githubusercontent.com/lugassawan/idxlens/main/registry/presentations.json"
-	registryFile = "registry.json"
-	etagFile     = "registry.etag"
+	registryURL       = "https://raw.githubusercontent.com/lugassawan/idxlens/main/registry/presentations.json"
+	registryFile      = "registry.json"
+	etagFile          = "registry.etag"
+	headerIfNoneMatch = "If-None-Match"
 )
 
 // PresentationEntry represents a single company presentation document.
@@ -166,7 +167,7 @@ func fetchRegistryFrom(ctx context.Context, url, etag string) (*fetchResult, err
 	}
 
 	if etag != "" {
-		req.Header.Set("If-None-Match", etag)
+		req.Header.Set(headerIfNoneMatch, etag)
 	}
 
 	//nolint:gosec // URL is the hardcoded GitHub raw registry URL, not user input
