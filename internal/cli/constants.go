@@ -8,6 +8,7 @@ const (
 	flagYear     = "year"
 	flagPeriod   = "period"
 	flagFileType = "file-type"
+	flagVerbose  = "verbose"
 	flagWorkers  = "workers"
 	flagMode     = "mode"
 
