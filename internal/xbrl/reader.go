@@ -38,6 +38,21 @@ var filenamePattern = regexp.MustCompile(
 // xbrlExtPriority defines the preference order for XBRL file selection.
 var xbrlExtPriority = []string{".xbrl", ".xml", ".htm", ".html"}
 
+// SetMeta applies fallback metadata when the filename didn't match.
+func (s *Statement) SetMeta(ticker string, year int, period string) {
+	if s.Ticker == "" {
+		s.Ticker = ticker
+	}
+
+	if s.Year == 0 {
+		s.Year = year
+	}
+
+	if s.Period == "" {
+		s.Period = period
+	}
+}
+
 // ParseZip reads a zip file containing inline XBRL and extracts financial facts.
 func ParseZip(zipPath string) (*Statement, error) {
 	r, err := zip.OpenReader(zipPath)

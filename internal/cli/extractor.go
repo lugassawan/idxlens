@@ -3,20 +3,35 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/lugassawan/idxlens/internal/xbrl"
 	"github.com/lugassawan/idxlens/internal/xlsx"
 )
 
-// Extractor extracts financial data from a file and writes it to w.
+// ExtractResult wraps extractor output for uniform handling.
+type ExtractResult struct {
+	value any
+}
+
+// Extractor extracts financial data from a file and returns structured data.
 type Extractor interface {
-	Extract(w io.Writer, path string, mode string, pretty bool) error
+	Extract(path string, mode string) (ExtractResult, error)
+}
+
+// metaSetter allows setting fallback metadata on extraction results.
+type metaSetter interface {
+	SetMeta(ticker string, year int, period string)
 }
 
 // extractorRegistry maps file formats to their extractors.
 var extractorRegistry = map[string]Extractor{}
+
+// NewExtractResult creates a new ExtractResult.
+func NewExtractResult(v any) ExtractResult { return ExtractResult{value: v} }
+
+// Value returns the underlying extraction result.
+func (r ExtractResult) Value() any { return r.value }
 
 func init() {
 	registerExtractor(formatXLSX, xlsxExtractor{})
@@ -42,39 +57,39 @@ func getExtractor(format string) (Extractor, error) {
 // xlsxExtractor extracts financial data from XLSX files.
 type xlsxExtractor struct{}
 
-func (xlsxExtractor) Extract(w io.Writer, path, mode string, pretty bool) error {
+func (xlsxExtractor) Extract(path, mode string) (ExtractResult, error) {
 	stmt, err := xlsx.Parse(path)
 	if err != nil {
-		return fmt.Errorf("parse xlsx: %w", err)
+		return ExtractResult{}, fmt.Errorf("parse xlsx: %w", err)
 	}
 
-	return writeJSON(w, stmt, pretty)
+	return NewExtractResult(stmt), nil
 }
 
 // xbrlExtractor extracts financial data from XBRL (ZIP) files.
 type xbrlExtractor struct{}
 
-func (xbrlExtractor) Extract(w io.Writer, path, mode string, pretty bool) error {
+func (xbrlExtractor) Extract(path, mode string) (ExtractResult, error) {
 	stmt, err := xbrl.ParseZip(path)
 	if err != nil {
-		return fmt.Errorf("parse xbrl: %w", err)
+		return ExtractResult{}, fmt.Errorf("parse xbrl: %w", err)
 	}
 
-	return writeJSON(w, stmt, pretty)
+	return NewExtractResult(stmt), nil
 }
 
 // pdfExtractor extracts data from PDF files.
 type pdfExtractor struct{}
 
-func (pdfExtractor) Extract(w io.Writer, path, mode string, pretty bool) error {
+func (pdfExtractor) Extract(path, mode string) (ExtractResult, error) {
 	if mode == modePresentation {
 		pairs, err := service.ExtractPresentation(path)
 		if err != nil {
-			return fmt.Errorf("extract presentation: %w", err)
+			return ExtractResult{}, fmt.Errorf("extract presentation: %w", err)
 		}
 
-		return writeJSON(w, pairs, pretty)
+		return NewExtractResult(pairs), nil
 	}
 
-	return errors.New("PDF financial extraction not supported in v2 (use XLSX or XBRL)")
+	return ExtractResult{}, errors.New("PDF financial extraction not supported in v2 (use XLSX or XBRL)")
 }

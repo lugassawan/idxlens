@@ -36,6 +36,21 @@ var filenamePattern = regexp.MustCompile(
 	`(?i)FinancialStatement-(\d{4})-([^-]+)-([A-Z]{4})\.xlsx$`,
 )
 
+// SetMeta applies fallback metadata when the filename didn't match.
+func (s *Statement) SetMeta(ticker string, year int, period string) {
+	if s.Ticker == "" {
+		s.Ticker = ticker
+	}
+
+	if s.Year == 0 {
+		s.Year = year
+	}
+
+	if s.Period == "" {
+		s.Period = period
+	}
+}
+
 // Parse reads an XLSX file and extracts structured financial data.
 func Parse(path string) (*Statement, error) {
 	f, err := excelize.OpenFile(path)
