@@ -3,16 +3,11 @@ package cli
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/spf13/cobra"
-
-	"github.com/lugassawan/idxlens/internal/service"
-	"github.com/lugassawan/idxlens/internal/xbrl"
-	"github.com/lugassawan/idxlens/internal/xlsx"
 )
 
 var extractCmd = &cobra.Command{
@@ -57,47 +52,12 @@ func runExtract(cmd *cobra.Command, args []string) error {
 }
 
 func extractFile(w io.Writer, input InputFile, mode string, pretty bool) error {
-	switch input.Format {
-	case formatXLSX:
-		return extractXLSX(w, input.Path, pretty)
-	case formatXBRL:
-		return extractXBRL(w, input.Path, pretty)
-	case formatPDF:
-		if mode == modePresentation {
-			return extractPresentation(w, input.Path, pretty)
-		}
-
-		return errors.New("PDF financial extraction not supported in v2 (use XLSX or XBRL)")
-	default:
-		return fmt.Errorf("unsupported format: %s", input.Format)
-	}
-}
-
-func extractXLSX(w io.Writer, path string, pretty bool) error {
-	stmt, err := xlsx.Parse(path)
+	e, err := getExtractor(input.Format)
 	if err != nil {
-		return fmt.Errorf("parse xlsx: %w", err)
+		return err
 	}
 
-	return writeJSON(w, stmt, pretty)
-}
-
-func extractXBRL(w io.Writer, path string, pretty bool) error {
-	stmt, err := xbrl.ParseZip(path)
-	if err != nil {
-		return fmt.Errorf("parse xbrl: %w", err)
-	}
-
-	return writeJSON(w, stmt, pretty)
-}
-
-func extractPresentation(w io.Writer, pdfPath string, pretty bool) error {
-	pairs, err := service.ExtractPresentation(pdfPath)
-	if err != nil {
-		return fmt.Errorf("extract presentation: %w", err)
-	}
-
-	return writeJSON(w, pairs, pretty)
+	return e.Extract(w, input.Path, mode, pretty)
 }
 
 func writeJSON(w io.Writer, v any, pretty bool) error {
