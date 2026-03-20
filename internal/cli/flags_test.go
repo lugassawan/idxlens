@@ -88,7 +88,9 @@ func TestParseYearPeriodFlags(t *testing.T) {
 	}{
 		{"defaults", "", "", 0, ""},
 		{"year only", "2024", "", 2024, ""},
-		{"both set", "2025", "TW1", 2025, "TW1"},
+		{"both set", "2025", "Q1", 2025, "Q1"},
+		{"FY maps to Audit", "2025", "FY", 2025, "Audit"},
+		{"fy lowercase maps to Audit", "2025", "fy", 2025, "Audit"},
 	}
 
 	for _, tt := range tests {
