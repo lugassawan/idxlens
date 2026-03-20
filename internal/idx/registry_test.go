@@ -27,10 +27,12 @@ func TestFetchRegistry(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		reg, err := fetchRegistryFrom(context.Background(), srv.URL)
+		result, err := fetchRegistryFrom(context.Background(), srv.URL, "")
 		if err != nil {
 			t.Fatalf("fetchRegistryFrom() error: %v", err)
 		}
+
+		reg := result.Registry
 
 		entry, ok := reg["BBCA"]
 		if !ok {
@@ -61,7 +63,7 @@ func TestFetchRegistry(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		_, err := fetchRegistryFrom(context.Background(), srv.URL)
+		_, err := fetchRegistryFrom(context.Background(), srv.URL, "")
 		if err == nil {
 			t.Fatal("fetchRegistryFrom() expected error for server error")
 		}
@@ -73,7 +75,7 @@ func TestFetchRegistry(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		_, err := fetchRegistryFrom(context.Background(), srv.URL)
+		_, err := fetchRegistryFrom(context.Background(), srv.URL, "")
 		if err == nil {
 			t.Fatal("fetchRegistryFrom() expected error for invalid JSON")
 		}
@@ -91,7 +93,7 @@ func TestFetchRegistryCancelled(t *testing.T) {
 }
 
 func TestFetchRegistryFromInvalidURL(t *testing.T) {
-	_, err := fetchRegistryFrom(context.Background(), "://bad-url")
+	_, err := fetchRegistryFrom(context.Background(), "://bad-url", "")
 	if err == nil {
 		t.Fatal("fetchRegistryFrom() expected error for invalid URL")
 	}
@@ -99,10 +101,100 @@ func TestFetchRegistryFromInvalidURL(t *testing.T) {
 
 func TestFetchRegistryFromConnectionRefused(t *testing.T) {
 	// Use a URL with a port that refuses connections
-	_, err := fetchRegistryFrom(context.Background(), "http://127.0.0.1:1/invalid")
+	_, err := fetchRegistryFrom(context.Background(), "http://127.0.0.1:1/invalid", "")
 	if err == nil {
 		t.Fatal("fetchRegistryFrom() expected error for connection refused")
 	}
+}
+
+func TestFetchRegistryConditional(t *testing.T) {
+	t.Run("304 returns cached registry", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Setenv("IDXLENS_HOME", dir)
+
+		reg := map[string]CompanyRegistry{
+			"BBCA": {Name: "Bank Central Asia"},
+		}
+		regPath, err := RegistryPath()
+		if err != nil {
+			t.Fatalf("registry path: %v", err)
+		}
+		if err := SaveCachedRegistry(regPath, reg); err != nil {
+			t.Fatalf("save cached: %v", err)
+		}
+
+		// Server returns 304 for matching ETag
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("If-None-Match") == `"test-etag"` {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+			t.Error("expected If-None-Match header")
+		}))
+		defer srv.Close()
+
+		// Save etag
+		etagPath, err := ETagPath()
+		if err != nil {
+			t.Fatalf("etag path: %v", err)
+		}
+		if err := SaveETag(etagPath, `"test-etag"`); err != nil {
+			t.Fatalf("save etag: %v", err)
+		}
+
+		// Use fetchRegistryFrom directly since FetchRegistryConditional uses hardcoded URL
+		result, err := fetchRegistryFrom(context.Background(), srv.URL, `"test-etag"`)
+		if err != nil {
+			t.Fatalf("error: %v", err)
+		}
+		if !result.NotModified {
+			t.Error("expected NotModified")
+		}
+	})
+
+	t.Run("200 returns new registry with ETag", func(t *testing.T) {
+		payload := `{"BBCA": {"name": "BCA", "ir_page": "", "presentations": []}}`
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("ETag", `"new-etag"`)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(payload))
+		}))
+		defer srv.Close()
+
+		result, err := fetchRegistryFrom(context.Background(), srv.URL, `"old-etag"`)
+		if err != nil {
+			t.Fatalf("error: %v", err)
+		}
+		if result.NotModified {
+			t.Error("expected new data, not NotModified")
+		}
+		if result.ETag != `"new-etag"` {
+			t.Errorf("ETag = %q, want %q", result.ETag, `"new-etag"`)
+		}
+		if _, ok := result.Registry["BBCA"]; !ok {
+			t.Error("registry missing BBCA")
+		}
+	})
+
+	t.Run("no etag sends no If-None-Match", func(t *testing.T) {
+		payload := `{"BBCA": {"name": "BCA", "ir_page": "", "presentations": []}}`
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("If-None-Match") != "" {
+				t.Error("should not send If-None-Match with empty etag")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(payload))
+		}))
+		defer srv.Close()
+
+		result, err := fetchRegistryFrom(context.Background(), srv.URL, "")
+		if err != nil {
+			t.Fatalf("error: %v", err)
+		}
+		if result.Registry == nil {
+			t.Error("expected registry data")
+		}
+	})
 }
 
 func TestRegistryPath(t *testing.T) {
@@ -132,6 +224,68 @@ func TestRegistryPath(t *testing.T) {
 		_, err := RegistryPath()
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	})
+}
+
+func TestETagPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("IDXLENS_HOME", dir)
+
+	path, err := ETagPath()
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+
+	want := filepath.Join(dir, "registry.etag")
+	if path != want {
+		t.Errorf("ETagPath() = %q, want %q", path, want)
+	}
+}
+
+func TestETagLoadSave(t *testing.T) {
+	t.Run("round trip", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.etag")
+
+		if err := SaveETag(path, `"abc123"`); err != nil {
+			t.Fatalf("save: %v", err)
+		}
+
+		got, err := LoadETag(path)
+		if err != nil {
+			t.Fatalf("load: %v", err)
+		}
+		if got != `"abc123"` {
+			t.Errorf("etag = %q, want %q", got, `"abc123"`)
+		}
+	})
+
+	t.Run("load missing file", func(t *testing.T) {
+		_, err := LoadETag("/nonexistent/path")
+		if err == nil {
+			t.Error("expected error")
+		}
+	})
+
+	t.Run("save creates directories", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "sub", "dir", "test.etag")
+
+		if err := SaveETag(path, `"test"`); err != nil {
+			t.Fatalf("save: %v", err)
+		}
+	})
+
+	t.Run("save to invalid path", func(t *testing.T) {
+		blocker := filepath.Join(t.TempDir(), "blocker")
+		if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+
+		err := SaveETag(filepath.Join(blocker, "sub", "test.etag"), `"test"`)
+		if err == nil {
+			t.Error("expected error")
 		}
 	})
 }
