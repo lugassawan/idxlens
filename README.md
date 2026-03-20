@@ -18,11 +18,15 @@ IDXLens is a CLI tool that fetches and extracts structured financial data from I
 
 ## Features
 
-- **Authenticate** with IDX portal via headless Chrome
+- **Authenticate** with IDX portal via headless Chrome (with cookie expiry detection)
 - **List and fetch** available financial reports for any ticker
+- **Dry-run mode** (`fetch --dry-run`): preview files before downloading
 - **Extract financial data** from XLSX (excelize), XBRL (ZIP archives), and PDF presentations
 - **Full pipeline** (`analyze`): fetch if needed, then extract from the best available format (XBRL > XLSX > PDF)
 - **Presentation KV extraction** for corporate presentations (key-value pair detection from PDF layout)
+- **Automatic retry** with exponential backoff for transient API failures (429, 5xx)
+- **Verbose logging** (`--verbose`): structured debug output via `slog`
+- **ETag caching** for registry: conditional fetches skip re-downloading unchanged data
 - **Local caching** via `IDXLENS_HOME` (default: `~/.idxlens`)
 - **JSON output** with optional pretty-print
 - **Self-update** via `idxlens upgrade` from GitHub Releases
@@ -65,6 +69,9 @@ idxlens list BBCA -y 2024
 # Fetch reports to local cache
 idxlens fetch BBCA -y 2024 -p Q3
 
+# Preview files without downloading
+idxlens fetch BBCA -y 2024 --dry-run
+
 # Extract financial data from a local file
 idxlens extract path/to/report.xlsx --pretty
 idxlens extract path/to/report.zip   # XBRL ZIP
@@ -72,6 +79,9 @@ idxlens extract path/to/presentation.pdf --mode presentation
 
 # Full pipeline: fetch (if needed) + extract
 idxlens analyze BBCA -y 2024 -p Q3
+
+# Verbose output for debugging
+idxlens analyze BBCA -y 2024 --verbose
 
 # Self-update to latest version
 idxlens upgrade

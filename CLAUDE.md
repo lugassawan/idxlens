@@ -21,8 +21,8 @@ idxlens/
 ├── cmd/idxlens/        # Entry point (main.go calls cli.Execute())
 ├── internal/
 │   ├── cli/            # Cobra CLI commands (auth, list, fetch, extract, analyze, upgrade, version)
-│   ├── service/        # Orchestration service (registry, presentation extraction)
-│   ├── idx/            # IDX API client (auth, listing, fetching, downloading)
+│   ├── service/        # Orchestration service (registry, presentation extraction, analyze pipeline)
+│   ├── idx/            # IDX API client (auth, listing, fetching, downloading, retry)
 │   ├── upgrade/        # Self-update from GitHub Releases
 │   ├── safefile/       # Atomic file write utilities
 │   ├── xlsx/           # XLSX parser (excelize-based financial statement extraction)
@@ -42,11 +42,15 @@ idxlens/
 
 - All logic in `internal/` — no public API surface
 - Extraction pipeline: `cli/` -> `service/` -> `idx/`/`xlsx/`/`xbrl/` -> (IDX API or local files)
+- Extractor registry: `cli/extractor.go` defines `Extractor` interface + `map[string]Extractor` registry (OCP pattern)
+- Analyze pipeline: `cli/analyze.go` (thin wrapper) -> `service/analyze.go` (`FetchForAnalyze`) -> `idx/` (fetch + retry)
 - Presentation extraction: `cli/` -> `service/` -> `domain/kvextractor` -> `layout/` -> `pdf/`
 - Self-update: `cli/` -> `upgrade/` -> GitHub Releases API
 - Atomic file writes: `idx/` and `upgrade/` use `safefile/` for safe downloads
+- HTTP retry: `idx/retry.go` wraps API calls with exponential backoff (3 attempts, retries on 429/5xx)
 - Each layer defines interfaces at its boundary; implementations live in the layer below
 - `cmd/idxlens/main.go` is Framework layer — it only calls `cli.Execute()`
+- Common flag helpers: `cli/flags.go` provides `registerYearPeriodFlags`, `registerOutputFlags`, `parseYearPeriodFlags`, `parseOutputFlags`
 - `IDXLENS_HOME` env var controls local cache directory (default: `~/.idxlens`)
 
 ## Commands
@@ -68,11 +72,22 @@ docker build -t idxlens .    # Build Docker image
 idxlens auth              # Authenticate with IDX portal (headless Chrome)
 idxlens list TICKER       # List available reports for a ticker
 idxlens fetch TICKER      # Download reports to local cache
+idxlens fetch TICKER --dry-run  # Preview files without downloading
 idxlens extract FILE      # Extract financial data from XLSX/XBRL/PDF
 idxlens analyze TICKER    # Full pipeline: fetch + extract (best format)
 idxlens upgrade           # Self-update from GitHub Releases
 idxlens version           # Print version information
 ```
+
+### Global Flags
+
+- `--verbose` — enable verbose output (slog-based structured logging to stderr)
+
+### Environment Variables
+
+- `IDXLENS_HOME` — local cache directory (default: `~/.idxlens`)
+- `IDXLENS_AUTH_TIMEOUT` — authentication timeout duration (default: `30s`, e.g. `60s`, `2m`)
+- `NO_COLOR` — disable colored output in banner
 
 ## Conventions
 
@@ -88,6 +103,7 @@ idxlens version           # Print version information
 - **Internal only**: All packages live under `internal/` — no public API surface
 - **Error wrapping**: Use `fmt.Errorf("context: %w", err)` for error chains
 - **Tests**: Table-driven tests with `t.Run()` subtests, standard `testing` package only (no testify)
+- **Environment variables**: All env var names are centralized as constants (`envHome` in `idx/home.go`, `envAuthTimeout` in `idx/auth.go`, `envNoColor` in `cli/constants.go`)
 - **IDXLENS_HOME**: Controls local cache directory (default: `~/.idxlens`); used by auth, fetch, and analyze commands
 - **Naming**: Standard Go naming conventions (MixedCaps, no underscores in names)
 

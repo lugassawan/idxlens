@@ -90,3 +90,27 @@ idxlens extract report.xlsx | jq '.items | length'
 ```sh
 idxlens analyze BBCA -y 2024 -p Q3 | jq '.items[] | {label: .label, value: .values["2024-09-30"]}'
 ```
+
+## Preview available files
+
+Use dry-run mode to see what files are available before downloading:
+
+```sh
+# List all available files
+idxlens fetch BBCA -y 2025 --dry-run
+
+# Filter by file type
+idxlens fetch BBCA -y 2025 --dry-run --file-type xlsx
+```
+
+## Verbose output
+
+Enable structured logging for debugging:
+
+```sh
+# See detailed fetch and extraction progress
+idxlens analyze BBCA -y 2024 -p Q3 --verbose
+
+# Verbose output goes to stderr, JSON to stdout -- pipe-friendly
+idxlens analyze BBCA -y 2024 --verbose 2>/dev/null | jq '.facts | length'
+```

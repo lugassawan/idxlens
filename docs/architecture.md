@@ -10,7 +10,7 @@ IDXLens extracts structured financial data from IDX reports (XLSX, XBRL, PDF) wi
 ├─────────────────────────────────────────────────┤
 │  CLI              internal/cli/                 │  Cobra commands, flag parsing, IO
 ├─────────────────────────────────────────────────┤
-│  Service          internal/service/             │  Registry, presentation extraction
+│  Service          internal/service/             │  Registry, analyze pipeline, presentation extraction
 ├─────────────────────────────────────────────────┤
 │  IDX API          internal/idx/                 │  Auth, listing, fetching, downloading
 │  Upgrade          internal/upgrade/             │  GitHub Releases self-update
@@ -31,10 +31,11 @@ Dependencies flow strictly downward. Each layer may only import from layers belo
 Key dependency chains:
 
 ```
-cli -> service -> idx -> safefile
+cli -> service -> idx (with retry) -> safefile
 cli -> service -> {xlsx, xbrl}
 cli -> service -> domain -> layout -> pdf
 cli -> upgrade -> safefile
+cli -> extractor registry -> {xlsx, xbrl, service/presentation}
 ```
 
 ## Data flows
@@ -72,11 +73,11 @@ idxlens extract report.zip
 idxlens extract presentation.pdf --mode presentation
   │
   ▼
-cli/extract.go  →  service layer (format detection)
+cli/extract.go  →  extractor registry (format lookup)
   │
-  ├──  XLSX  →  xlsx.Parse()
-  ├──  XBRL  →  xbrl.Parse()
-  └──  PDF   →  domain/kvextractor  →  layout.Analyzer  →  pdf.Reader
+  ├──  xlsxExtractor  →  xlsx.Parse()
+  ├──  xbrlExtractor  →  xbrl.ParseZip()
+  └──  pdfExtractor   →  domain/kvextractor  →  layout.Analyzer  →  pdf.Reader
   │
   ▼
 JSON output (stdout or file)
@@ -88,10 +89,13 @@ JSON output (stdout or file)
 idxlens analyze BBCA -y 2024 -p Q3
   │
   ▼
-cli/analyze.go  →  idx.Client.Fetch() (if not cached)
+cli/analyze.go  →  service.FetchForAnalyze() (with retry + warning on failures)
   │
   ▼
-service layer  →  Try XBRL → XLSX → PDF (best available format)
+cli/analyze.go  →  bestFormat() → extractor registry
+  │
+  ▼
+Try XBRL → XLSX → PDF (best available format)
   │
   ▼
 JSON output
@@ -117,10 +121,17 @@ Cobra-based command definitions. Wires the pipeline together, handles flag parsi
 
 **Commands:** `auth`, `list`, `fetch`, `extract`, `analyze`, `upgrade`, `version`
 
+Key patterns:
+- **Flag helpers** (`flags.go`): Shared flag registration and parsing (`registerYearPeriodFlags`, `registerOutputFlags`, `parseYearPeriodFlags`, `parseOutputFlags`)
+- **Extractor registry** (`extractor.go`): `Extractor` interface + `map[string]Extractor` registry. Format-specific extractors (`xlsxExtractor`, `xbrlExtractor`, `pdfExtractor`) are registered at init time. New formats can be added without modifying the dispatch logic (Open-Closed Principle).
+- **Logger** (`logger.go`): `slog`-based structured logger, writes to stderr when `--verbose` is set, discards otherwise
+- **Dry-run**: `fetch --dry-run` lists files without downloading
+
 ### Service (`internal/service/`)
 
 Orchestration layer between CLI and lower packages.
 
+- **Analyze pipeline** (`analyze.go`): `FetchForAnalyze` handles report fetching with download failure warnings
 - **Registry provider**: Loads report registry data for presentation extraction
 - **Presentation extraction**: Coordinates the PDF pipeline (domain -> layout -> pdf)
 
@@ -128,10 +139,12 @@ Orchestration layer between CLI and lower packages.
 
 Client for the IDX portal API. Uses `NewAuthenticatedClient()` factory for session management.
 
-- **Auth**: Headless Chrome login via chromedp
+- **Auth**: Headless Chrome login via chromedp; cookie expiry detection (`CookiesValid`); configurable timeout via `IDXLENS_AUTH_TIMEOUT`
+- **Retry** (`retry.go`): Exponential backoff (3 attempts, 1s/2s/4s) for transient failures (429, 500, 502, 503, 504)
 - **Listing**: Query available reports by ticker, year, period
 - **Fetching**: Download reports with parallel workers
 - **Downloading**: Atomic file writes via safefile
+- **Registry**: ETag-based conditional fetching (`FetchRegistryConditional`) to skip re-downloading unchanged data
 
 ### Upgrade (`internal/upgrade/`)
 
@@ -165,5 +178,9 @@ Three-layer pipeline for extracting key-value pairs from corporate presentations
 - **Pure Go, no CGO**: Single static binary with no external dependencies at runtime
 - **Internal only**: All packages live under `internal/` -- no public API surface
 - **Interface-driven**: Cross-layer boundaries use interfaces for testability and decoupling
+- **Open-Closed Principle**: Extractor registry allows adding formats without modifying dispatch logic
+- **DRY flag helpers**: Shared flag registration/parsing eliminates duplication across commands
+- **Resilient networking**: Exponential backoff retry for transient API failures
+- **Conditional fetching**: ETag caching for registry avoids unnecessary downloads
 - **Atomic writes**: File operations use safefile to prevent partial writes
 - **Local caching**: Downloaded reports are cached in `IDXLENS_HOME` (default: `~/.idxlens`)
