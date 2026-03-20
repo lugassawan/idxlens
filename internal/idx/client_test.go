@@ -80,7 +80,7 @@ func TestNewAuthenticatedClient(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid empty cookies",
+			name: "empty cookies treated as missing",
 			setup: func(t *testing.T, dir string) {
 				t.Helper()
 				err := os.WriteFile(filepath.Join(dir, "cookies.json"), []byte("[]"), 0o600)
@@ -88,7 +88,7 @@ func TestNewAuthenticatedClient(t *testing.T) {
 					t.Fatalf("write cookies.json: %v", err)
 				}
 			},
-			wantClient: true,
+			wantErr: true,
 		},
 		{
 			name: "valid cookies",
