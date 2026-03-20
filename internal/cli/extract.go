@@ -42,22 +42,49 @@ func runExtract(cmd *cobra.Command, args []string) error {
 
 	mode, _ := cmd.Flags().GetString(flagMode)
 
+	var results []any
+
 	for _, input := range inputs {
-		if err := extractFile(w, input, mode, pretty); err != nil {
+		result, err := extractFile(input, mode)
+		if err != nil {
 			return err
 		}
+
+		results = append(results, result.Value())
 	}
 
-	return nil
+	return writeResults(w, results, pretty)
 }
 
-func extractFile(w io.Writer, input InputFile, mode string, pretty bool) error {
-	e, err := getExtractor(input.Format)
-	if err != nil {
-		return err
+// writeResults writes a single result or a JSON array of multiple results.
+func writeResults(w io.Writer, results []any, pretty bool) error {
+	if len(results) == 0 {
+		return nil
 	}
 
-	return e.Extract(w, input.Path, mode, pretty)
+	if len(results) == 1 {
+		return writeJSON(w, results[0], pretty)
+	}
+
+	return writeJSON(w, results, pretty)
+}
+
+func extractFile(input InputFile, mode string) (ExtractResult, error) {
+	e, err := getExtractor(input.Format)
+	if err != nil {
+		return ExtractResult{}, err
+	}
+
+	result, err := e.Extract(input.Path, mode)
+	if err != nil {
+		return ExtractResult{}, err
+	}
+
+	if ms, ok := result.Value().(metaSetter); ok {
+		ms.SetMeta(input.Ticker, input.Year, input.Period)
+	}
+
+	return result, nil
 }
 
 func writeJSON(w io.Writer, v any, pretty bool) error {

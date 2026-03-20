@@ -44,23 +44,34 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	var errs []error
 
+	var results []any
+
 	errW := cmd.ErrOrStderr()
 
 	for _, ticker := range tickers {
 		logger.Info("analyzing ticker", "ticker", ticker, flagYear, year, "period", period)
 
-		if err := analyzeTicker(ctx, w, errW, ticker, year, period, pretty); err != nil {
+		result, err := analyzeTicker(ctx, errW, ticker, year, period)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("analyze %s: %w", ticker, err))
+
+			continue
 		}
+
+		results = append(results, result.Value())
+	}
+
+	if err := writeResults(w, results, pretty); err != nil {
+		return err
 	}
 
 	return errors.Join(errs...)
 }
 
 func analyzeTicker(
-	ctx context.Context, w io.Writer, errW io.Writer,
-	ticker string, year int, period string, pretty bool,
-) error {
+	ctx context.Context, errW io.Writer,
+	ticker string, year int, period string,
+) (ExtractResult, error) {
 	fmt.Fprintf(errW, "Analyzing %s...\n", ticker)
 
 	// Always fetch to ensure all formats are available for best selection.
@@ -77,15 +88,15 @@ func analyzeTicker(
 	files, err := ResolveInputs(ticker, year, period)
 	if err != nil {
 		if fetchErr != nil {
-			return fetchErr
+			return ExtractResult{}, fetchErr
 		}
 
-		return fmt.Errorf("no files available for %s: %w", ticker, err)
+		return ExtractResult{}, fmt.Errorf("no files available for %s: %w", ticker, err)
 	}
 
 	best := bestFormat(files)
 	if best == nil {
-		return fmt.Errorf("no extractable files for %s", ticker)
+		return ExtractResult{}, fmt.Errorf("no extractable files for %s", ticker)
 	}
 
 	mode := modeFinancial
@@ -93,7 +104,7 @@ func analyzeTicker(
 		mode = modePresentation
 	}
 
-	return extractFile(w, *best, mode, pretty)
+	return extractFile(*best, mode)
 }
 
 func bestFormat(files []InputFile) *InputFile {
