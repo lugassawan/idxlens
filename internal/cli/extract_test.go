@@ -20,18 +20,7 @@ func (errWriter) Write([]byte) (int, error) {
 }
 
 func TestExtractCommandRegistration(t *testing.T) {
-	found := false
-
-	for _, cmd := range rootCmd.Commands() {
-		if cmd.Use == "extract [TICKER|FILE]" {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		t.Fatal("extract command not registered on root")
-	}
+	assertCommandRegistered(t, "extract [TICKER|FILE]")
 }
 
 func TestExtractCommandFlags(t *testing.T) {

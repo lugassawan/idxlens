@@ -13,23 +13,7 @@ import (
 )
 
 func TestListCommandRegistered(t *testing.T) {
-	found := false
-
-	for _, cmd := range rootCmd.Commands() {
-		if cmd.Use == "list TICKER[,TICKER...]" {
-			found = true
-
-			if cmd.Short == "" {
-				t.Error("list command has empty Short description")
-			}
-
-			break
-		}
-	}
-
-	if !found {
-		t.Error("list command not registered on rootCmd")
-	}
+	assertCommandRegistered(t, "list TICKER[,TICKER...]")
 }
 
 func TestListCommandFlags(t *testing.T) {

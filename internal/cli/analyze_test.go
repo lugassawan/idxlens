@@ -12,23 +12,7 @@ import (
 )
 
 func TestAnalyzeCommandRegistered(t *testing.T) {
-	found := false
-
-	for _, cmd := range rootCmd.Commands() {
-		if cmd.Use == "analyze TICKER[,TICKER...]" {
-			found = true
-
-			if cmd.Short == "" {
-				t.Error("analyze command has empty Short description")
-			}
-
-			break
-		}
-	}
-
-	if !found {
-		t.Error("analyze command not registered on rootCmd")
-	}
+	assertCommandRegistered(t, "analyze TICKER[,TICKER...]")
 }
 
 func TestAnalyzeCommandFlags(t *testing.T) {
