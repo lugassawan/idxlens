@@ -20,18 +20,7 @@ func (errWriter) Write([]byte) (int, error) {
 }
 
 func TestExtractCommandRegistration(t *testing.T) {
-	found := false
-
-	for _, cmd := range rootCmd.Commands() {
-		if cmd.Use == "extract [TICKER|FILE]" {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		t.Fatal("extract command not registered on root")
-	}
+	assertCommandRegistered(t, "extract [TICKER|FILE]")
 }
 
 func TestExtractCommandFlags(t *testing.T) {
@@ -360,31 +349,6 @@ func TestWriteJSONWriteError(t *testing.T) {
 	err := writeJSON(w, map[string]int{"a": 1}, false)
 	if err == nil {
 		t.Fatal("expected error for write failure")
-	}
-}
-
-func TestMarshalJSON(t *testing.T) {
-	tests := []struct {
-		name   string
-		v      any
-		pretty bool
-		want   string
-	}{
-		{"compact", []int{1, 2}, false, "[1,2]"},
-		{"pretty", []int{1, 2}, true, "[\n  1,\n  2\n]"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := marshalJSON(tt.v, tt.pretty)
-			if err != nil {
-				t.Fatalf("marshalJSON() error: %v", err)
-			}
-
-			if string(got) != tt.want {
-				t.Errorf("marshalJSON() = %q, want %q", string(got), tt.want)
-			}
-		})
 	}
 }
 

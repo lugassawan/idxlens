@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	"github.com/lugassawan/idxlens/internal/helper"
 	"github.com/lugassawan/idxlens/internal/idx"
 	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
@@ -73,7 +73,7 @@ func runFetch(cmd *cobra.Command, args []string) error {
 
 	logger.Info("fetch complete", "downloaded", len(summary.Downloaded), "failed", len(summary.Failed))
 
-	out, err := json.MarshalIndent(summary, "", "  ")
+	out, err := helper.MarshalJSONIndent(summary)
 	if err != nil {
 		return fmt.Errorf("marshal summary: %w", err)
 	}

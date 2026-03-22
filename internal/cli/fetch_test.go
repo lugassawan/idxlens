@@ -13,23 +13,7 @@ import (
 )
 
 func TestFetchCommandRegistered(t *testing.T) {
-	found := false
-
-	for _, cmd := range rootCmd.Commands() {
-		if cmd.Use == "fetch TICKER[,TICKER...]" {
-			found = true
-
-			if cmd.Short == "" {
-				t.Error("fetch command has empty Short description")
-			}
-
-			break
-		}
-	}
-
-	if !found {
-		t.Error("fetch command not registered on rootCmd")
-	}
+	assertCommandRegistered(t, "fetch TICKER[,TICKER...]")
 }
 
 func TestFetchCommandFlags(t *testing.T) {
