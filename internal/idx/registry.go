@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/lugassawan/idxlens/internal/helper"
 )
 
 const (
@@ -125,7 +127,7 @@ func LoadCachedRegistry(path string) (map[string]CompanyRegistry, error) {
 
 // SaveCachedRegistry writes a presentation registry to a local JSON file.
 func SaveCachedRegistry(path string, reg map[string]CompanyRegistry) error {
-	data, err := json.MarshalIndent(reg, "", "  ")
+	data, err := helper.MarshalJSONIndent(reg)
 	if err != nil {
 		return fmt.Errorf("save cached registry: marshal: %w", err)
 	}

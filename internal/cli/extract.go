@@ -2,11 +2,11 @@ package cli
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/lugassawan/idxlens/internal/helper"
 	"github.com/lugassawan/idxlens/internal/service"
 	"github.com/spf13/cobra"
 )
@@ -88,11 +88,7 @@ func writeJSON(w io.Writer, v any, pretty bool) error {
 }
 
 func marshalJSON(v any, pretty bool) ([]byte, error) {
-	if pretty {
-		return json.MarshalIndent(v, "", "  ")
-	}
-
-	return json.Marshal(v)
+	return helper.MarshalJSON(v, pretty)
 }
 
 func openWriter(cmd *cobra.Command, path string) (io.Writer, func(), error) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
+	"github.com/lugassawan/idxlens/internal/helper"
 )
 
 const (
@@ -74,7 +75,7 @@ func SaveCookies(path string, cookies []*http.Cookie) error {
 		}
 	}
 
-	data, err := json.MarshalIndent(entries, "", "  ")
+	data, err := helper.MarshalJSONIndent(entries)
 	if err != nil {
 		return fmt.Errorf("marshal cookies: %w", err)
 	}
