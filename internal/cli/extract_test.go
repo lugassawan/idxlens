@@ -352,31 +352,6 @@ func TestWriteJSONWriteError(t *testing.T) {
 	}
 }
 
-func TestMarshalJSON(t *testing.T) {
-	tests := []struct {
-		name   string
-		v      any
-		pretty bool
-		want   string
-	}{
-		{"compact", []int{1, 2}, false, "[1,2]"},
-		{"pretty", []int{1, 2}, true, "[\n  1,\n  2\n]"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := marshalJSON(tt.v, tt.pretty)
-			if err != nil {
-				t.Fatalf("marshalJSON() error: %v", err)
-			}
-
-			if string(got) != tt.want {
-				t.Errorf("marshalJSON() = %q, want %q", string(got), tt.want)
-			}
-		})
-	}
-}
-
 func TestOpenWriter(t *testing.T) {
 	t.Run("empty path returns stdout", func(t *testing.T) {
 		cmd := &cobra.Command{}
